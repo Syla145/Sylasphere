@@ -33,7 +33,8 @@
     if (state.status === 'lobby') statusLabel = 'Lobby';
     else if (state.status === 'finished') statusLabel = 'Beendet';
     else if (state.questionOpen) statusLabel = 'Live';
-    else if (current.question && state.questionStartedAt) statusLabel = 'Auflösung';
+    else if (current.question && state.questionStartedAt && state.scoredQuestionIds?.includes(current.question.id)) statusLabel = 'Auflösung';
+    else if (current.question && state.questionStartedAt) statusLabel = 'Antworten geschlossen';
     App.setText(els['spectator-status'], statusLabel);
     const total = Quiz.allQuestions(state.quiz).length;
     let idx = 0; for (let i = 0; i < state.currentRoundIndex; i++) idx += state.quiz.quiz.rounds[i].questions.length; idx += state.currentQuestionIndex;
@@ -56,12 +57,15 @@
       els['spectator-stats'].innerHTML = ''; return;
     }
     const result = state.questionResults?.[current.question.id] || null;
-    Renderers.renderPlayer(current.question, els['spectator-question'], { readOnly: true, reveal: !state.questionOpen, currentAnswer: null, result });
+    const resolved = state.scoredQuestionIds?.includes(current.question.id);
+    const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
+    Renderers.renderPlayer(current.question, els['spectator-question'], { readOnly: true, reveal: resolved, currentAnswer: null, result });
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length;
     const total = state.players.length;
     let html = `<div class="presenter-response"><strong>${submitted}/${total}</strong><span>Antworten</span></div>`;
-    if (!state.questionOpen) {
+    if (pendingReveal) html += '<div class="notice notice--warning reveal-wait"><strong>Antworten geschlossen</strong><span>Die Auflösung folgt durch den Moderator.</span></div>';
+    if (resolved) {
       const solution = Quiz.correctAnswerText(current.question, result) || '–';
       const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
       html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(solution)}</strong></div>`;
@@ -106,7 +110,8 @@
   function renderLeaderboard() {
     const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 10);
     const current = engine.getCurrent(state);
-    const gains = !state.questionOpen && current?.question ? (state.answers[current.question.id] || {}) : {};
+    const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
+    const gains = resolved ? (state.answers[current.question.id] || {}) : {};
     els['spectator-leaderboard'].innerHTML = ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
       return `<div class="leader-row presenter-row"><span>${i + 1}</span><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;

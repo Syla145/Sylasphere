@@ -152,6 +152,7 @@
         const { question } = this.getCurrent(state);
         if (!question) throw new Error('Keine Frage verfügbar.');
         if (state.scoredQuestionIds?.includes(question.id)) throw new Error('Diese Frage wurde bereits ausgewertet. Bitte zur nächsten Frage wechseln.');
+        if (state.questionStartedAt) throw new Error('Diese Frage wurde bereits gestartet. Bitte erst auflösen oder zur nächsten Frage wechseln.');
         const questionTimer = Number(question.timer);
         const defaultTimer = Number(state.quiz.quiz.settings.defaultTimer);
         const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
@@ -162,40 +163,50 @@
         state.answers[question.id] = state.answers[question.id] || {};
       });
     }
-    closeQuestion() {
+    lockQuestion() {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        if (!question || !state.questionStartedAt) return;
+        if (state.scoredQuestionIds.includes(question.id)) return;
+        state.questionOpen = false;
+        state.questionEndsAt = null;
+      });
+    }
+    // Backwards-compatible name: "close" now only closes the answer phase.
+    closeQuestion() { return this.lockQuestion(); }
+    resolveQuestion() {
       this.mutate(state => {
         const { question, round } = this.getCurrent(state);
         if (!question) return;
-        state.questionOpen = false;
-        state.questionEndsAt = null;
-        if (!state.scoredQuestionIds.includes(question.id)) {
-          const answers = state.answers[question.id] || {};
-          const roundMultiplier = Number(round?.pointsMultiplier);
-          const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
-          let consensusResult = null;
-          if (question.type === 'consensus') {
-            consensusResult = Quiz.computeConsensusResult(question, answers);
-            state.questionResults[question.id] = consensusResult;
-          }
-          state.players.forEach(player => {
-            const submission = answers[player.id];
-            if (!submission) return;
-            let result;
-            if (question.type === 'consensus') {
-              const won = consensusResult.winningOptionIds.includes(String(submission.answer));
-              const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
-              const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
-              result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
-            } else {
-              result = Quiz.scoreAnswer(question, submission.answer, multiplier);
-            }
-            submission.awardedPoints = result.points;
-            submission.scoreDetail = result.detail;
-            submission.scoredAt = Date.now();
-            player.score = Math.round((Number(player.score) || 0) + result.points);
-          });
-          state.scoredQuestionIds.push(question.id);
+        if (!state.questionStartedAt) throw new Error('Die Frage wurde noch nicht gestartet.');
+        if (state.questionOpen) throw new Error('Bitte zuerst die Antworten schließen.');
+        if (state.scoredQuestionIds.includes(question.id)) return;
+        const answers = state.answers[question.id] || {};
+        const roundMultiplier = Number(round?.pointsMultiplier);
+        const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
+        let consensusResult = null;
+        if (question.type === 'consensus') {
+          consensusResult = Quiz.computeConsensusResult(question, answers);
+          state.questionResults[question.id] = consensusResult;
         }
+        state.players.forEach(player => {
+          const submission = answers[player.id];
+          if (!submission) return;
+          let result;
+          if (question.type === 'consensus') {
+            const won = consensusResult.winningOptionIds.includes(String(submission.answer));
+            const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+            const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
+            result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
+          } else {
+            result = Quiz.scoreAnswer(question, submission.answer, multiplier);
+          }
+          submission.awardedPoints = result.points;
+          submission.scoreDetail = result.detail;
+          submission.scoredAt = Date.now();
+          player.score = Math.round((Number(player.score) || 0) + result.points);
+        });
+        state.scoredQuestionIds.push(question.id);
       });
     }
     submitAnswer(playerId, answer) {
@@ -225,6 +236,9 @@
     }
     move(direction = 1) {
       this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        const unresolved = Boolean(question && state.questionStartedAt && !state.scoredQuestionIds.includes(question.id));
+        if (unresolved) throw new Error('Bitte die aktuelle Frage zuerst auflösen.');
         state.questionOpen = false;
         state.questionEndsAt = null;
         state.questionStartedAt = null;

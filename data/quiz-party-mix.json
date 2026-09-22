@@ -2,11 +2,23 @@
   "quiz": {
     "id": "quiz_jh_party_mix_v5",
     "title": "JH-Quiz: Party Mix",
-    "description": "Drei lockere Runden mit Sport, Gaming, Technik, Geschichte, Reisen, Essen, Film & Popkultur – inklusive der neuen v5-Spielmodi.",
-    "settings": { "defaultTimer": 24, "defaultPoints": 100, "buzzerEnabled": true },
+    "description": "Drei lockere Runden mit Sport, Gaming, Technik, Geschichte, Reisen, Essen, Film & Popkultur – inklusive der neuen Spielmodi.",
+    "settings": {
+      "defaultTimer": 24,
+      "defaultPoints": 100,
+      "buzzerEnabled": true
+    },
     "categories": [
-      "Sport", "Technik", "Reisen", "Musik & Sounds", "Wissenschaft", "Essen & Trinken",
-      "Internet & Popkultur", "Geschichte", "Gaming", "Filme & Serien"
+      "Sport",
+      "Technik",
+      "Reisen",
+      "Musik & Sounds",
+      "Wissenschaft",
+      "Essen & Trinken",
+      "Internet & Popkultur",
+      "Geschichte",
+      "Gaming",
+      "Filme & Serien"
     ],
     "rounds": [
       {
@@ -20,7 +32,22 @@
             "category": "Sport",
             "text": "Wie viele Spieler einer Fußballmannschaft stehen regulär gleichzeitig auf dem Feld?",
             "options": [
-              { "id": "a", "text": "9" }, { "id": "b", "text": "10" }, { "id": "c", "text": "11" }, { "id": "d", "text": "12" }
+              {
+                "id": "a",
+                "text": "9"
+              },
+              {
+                "id": "b",
+                "text": "10"
+              },
+              {
+                "id": "c",
+                "text": "11"
+              },
+              {
+                "id": "d",
+                "text": "12"
+              }
             ],
             "correctAnswer": "c",
             "points": 100,
@@ -32,7 +59,22 @@
             "category": "Technik",
             "text": "Wie viele Bits bilden ein Byte?",
             "options": [
-              { "id": "a", "text": "4" }, { "id": "b", "text": "8" }, { "id": "c", "text": "16" }, { "id": "d", "text": "32" }
+              {
+                "id": "a",
+                "text": "4"
+              },
+              {
+                "id": "b",
+                "text": "8"
+              },
+              {
+                "id": "c",
+                "text": "16"
+              },
+              {
+                "id": "d",
+                "text": "32"
+              }
             ],
             "correctAnswer": "b",
             "points": 100,
@@ -46,7 +88,22 @@
             "image": "./assets/demo-landmark.svg",
             "imageAlt": "Stilisierte Silhouette des Eiffelturms",
             "options": [
-              { "id": "a", "text": "Paris" }, { "id": "b", "text": "Rom" }, { "id": "c", "text": "Prag" }, { "id": "d", "text": "Wien" }
+              {
+                "id": "a",
+                "text": "Paris"
+              },
+              {
+                "id": "b",
+                "text": "Rom"
+              },
+              {
+                "id": "c",
+                "text": "Prag"
+              },
+              {
+                "id": "d",
+                "text": "Wien"
+              }
             ],
             "correctAnswer": "a",
             "points": 110,
@@ -60,7 +117,22 @@
             "audio": "./assets/demo-tone.wav",
             "audioLabel": "Tonfolge abspielen",
             "options": [
-              { "id": "a", "text": "Sie steigt" }, { "id": "b", "text": "Sie fällt" }, { "id": "c", "text": "Sie bleibt gleich" }, { "id": "d", "text": "Nur die Lautstärke ändert sich" }
+              {
+                "id": "a",
+                "text": "Sie steigt"
+              },
+              {
+                "id": "b",
+                "text": "Sie fällt"
+              },
+              {
+                "id": "c",
+                "text": "Sie bleibt gleich"
+              },
+              {
+                "id": "d",
+                "text": "Nur die Lautstärke ändert sich"
+              }
             ],
             "correctAnswer": "a",
             "points": 120,
@@ -93,10 +165,26 @@
             "category": "Essen & Trinken",
             "text": "Beispiel-Umfrage mit 100 Stimmen: Welcher Pizza-Belag wurde am häufigsten gewählt?",
             "options": [
-              { "id": "a", "text": "Salami", "value": 38 },
-              { "id": "b", "text": "Margherita", "value": 27 },
-              { "id": "c", "text": "Schinken", "value": 21 },
-              { "id": "d", "text": "Gemüse", "value": 14 }
+              {
+                "id": "a",
+                "text": "Salami",
+                "value": 38
+              },
+              {
+                "id": "b",
+                "text": "Margherita",
+                "value": 27
+              },
+              {
+                "id": "c",
+                "text": "Schinken",
+                "value": 21
+              },
+              {
+                "id": "d",
+                "text": "Gemüse",
+                "value": 14
+              }
             ],
             "points": 125,
             "timer": 20
@@ -107,7 +195,22 @@
             "category": "Internet & Popkultur",
             "text": "Welche Superkraft würde eure Gruppe am ehesten wählen? Denk wie die anderen!",
             "options": [
-              { "id": "a", "text": "Fliegen" }, { "id": "b", "text": "Unsichtbar sein" }, { "id": "c", "text": "Teleportieren" }, { "id": "d", "text": "Gedanken lesen" }
+              {
+                "id": "a",
+                "text": "Fliegen"
+              },
+              {
+                "id": "b",
+                "text": "Unsichtbar sein"
+              },
+              {
+                "id": "c",
+                "text": "Teleportieren"
+              },
+              {
+                "id": "d",
+                "text": "Gedanken lesen"
+              }
             ],
             "points": 150,
             "timer": 22
@@ -137,8 +240,18 @@
             "type": "sort",
             "category": "Geschichte",
             "text": "Bringe diese Ereignisse in die richtige zeitliche Reihenfolge – früh nach spät.",
-            "items": ["Gutenbergs Buchdruck", "Französische Revolution", "Erster Motorflug der Brüder Wright", "Erste bemannte Mondlandung"],
-            "correctOrder": ["Gutenbergs Buchdruck", "Französische Revolution", "Erster Motorflug der Brüder Wright", "Erste bemannte Mondlandung"],
+            "items": [
+              "Gutenbergs Buchdruck",
+              "Französische Revolution",
+              "Erster Motorflug der Brüder Wright",
+              "Erste bemannte Mondlandung"
+            ],
+            "correctOrder": [
+              "Gutenbergs Buchdruck",
+              "Französische Revolution",
+              "Erster Motorflug der Brüder Wright",
+              "Erste bemannte Mondlandung"
+            ],
             "points": 150,
             "timer": 30
           },
@@ -147,7 +260,13 @@
             "type": "fight-list",
             "category": "Essen & Trinken",
             "text": "Nenne bis zu fünf grundlegende Geschmacksrichtungen.",
-            "correctAnswers": ["süß", "sauer", "salzig", "bitter", "umami"],
+            "correctAnswers": [
+              "süß",
+              "sauer",
+              "salzig",
+              "bitter",
+              "umami"
+            ],
             "maxEntries": 5,
             "pointsPerAnswer": 30,
             "points": 150,
@@ -159,11 +278,36 @@
             "category": "Gaming",
             "text": "Kam das nächste Spiel später oder früher heraus?",
             "cards": [
-              { "id": "g1", "label": "Pong", "value": 1972, "unit": "" },
-              { "id": "g2", "label": "Tetris", "value": 1984, "unit": "" },
-              { "id": "g3", "label": "Doom", "value": 1993, "unit": "" },
-              { "id": "g4", "label": "Super Mario Bros.", "value": 1985, "unit": "" },
-              { "id": "g5", "label": "Minecraft (Vollversion)", "value": 2011, "unit": "" }
+              {
+                "id": "g1",
+                "label": "Pong",
+                "value": 1972,
+                "unit": ""
+              },
+              {
+                "id": "g2",
+                "label": "Tetris",
+                "value": 1984,
+                "unit": ""
+              },
+              {
+                "id": "g3",
+                "label": "Doom",
+                "value": 1993,
+                "unit": ""
+              },
+              {
+                "id": "g4",
+                "label": "Super Mario Bros.",
+                "value": 1985,
+                "unit": ""
+              },
+              {
+                "id": "g5",
+                "label": "Minecraft (Vollversion)",
+                "value": 2011,
+                "unit": ""
+              }
             ],
             "points": 170,
             "timer": 30
@@ -174,7 +318,22 @@
             "category": "Filme & Serien",
             "text": "Wie nennt man die Fortsetzung eines Films auf Englisch?",
             "options": [
-              { "id": "a", "text": "Pilot" }, { "id": "b", "text": "Sequel" }, { "id": "c", "text": "Trailer" }, { "id": "d", "text": "Remix" }
+              {
+                "id": "a",
+                "text": "Pilot"
+              },
+              {
+                "id": "b",
+                "text": "Sequel"
+              },
+              {
+                "id": "c",
+                "text": "Trailer"
+              },
+              {
+                "id": "d",
+                "text": "Remix"
+              }
             ],
             "correctAnswer": "b",
             "points": 120,

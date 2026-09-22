@@ -1,6 +1,6 @@
-# JH-Quiz – Quiz Arena v5
+# JH-Quiz – Quiz Arena v7
 
-Aktueller Stand: **v5 – Showtime Update**. Die Versionsnummer steht in jeder Ansicht direkt neben „Quiz Arena“, damit nach einem GitHub-Pages-Update sofort erkennbar ist, welcher Stand geladen wurde.
+Aktueller Stand: **v7 – Precise Score Update**. Die Versionsnummer steht in jeder Ansicht direkt neben „Quiz Arena“, damit nach einem GitHub-Pages-Update sofort erkennbar ist, welcher Stand geladen wurde.
 
 JH-Quiz ist eine statische Multi-Page-Quiz-Anwendung für GitHub Pages. Für die fertige Anwendung sind kein Build-Schritt, kein npm und kein Servercode erforderlich.
 
@@ -21,6 +21,27 @@ JH-Quiz ist eine statische Multi-Page-Quiz-Anwendung für GitHub Pages. Für die
 - `sort` – Elemente in die richtige Reihenfolge bringen
 - `fight-list` – mehrere freie Begriffe nennen
 - `higher-lower` – Werte höher/niedriger einschätzen
+
+
+## Neu in v7 – Exakte manuelle Punkte
+
+In der Moderator-Rangliste kann der Punktestand jedes Spielers jetzt auf die **1er-Stelle genau** korrigiert werden:
+
+- `−10` / `+10` für schnelle größere Anpassungen
+- `−1` / `+1` für Bonuspunkte und kleine Korrekturen
+- direkte Eingabe des exakten Gesamtpunktestands, z. B. `137`
+- Enter oder Verlassen des Feldes übernimmt den neuen Wert
+- auch negative Werte sind für Korrekturen technisch möglich
+
+Die automatische Quiz-Auswertung bleibt unverändert; manuelle Änderungen wirken direkt auf die gemeinsame Session und damit auf Moderator-, Spieler- und Zuschauer-Rangliste.
+
+## Neu in v6 – Moderator-gesteuerte Auflösung
+
+Der Timer beendet jetzt **nur noch die Antwortphase**. Nach Ablauf des Timers bleibt die Lösung für Spieler und Zuschauer verborgen. Der Moderator erhält einen hervorgehobenen Button **„✨ Frage auflösen“** und entscheidet selbst über den Reveal-Moment.
+
+Ablauf: **Frage öffnen → Antworten laufen → Timer/„Antworten schließen“ → Frage auflösen → Punkte/Lösung anzeigen → nächste Frage.**
+
+Das funktioniert ebenso bei Fragen ohne Timer: Dort schließt der Moderator die Antworten manuell und löst anschließend separat auf.
 
 ### Neu in v5
 - `audio-quiz` – Audio anhören und Antwort wählen
@@ -82,7 +103,7 @@ Der in v4 behobene Zwei-Spieler-/Duplicate-Tab-Fall bleibt Bestandteil der v5-Re
 1. **Den kompletten Inhalt dieses Ordners** in das GitHub-Repository hochladen bzw. die vorhandenen Dateien ersetzen. `.nojekyll` muss im Root bleiben.
 2. In GitHub unter **Settings → Pages** den Branch/Ordner auswählen, in dem `index.html` liegt (typisch `main` + `/root`).
 3. Pages-URL öffnen.
-4. In der Kopfzeile prüfen, ob **Quiz Arena v5** angezeigt wird.
+4. In der Kopfzeile prüfen, ob **Quiz Arena v7** angezeigt wird.
 5. Falls noch eine alte Version sichtbar ist, einmal Hard-Refresh ausführen (`Strg + F5`).
 
 Alle internen Pfade sind relativ und damit für Project-Pages-URLs wie `https://name.github.io/repo/` ausgelegt.

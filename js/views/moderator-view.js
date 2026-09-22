@@ -16,7 +16,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    ['quiz-select','quiz-summary','quiz-import','create-session','setup-panel','session-panel','session-code','session-status','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
+    ['quiz-select','quiz-summary','quiz-import','create-session','setup-panel','session-panel','session-code','session-status','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-resolve-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
     bind();
     await loadQuizList();
     const requested = (App.getParam('code') || '').toUpperCase();
@@ -42,7 +42,8 @@
     });
     els['btn-start-game']?.addEventListener('click', () => safe(() => engine.startGame()));
     els['btn-start-question']?.addEventListener('click', () => safe(() => engine.startQuestion()));
-    els['btn-close-question']?.addEventListener('click', () => safe(() => engine.closeQuestion()));
+    els['btn-close-question']?.addEventListener('click', () => safe(() => engine.lockQuestion()));
+    els['btn-resolve-question']?.addEventListener('click', () => safe(() => engine.resolveQuestion()));
     els['btn-prev']?.addEventListener('click', () => safe(() => engine.move(-1)));
     els['btn-next']?.addEventListener('click', () => safe(() => engine.move(1)));
     els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden?')) safe(() => engine.finish()); });
@@ -58,9 +59,16 @@
     els['copy-spectator-link']?.addEventListener('click', () => copyJoinLink('spectator'));
     document.addEventListener('keydown', event => {
       if (!engine || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
-      if (event.code === 'Space') { event.preventDefault(); state?.questionOpen ? engine.closeQuestion() : engine.startQuestion(); }
-      if (event.key === 'ArrowRight') engine.move(1);
-      if (event.key === 'ArrowLeft') engine.move(-1);
+      if (event.code === 'Space') {
+        event.preventDefault();
+        const current = engine.getCurrent(state);
+        const resolved = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
+        if (state?.questionOpen) safe(() => engine.lockQuestion());
+        else if (state?.questionStartedAt && !resolved) safe(() => engine.resolveQuestion());
+        else if (!state?.questionStartedAt && !resolved) safe(() => engine.startQuestion());
+      }
+      if (event.key === 'ArrowRight') safe(() => engine.move(1));
+      if (event.key === 'ArrowLeft') safe(() => engine.move(-1));
     });
   }
 
@@ -140,7 +148,8 @@
     if (s.status === 'lobby') return 'Lobby';
     if (s.status === 'finished') return 'Beendet';
     const current = engine?.getCurrent(s);
-    if (!s.questionOpen && current?.question && s.scoredQuestionIds?.includes(current.question.id)) return 'Ausgewertet';
+    if (!s.questionOpen && current?.question && s.scoredQuestionIds?.includes(current.question.id)) return 'Aufgelöst';
+    if (!s.questionOpen && current?.question && s.questionStartedAt) return 'Antworten geschlossen';
     return s.questionOpen ? 'Frage läuft' : 'Bereit';
   }
   function questionGlobalIndex(s) {
@@ -156,11 +165,29 @@
       <div class="player-row" data-player="${App.escapeHTML(p.id)}">
         <div class="player-rank">${i + 1}</div><div class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</div>
         <div class="player-name"><strong>${App.escapeHTML(p.name)}</strong><span>${App.formatPoints(p.score)}</span></div>
-        <div class="score-controls"><button type="button" class="icon-btn score-minus" title="10 Punkte abziehen">−</button><button type="button" class="icon-btn score-plus" title="10 Punkte addieren">+</button></div>
+        <div class="score-controls score-controls--precise" aria-label="Punkte von ${App.escapeHTML(p.name)} anpassen">
+          <button type="button" class="score-step" data-delta="-10" title="10 Punkte abziehen">−10</button>
+          <button type="button" class="score-step score-step--one" data-delta="-1" title="1 Punkt abziehen">−1</button>
+          <input class="score-input" type="number" step="1" value="${Math.round(Number(p.score) || 0)}" inputmode="numeric" aria-label="Punktestand von ${App.escapeHTML(p.name)} direkt setzen" title="Punktestand direkt eingeben">
+          <button type="button" class="score-step score-step--one" data-delta="1" title="1 Punkt addieren">+1</button>
+          <button type="button" class="score-step" data-delta="10" title="10 Punkte addieren">+10</button>
+        </div>
       </div>`).join('');
     els['players-list'].querySelectorAll('.player-row').forEach(row => {
-      row.querySelector('.score-minus').addEventListener('click', () => engine.adjustPlayerScore(row.dataset.player, -10));
-      row.querySelector('.score-plus').addEventListener('click', () => engine.adjustPlayerScore(row.dataset.player, 10));
+      row.querySelectorAll('.score-step').forEach(button => {
+        button.addEventListener('click', () => engine.adjustPlayerScore(row.dataset.player, Number(button.dataset.delta)));
+      });
+      const input = row.querySelector('.score-input');
+      const applyExactScore = () => {
+        const value = Number(input.value);
+        if (!Number.isFinite(value)) { render(state); return; }
+        engine.setPlayerScore(row.dataset.player, Math.round(value));
+      };
+      input.addEventListener('change', applyExactScore);
+      input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
+      });
+      input.addEventListener('focus', () => input.select());
     });
   }
   function renderQuestion(current) {
@@ -176,13 +203,16 @@
       return;
     }
     const questionResult = state.questionResults?.[current.question.id] || null;
-    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: !state.questionOpen, result: questionResult });
+    const resolved = state.scoredQuestionIds?.includes(current.question.id);
+    const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
+    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult });
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length;
     const total = state.players.length;
-    const correct = !state.questionOpen ? Quiz.correctAnswerText(current.question, questionResult) : '';
+    const correct = resolved ? Quiz.correctAnswerText(current.question, questionResult) : '';
     const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
-    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : ''}${!state.questionOpen && submitted ? answerRows(current.question, answers) : ''}`;
+    const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
+    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : ''}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
   }
   function answerRows(question, answers) {
     const players = new Map(state.players.map(p => [p.id, p]));
@@ -208,6 +238,16 @@
   }
   function renderTimer() {
     timer?.stop();
+    const current = engine?.getCurrent(state);
+    const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
+    const pendingReveal = Boolean(current?.question && state.questionStartedAt && !state.questionOpen && !resolved);
+    els['timer-ring']?.classList.remove('is-critical', 'is-ended');
+    if (pendingReveal) {
+      App.setText(els['timer-number'], '0');
+      els['timer-ring']?.style.setProperty('--timer-progress','0deg');
+      els['timer-ring']?.classList.add('is-ended');
+      return;
+    }
     if (!state.questionOpen || !state.questionEndsAt) { App.setText(els['timer-number'], '–'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); return; }
     const total = Math.max(1, state.questionEndsAt - (state.questionStartedAt || Date.now()));
     timer = new Timer((seconds, ms) => {
@@ -215,17 +255,21 @@
       const progress = ms == null ? 0 : App.clamp(ms / total, 0, 1) * 360;
       els['timer-ring']?.style.setProperty('--timer-progress', `${progress}deg`);
       els['timer-ring']?.classList.toggle('is-critical', seconds != null && seconds <= 5);
-    }, () => { const fresh = engine.load(); if (fresh?.questionOpen) engine.closeQuestion(); });
+    }, () => { const fresh = engine.load(); if (fresh?.questionOpen) engine.lockQuestion(); });
     timer.start(state.questionEndsAt);
   }
   function renderButtons(current) {
     const finished = state.status === 'finished';
     els['btn-start-game'].disabled = state.status !== 'lobby' || !state.players.length;
     const alreadyScored = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
-    els['btn-start-question'].disabled = finished || state.questionOpen || !current.question || alreadyScored;
+    const started = Boolean(current.question && state.questionStartedAt);
+    const pendingReveal = started && !state.questionOpen && !alreadyScored;
+    els['btn-start-question'].disabled = finished || started || !current.question || alreadyScored;
     els['btn-close-question'].disabled = finished || !state.questionOpen;
-    els['btn-prev'].disabled = state.questionOpen || questionGlobalIndex(state) <= 0;
-    els['btn-next'].disabled = state.questionOpen || finished;
+    els['btn-resolve-question'].disabled = finished || !pendingReveal;
+    els['btn-resolve-question'].classList.toggle('is-ready', pendingReveal);
+    els['btn-prev'].disabled = state.questionOpen || pendingReveal || questionGlobalIndex(state) <= 0;
+    els['btn-next'].disabled = state.questionOpen || pendingReveal || finished;
     els['btn-finish'].disabled = finished;
   }
   function safe(fn) { try { fn(); } catch (error) { App.toast(error.message, 'error'); } }

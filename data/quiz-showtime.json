@@ -32,10 +32,22 @@
             "category": "Geografie",
             "text": "Was ist die Hauptstadt von Australien?",
             "options": [
-              { "id": "a", "text": "Sydney" },
-              { "id": "b", "text": "Melbourne" },
-              { "id": "c", "text": "Canberra" },
-              { "id": "d", "text": "Perth" }
+              {
+                "id": "a",
+                "text": "Sydney"
+              },
+              {
+                "id": "b",
+                "text": "Melbourne"
+              },
+              {
+                "id": "c",
+                "text": "Canberra"
+              },
+              {
+                "id": "d",
+                "text": "Perth"
+              }
             ],
             "correctAnswer": "c",
             "points": 100,
@@ -49,10 +61,22 @@
             "image": "./assets/demo-landmark.svg",
             "imageAlt": "Stilisierte Silhouette des Eiffelturms",
             "options": [
-              { "id": "a", "text": "Paris" },
-              { "id": "b", "text": "Brüssel" },
-              { "id": "c", "text": "Madrid" },
-              { "id": "d", "text": "Mailand" }
+              {
+                "id": "a",
+                "text": "Paris"
+              },
+              {
+                "id": "b",
+                "text": "Brüssel"
+              },
+              {
+                "id": "c",
+                "text": "Madrid"
+              },
+              {
+                "id": "d",
+                "text": "Mailand"
+              }
             ],
             "correctAnswer": "a",
             "points": 100,
@@ -66,10 +90,22 @@
             "audio": "./assets/demo-tone.wav",
             "audioLabel": "Kurzer Ton-Clip",
             "options": [
-              { "id": "a", "text": "Sie steigt an" },
-              { "id": "b", "text": "Sie fällt ab" },
-              { "id": "c", "text": "Alle Töne sind gleich" },
-              { "id": "d", "text": "Sie steigt und fällt" }
+              {
+                "id": "a",
+                "text": "Sie steigt an"
+              },
+              {
+                "id": "b",
+                "text": "Sie fällt ab"
+              },
+              {
+                "id": "c",
+                "text": "Alle Töne sind gleich"
+              },
+              {
+                "id": "d",
+                "text": "Sie steigt und fällt"
+              }
             ],
             "correctAnswer": "a",
             "points": 120,
@@ -102,10 +138,26 @@
             "category": "Community & Popkultur",
             "text": "In unserer Beispiel-Umfrage mit 100 Stimmen: Was gehört am häufigsten zu einem perfekten Filmabend?",
             "options": [
-              { "id": "a", "text": "Snacks", "value": 42 },
-              { "id": "b", "text": "Bequeme Couch", "value": 28 },
-              { "id": "c", "text": "Freunde", "value": 19 },
-              { "id": "d", "text": "Kuscheldecke", "value": 11 }
+              {
+                "id": "a",
+                "text": "Snacks",
+                "value": 42
+              },
+              {
+                "id": "b",
+                "text": "Bequeme Couch",
+                "value": 28
+              },
+              {
+                "id": "c",
+                "text": "Freunde",
+                "value": 19
+              },
+              {
+                "id": "d",
+                "text": "Kuscheldecke",
+                "value": 11
+              }
             ],
             "points": 120,
             "timer": 22
@@ -116,10 +168,22 @@
             "category": "Dilemma",
             "text": "Was wäre für eine Woche am schwierigsten zu verzichten? Denk wie die Gruppe!",
             "options": [
-              { "id": "a", "text": "Internet" },
-              { "id": "b", "text": "Musik" },
-              { "id": "c", "text": "Süßigkeiten" },
-              { "id": "d", "text": "Gaming" }
+              {
+                "id": "a",
+                "text": "Internet"
+              },
+              {
+                "id": "b",
+                "text": "Musik"
+              },
+              {
+                "id": "c",
+                "text": "Süßigkeiten"
+              },
+              {
+                "id": "d",
+                "text": "Gaming"
+              }
             ],
             "points": 140,
             "timer": 20
@@ -149,8 +213,18 @@
             "type": "sort",
             "category": "Weltraum",
             "text": "Sortiere diese Planeten nach ihrer Entfernung von der Sonne – nah nach fern.",
-            "items": ["Merkur", "Venus", "Erde", "Mars"],
-            "correctOrder": ["Merkur", "Venus", "Erde", "Mars"],
+            "items": [
+              "Merkur",
+              "Venus",
+              "Erde",
+              "Mars"
+            ],
+            "correctOrder": [
+              "Merkur",
+              "Venus",
+              "Erde",
+              "Mars"
+            ],
             "points": 140,
             "timer": 30
           },
@@ -159,7 +233,15 @@
             "type": "fight-list",
             "category": "Geografie",
             "text": "Nenne bis zu fünf Kontinente.",
-            "correctAnswers": ["Afrika", "Antarktika", "Asien", "Europa", "Nordamerika", "Südamerika", "Australien"],
+            "correctAnswers": [
+              "Afrika",
+              "Antarktika",
+              "Asien",
+              "Europa",
+              "Nordamerika",
+              "Südamerika",
+              "Australien"
+            ],
             "maxEntries": 5,
             "pointsPerAnswer": 25,
             "points": 125,
@@ -171,10 +253,30 @@
             "category": "Rekorde",
             "text": "Ist das nächste Bauwerk höher oder niedriger?",
             "cards": [
-              { "id": "tower_1", "label": "Eiffelturm", "value": 330, "unit": "m" },
-              { "id": "tower_2", "label": "Empire State Building (Spitze)", "value": 443, "unit": "m" },
-              { "id": "tower_3", "label": "Burj Khalifa", "value": 828, "unit": "m" },
-              { "id": "tower_4", "label": "One World Trade Center", "value": 541, "unit": "m" }
+              {
+                "id": "tower_1",
+                "label": "Eiffelturm",
+                "value": 330,
+                "unit": "m"
+              },
+              {
+                "id": "tower_2",
+                "label": "Empire State Building (Spitze)",
+                "value": 443,
+                "unit": "m"
+              },
+              {
+                "id": "tower_3",
+                "label": "Burj Khalifa",
+                "value": 828,
+                "unit": "m"
+              },
+              {
+                "id": "tower_4",
+                "label": "One World Trade Center",
+                "value": 541,
+                "unit": "m"
+              }
             ],
             "points": 160,
             "timer": 30

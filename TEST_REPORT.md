@@ -1,10 +1,55 @@
-# JH-Quiz – Abschlussprüfung v5 „Showtime Update“
+# JH-Quiz – Abschlussprüfung v7 „Precise Score Update"
 
 Stand: 22.09.2026
 
-## Ergebnis
+## Ergebnis v7
 
-Der v5-Stand wurde als statische GitHub-Pages-Anwendung gegen Datenmodell, zehn Fragetypen, Punkteberechnung, Kategorien, Import/Export, Mehrspieler-Regression, Editorstruktur, Dateipfade und Smartphone-Layout geprüft.
+Die Auflösung wurde vollständig von der Antwortphase getrennt. Der Timer schließt jetzt nur noch die Eingabe; Lösung, Statistiken und Punkte erscheinen erst nach dem expliziten Moderator-Klick auf **„✨ Frage auflösen“**.
+
+### Geprüfter Zustandsablauf
+
+**Frage öffnen → Antworten möglich → Timer abgelaufen / Antworten manuell schließen → Antworten gesperrt, Lösung verborgen → Moderator löst auf → Punkte und Lösung erscheinen → Navigation freigegeben.**
+
+Automatisch bestanden:
+
+- **22 Session-/State-Flow-Checks** für Öffnen, Schließen, Auflösen, Doppelscoring-Schutz und Navigation
+- **10 Scoring-Checks** über alle zehn Fragetypen
+- **53 JSON-/Quiz-Validierungschecks** über alle mitgelieferten Quizdateien
+- **54 lokale HTML-Referenz-, Versions- und Cache-Buster-Checks**
+- JavaScript-Syntaxprüfung aller produktiven JavaScript-Dateien
+- sichtbare Versionsmarke **Quiz Arena v7** in allen Ansichten
+- CSS-/JS-Cache-Buster **`?v=7`**
+- `[hidden]`-Regression weiterhin abgesichert
+- bestehende Zwei-Spieler-/Duplicate-Tab-Identitätslogik bleibt unverändert erhalten
+
+
+### Spezifische v7-Regressionen
+
+- `+1` erhöht exakt um einen Punkt
+- `−1` reduziert exakt um einen Punkt
+- bestehende `+10` / `−10`-Korrekturen bleiben erhalten
+- direkter Gesamtpunktestand kann auf einen beliebigen ganzzahligen Wert gesetzt werden
+- negative Korrekturwerte werden korrekt gespeichert
+- alle Änderungen laufen über die bestehende SessionEngine und synchronisieren dadurch die Ranglisten
+- Moderator-UI enthält pro Spieler fünf präzise Bedienelemente (`−10`, `−1`, Direktwert, `+1`, `+10`)
+- alle fünf HTML-Ansichten verwenden **v7** und `?v=7`
+
+### Spezifische v6-Regressionen
+
+- Timerablauf vergibt **keine Punkte** und zeigt **keine Lösung**.
+- Nach Timerablauf werden weitere Antworten abgewiesen.
+- Der Moderator kann eine Frage auch vor Timerende über **„Antworten schließen“** sperren.
+- Fragen mit Timer `0` lassen sich manuell schließen und anschließend auflösen.
+- Eine geschlossene, noch nicht aufgelöste Frage kann nicht erneut gestartet oder übersprungen werden.
+- **„Frage auflösen“** vergibt Punkte exakt einmal; mehrfaches Klicken erzeugt kein Doppelscoring.
+- Spieler sehen in der Zwischenphase **„Antworten geschlossen“** statt der Lösung.
+- Presenter/Zuschauer sehen in der Zwischenphase ebenfalls keine Lösung oder Antwortstatistik.
+- Der Moderator sieht einen deutlich hervorgehobenen Reveal-Button, sobald aufgelöst werden kann.
+
+---
+
+## Bestehende v5-Prüfungen (weiterhin gültig)
+
 
 ## Neue Fragetypen v5
 

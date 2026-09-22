@@ -1,11 +1,11 @@
 [
   {
-    "title": "JH-Quiz: Showtime · v5",
+    "title": "JH-Quiz: Showtime · 10 Fragetypen",
     "description": "Showcase mit allen zehn Fragetypen inklusive Audio, Publikums-Duell, Gleich gedacht und Hotspot.",
     "file": "quiz-showtime.json"
   },
   {
-    "title": "JH-Quiz: Party Mix · v5",
+    "title": "JH-Quiz: Party Mix",
     "description": "Drei lockere Runden mit Sport, Gaming, Technik, Geschichte, Reisen, Essen, Film & Popkultur.",
     "file": "quiz-party-mix.json"
   },

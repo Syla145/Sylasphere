@@ -100,6 +100,7 @@
     const answerRecord = state.answers[current.question.id]?.[playerId];
     const questionResult = state.questionResults?.[current.question.id] || null;
     if (currentQuestionId !== current.question.id) { currentQuestionId = current.question.id; draftAnswer = answerRecord?.answer ?? null; }
+    const resolved = state.scoredQuestionIds?.includes(current.question.id);
     if (state.questionOpen) {
       App.setText(els['game-status'], 'Frage läuft');
       Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
@@ -107,6 +108,11 @@
       els['submit-answer'].disabled = draftAnswer == null;
       els['submit-answer'].textContent = answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken';
       els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : '';
+    } else if (!resolved) {
+      App.setText(els['game-status'], 'Antworten geschlossen');
+      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: false, result: questionResult });
+      els['submit-answer'].hidden = true;
+      els['answer-feedback'].innerHTML = `<div class="notice notice--warning reveal-wait"><strong>⏱ Antworten sind geschlossen.</strong><span>${answerRecord ? 'Deine Antwort ist gespeichert. ' : ''}Der Moderator löst die Frage gleich auf.</span></div>`;
     } else {
       App.setText(els['game-status'], 'Auflösung');
       Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result: questionResult });
@@ -133,7 +139,8 @@
   function renderLeaderboard() {
     const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 8);
     const current = engine?.getCurrent(state);
-    const gains = !state.questionOpen && current?.question ? (state.answers[current.question.id] || {}) : {};
+    const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
+    const gains = resolved ? (state.answers[current.question.id] || {}) : {};
     els['leaderboard'].innerHTML = ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
       return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
@@ -141,7 +148,7 @@
   }
   function renderTimer(current){
     timer?.stop(); if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
-    timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); }); timer.start(state.questionEndsAt);
+    timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
   }
   function disconnect(message){ identity?.destroy(); identity=null; engine?.destroy(); engine=null; els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message; }
 })();
