@@ -29,6 +29,15 @@ Vor dem Öffnen einer Frage durfte Spieler/Zuschauer die Lösung nicht sehen. De
 - Vorher/Nachher in Chromium: **vorher** Join-Panel `display:grid`; **nachher** Join-Panel `display:none`, Game-Panel `display:block`.
 - Zusätzlich CSS-Cache-Buster (`main.css?v=20260922-joinfix1`) in allen HTML-Seiten ergänzt, damit GitHub Pages/Browser sicher die korrigierte CSS-Version laden.
 
+## Regressionstest: Mehrere lokale Spieler
+
+- Fehler reproduziert: Die Spieler-ID wurde bisher unter `schmobin:player:<code>` in `localStorage` gespeichert. Da `localStorage` zwischen Tabs desselben Browsers geteilt wird, las Spieler 2 die ID von Spieler 1 und `joinPlayer()` aktualisierte dadurch denselben Spieler statt einen neuen anzulegen.
+- Vorher-Test: Join `Anna` → Join `Ben` in einem zweiten simulierten Tab ergab **1 Spieler**, sichtbar war nur noch `Ben`.
+- Fix: Nur die gemeinsame Sitzung bleibt in `localStorage`; die eigene Spieler-ID wird jetzt pro Tab in `sessionStorage` gespeichert. Der alte gemeinsame Player-Key wird beim Join entfernt.
+- Nachher-Test: Join `Anna` + Join `Ben` ergibt **2 Spieler mit unterschiedlichen IDs** in derselben Session.
+- Reconnect-Test: Reload/Rejoin im selben Tab verwendet weiterhin dieselbe Spieler-ID und erzeugt **keinen Doppelspieler**.
+- `spieler.html` lädt die korrigierte Spielerlogik mit Cache-Buster `player-view.js?v=20260922-multiplayerfix1`.
+
 ## Nicht live verifiziert
 
 Ein echter GitHub-Pages-Deploy war in dieser Arbeitsumgebung nicht möglich, weil kein zugehöriges Repository/keine Pages-URL als bearbeitbarer Projektstand vorlag. Deshalb wurden Pfade, Groß-/Kleinschreibung, `.nojekyll`, statische Dateireferenzen und Project-Pages-relative URLs automatisiert geprüft. Es gibt keine lokale oder Build-Abhängigkeit im ausgelieferten Projekt.

@@ -33,9 +33,15 @@
     if (!name) { els['join-error'].textContent='Bitte gib deinen Namen ein.'; return; }
     try {
       engine?.destroy(); engine = new Session(code);
-      const storageKey=`schmobin:player:${code}`; const previous=localStorage.getItem(storageKey)||'';
+      // Player identity must be tab-local. The shared game state belongs in localStorage,
+      // but storing the player id there makes every player tab reuse/overwrite the same player.
+      const storageKey=`schmobin:player:${code}`;
+      const previous=sessionStorage.getItem(storageKey)||'';
       const avatar=els['avatar-options'].querySelector('.is-selected')?.dataset.avatar || '🦊';
-      playerId=engine.joinPlayer(name,avatar,previous); localStorage.setItem(storageKey,playerId);
+      playerId=engine.joinPlayer(name,avatar,previous);
+      sessionStorage.setItem(storageKey,playerId);
+      // Remove the legacy shared identity from older Schmobin versions.
+      localStorage.removeItem(storageKey);
       els['join-panel'].hidden=true; els['game-panel'].hidden=false; history.replaceState(null,'',`?code=${code}`);
       engine.subscribe(render);
     } catch(error) { els['join-error'].textContent=error.message; }
