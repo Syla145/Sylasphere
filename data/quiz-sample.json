@@ -1,7 +1,7 @@
 {
   "quiz": {
     "id": "quiz_sample_all_types",
-    "title": "Schmobin – Alle Fragetypen",
+    "title": "JH-Quiz – Alle Fragetypen",
     "description": "Referenzquiz zum Testen aller sechs Fragetypen.",
     "settings": {
       "defaultTimer": 25,

@@ -1,4 +1,6 @@
-# Schmobin – Quiz Arena
+# JH-Quiz – Quiz Arena v4
+
+Aktueller Frontend-Stand: **v4**. Die Versionsnummer wird in der Kopfzeile direkt neben „Quiz Arena“ angezeigt und bei künftigen Updates hochgezählt.
 
 Statische Multi-Page-Quiz-Anwendung für GitHub Pages. Kein Build-Schritt, kein npm und kein Servercode für den Frontend-MVP erforderlich.
 
@@ -32,4 +34,4 @@ Kategorien bleiben freie Textwerte an Fragen. Es gibt keine fest codierte Katego
 
 ## Technische Grenze des Frontend-MVP
 
-Die Live-Synchronisierung verwendet `localStorage` + `BroadcastChannel`. Die gemeinsame Sitzung liegt in `localStorage`, während die eigene Spieler-ID tab-lokal in `sessionStorage` gespeichert wird, damit mehrere Spieler-Tabs desselben Browsers parallel teilnehmen können. Das funktioniert zuverlässig zwischen Tabs/Fenstern **desselben Browsers auf demselben Gerät**. GitHub Pages kann selbst keinen WebSocket-Server bereitstellen. Für echten Moderator-PC ↔ Spieler-Handys-Multiplayer wird als nächster Architektur-Schritt ein separates Realtime-Backend benötigt; das statische Frontend kann dabei weiterhin auf GitHub Pages bleiben.
+Die Live-Synchronisierung verwendet `localStorage` + `BroadcastChannel`. Die gemeinsame Sitzung liegt in `localStorage`. Die Spieler-ID liegt zusätzlich tab-lokal in `sessionStorage`; vor einer Wiederverwendung prüft eine Presence-Abfrage per `BroadcastChannel`, ob dieselbe ID bereits in einem anderen offenen Tab aktiv ist. Dadurch funktionieren auch duplizierte Spielertabs als getrennte lokale Spieler. Das funktioniert zuverlässig zwischen Tabs/Fenstern **desselben Browsers auf demselben Gerät**. GitHub Pages kann selbst keinen WebSocket-Server bereitstellen. Für echten Moderator-PC ↔ Spieler-Handys-Multiplayer wird als nächster Architektur-Schritt ein separates Realtime-Backend benötigt; das statische Frontend kann dabei weiterhin auf GitHub Pages bleiben.

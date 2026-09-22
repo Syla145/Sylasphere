@@ -33,7 +33,7 @@
   function createBlankQuiz() {
     return Quiz.normalizeQuiz({ quiz: {
       id: `quiz_${Date.now().toString(36)}`,
-      title: 'Mein Schmobin Quiz', description: '',
+      title: 'Mein JH-Quiz', description: '',
       settings: { defaultTimer: 30, defaultPoints: 100, buzzerEnabled: true },
       rounds: [{ id: App.uid('round'), title: 'Runde 1', pointsMultiplier: 1, questions: [newQuestion('multiple-choice')] }]
     }});

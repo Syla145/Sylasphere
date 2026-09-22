@@ -1,7 +1,10 @@
 (function () {
   'use strict';
 
+  const APP_VERSION = 'v4';
+
   const App = {
+    version: APP_VERSION,
     qs(selector, root = document) { return root.querySelector(selector); },
     qsa(selector, root = document) { return Array.from(root.querySelectorAll(selector)); },
     uid(prefix = 'id') {
@@ -67,6 +70,12 @@
     formatPoints(value) { return `${Math.round(Number(value) || 0)} P`; },
     avatar(value) { return String(value || '🦊').slice(0, 4); }
   };
+
+  function applyVersion() {
+    document.querySelectorAll('[data-app-version]').forEach(el => { el.textContent = APP_VERSION; });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyVersion);
+  else applyVersion();
 
   window.SchmobinApp = App;
 })();

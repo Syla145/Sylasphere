@@ -5,8 +5,9 @@
   const Session = window.SchmobinSession;
   const Renderers = window.SchmobinRenderers;
   const Timer = window.SchmobinTimer;
+  const PlayerIdentity = window.JHQuizPlayerIdentity;
 
-  let engine = null, state = null, playerId = '', currentQuestionId = '', draftAnswer = null, timer = null;
+  let engine = null, identity = null, state = null, playerId = '', currentQuestionId = '', draftAnswer = null, timer = null, joining = false;
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
 
@@ -26,25 +27,40 @@
       const b=e.target.closest('.avatar-choice'); if(!b)return; els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x=>x.classList.toggle('is-selected',x===b));
     });
   }
-  function join() {
+  async function join() {
+    if (joining) return;
     const code = els['room-code'].value.trim().toUpperCase(); const name = els['player-name'].value.trim();
     els['join-error'].textContent='';
     if (!Session.exists(code)) { els['join-error'].textContent='Sitzung nicht gefunden. Prüfe den 6-stelligen Code.'; return; }
     if (!name) { els['join-error'].textContent='Bitte gib deinen Namen ein.'; return; }
+    const joinButton = els['join-btn'];
+    joining = true;
+    joinButton.disabled = true;
+    joinButton.textContent = 'Beitritt läuft …';
     try {
-      engine?.destroy(); engine = new Session(code);
-      // Player identity must be tab-local. The shared game state belongs in localStorage,
-      // but storing the player id there makes every player tab reuse/overwrite the same player.
-      const storageKey=`schmobin:player:${code}`;
-      const previous=sessionStorage.getItem(storageKey)||'';
+      engine?.destroy();
+      identity?.destroy();
+      engine = new Session(code);
+      identity = new PlayerIdentity(code);
+
+      // A stored id is reused only for a genuine reload/reconnect. If another live tab
+      // currently owns it (e.g. Chrome "Tab duplizieren"), reusablePlayerId() returns
+      // an empty id so joinPlayer() creates a second, independent player.
+      const previous = await identity.reusablePlayerId();
       const avatar=els['avatar-options'].querySelector('.is-selected')?.dataset.avatar || '🦊';
       playerId=engine.joinPlayer(name,avatar,previous);
-      sessionStorage.setItem(storageKey,playerId);
-      // Remove the legacy shared identity from older Schmobin versions.
-      localStorage.removeItem(storageKey);
+      identity.activate(playerId);
+
       els['join-panel'].hidden=true; els['game-panel'].hidden=false; history.replaceState(null,'',`?code=${code}`);
       engine.subscribe(render);
-    } catch(error) { els['join-error'].textContent=error.message; }
+    } catch(error) {
+      els['join-error'].textContent=error.message;
+      identity?.destroy(); identity = null;
+    } finally {
+      joining = false;
+      joinButton.disabled = false;
+      joinButton.textContent = 'Sitzung beitreten';
+    }
   }
   function render(next) {
     state=next; const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
@@ -86,5 +102,5 @@
     timer?.stop(); if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
     timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); }); timer.start(state.questionEndsAt);
   }
-  function disconnect(message){ engine?.destroy(); engine=null; els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message; }
+  function disconnect(message){ identity?.destroy(); identity=null; engine?.destroy(); engine=null; els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message; }
 })();

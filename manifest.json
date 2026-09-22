@@ -1,12 +1,17 @@
 {
-  "name": "Schmobin Quiz Arena",
-  "short_name": "Schmobin",
+  "name": "JH-Quiz – Quiz Arena",
+  "short_name": "JH-Quiz",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a1020",
   "theme_color": "#0a1020",
-  "description": "Statische Quiz-App für Moderator, Spieler, Zuschauer und Quiz-Editor.",
+  "description": "JH-Quiz: statische Quiz-App für Moderator, Spieler, Zuschauer und Quiz-Editor.",
   "icons": [
-    {"src":"./assets/schmobin-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+    {
+      "src": "./assets/jh-quiz-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }
