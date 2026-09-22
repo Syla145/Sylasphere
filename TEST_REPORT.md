@@ -21,6 +21,14 @@ Stand: 22.09.2026
 
 Vor dem Öffnen einer Frage durfte Spieler/Zuschauer die Lösung nicht sehen. Der Session-Zustand setzt beim Fragenwechsel nun `questionStartedAt` zurück; Spieler- und Zuschaueransicht zeigen bis zum Start einen neutralen Wartezustand. Lösung und Punkte erscheinen erst nach einer tatsächlich gestarteten und geschlossenen Frage.
 
+## Regressionstest: Spieler-Beitritt
+
+- Fehler reproduziert gegen die ursprünglich ausgelieferte Version: `join-panel.hidden === true`, aber durch `.join-shell { display:grid; }` blieb die Beitrittsseite in Chromium sichtbar (`display: grid`).
+- Ursache: Das HTML-`hidden`-Attribut wurde durch die Layout-CSS der Beitrittsansicht überschrieben. Die Session-Logik selbst war korrekt; Moderator und Spieler erhielten denselben Lobby-State.
+- Fix: globale Regel `[hidden]{display:none!important}` ergänzt. Sie schützt auch andere umschaltbare Panels/Modals vor demselben Fehlerbild.
+- Vorher/Nachher in Chromium: **vorher** Join-Panel `display:grid`; **nachher** Join-Panel `display:none`, Game-Panel `display:block`.
+- Zusätzlich CSS-Cache-Buster (`main.css?v=20260922-joinfix1`) in allen HTML-Seiten ergänzt, damit GitHub Pages/Browser sicher die korrigierte CSS-Version laden.
+
 ## Nicht live verifiziert
 
 Ein echter GitHub-Pages-Deploy war in dieser Arbeitsumgebung nicht möglich, weil kein zugehöriges Repository/keine Pages-URL als bearbeitbarer Projektstand vorlag. Deshalb wurden Pfade, Groß-/Kleinschreibung, `.nojekyll`, statische Dateireferenzen und Project-Pages-relative URLs automatisiert geprüft. Es gibt keine lokale oder Build-Abhängigkeit im ausgelieferten Projekt.
