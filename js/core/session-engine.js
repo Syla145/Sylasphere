@@ -30,7 +30,7 @@
       const quiz = Quiz.normalizeQuiz(quizInput);
       const now = Date.now();
       const state = {
-        version: 2,
+        version: 3,
         code,
         createdAt: now,
         updatedAt: now,
@@ -43,6 +43,7 @@
         questionStartedAt: null,
         questionEndsAt: null,
         answers: {},
+        questionResults: {},
         scoredQuestionIds: [],
         roundSummaries: [],
         finishedAt: null
@@ -72,13 +73,24 @@
       if (this.poll) clearInterval(this.poll);
       this.listeners.clear();
     }
+    ensureState(state) {
+      if (!state || typeof state !== 'object') return state;
+      state.version = Math.max(Number(state.version) || 1, 3);
+      state.players = Array.isArray(state.players) ? state.players : [];
+      state.answers = state.answers && typeof state.answers === 'object' ? state.answers : {};
+      state.questionResults = state.questionResults && typeof state.questionResults === 'object' ? state.questionResults : {};
+      state.scoredQuestionIds = Array.isArray(state.scoredQuestionIds) ? state.scoredQuestionIds : [];
+      state.roundSummaries = Array.isArray(state.roundSummaries) ? state.roundSummaries : [];
+      return state;
+    }
     load() {
       const raw = localStorage.getItem(this.key);
       if (!raw) return null;
-      try { this.lastSerialized = raw; return JSON.parse(raw); }
+      try { this.lastSerialized = raw; return this.ensureState(JSON.parse(raw)); }
       catch (_) { return null; }
     }
     save(state) {
+      this.ensureState(state);
       state.updatedAt = Date.now();
       const raw = JSON.stringify(state);
       localStorage.setItem(this.key, raw);
@@ -139,7 +151,10 @@
       this.mutate(state => {
         const { question } = this.getCurrent(state);
         if (!question) throw new Error('Keine Frage verfügbar.');
-        const duration = Math.max(0, Number(question.timer) || Number(state.quiz.quiz.settings.defaultTimer) || 0);
+        if (state.scoredQuestionIds?.includes(question.id)) throw new Error('Diese Frage wurde bereits ausgewertet. Bitte zur nächsten Frage wechseln.');
+        const questionTimer = Number(question.timer);
+        const defaultTimer = Number(state.quiz.quiz.settings.defaultTimer);
+        const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
         state.status = 'playing';
         state.questionOpen = true;
         state.questionStartedAt = Date.now();
@@ -155,10 +170,25 @@
         state.questionEndsAt = null;
         if (!state.scoredQuestionIds.includes(question.id)) {
           const answers = state.answers[question.id] || {};
+          const roundMultiplier = Number(round?.pointsMultiplier);
+          const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
+          let consensusResult = null;
+          if (question.type === 'consensus') {
+            consensusResult = Quiz.computeConsensusResult(question, answers);
+            state.questionResults[question.id] = consensusResult;
+          }
           state.players.forEach(player => {
             const submission = answers[player.id];
             if (!submission) return;
-            const result = Quiz.scoreAnswer(question, submission.answer, round?.pointsMultiplier || 1);
+            let result;
+            if (question.type === 'consensus') {
+              const won = consensusResult.winningOptionIds.includes(String(submission.answer));
+              const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+              const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
+              result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
+            } else {
+              result = Quiz.scoreAnswer(question, submission.answer, multiplier);
+            }
             submission.awardedPoints = result.points;
             submission.scoreDetail = result.detail;
             submission.scoredAt = Date.now();
@@ -223,7 +253,7 @@
       });
     }
     finish() { this.mutate(state => { state.status = 'finished'; state.questionOpen = false; state.questionEndsAt = null; state.finishedAt = Date.now(); }); }
-    resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }
+    resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }
   }
 
   window.SchmobinSession = SessionEngine;

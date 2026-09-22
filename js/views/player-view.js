@@ -12,7 +12,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
-    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity'].forEach(id => els[id] = document.getElementById(id));
+    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar'].forEach(id => els[id] = document.getElementById(id));
     const code = (App.getParam('code') || Session.lastCode() || '').toUpperCase(); if (code) els['room-code'].value = code;
     renderAvatars();
     els['join-btn'].addEventListener('click', join);
@@ -69,34 +69,75 @@
     renderLeaderboard(); renderStatus(current); renderTimer(current);
   }
   function renderStatus(current) {
-    const total=Quiz.allQuestions(state.quiz).length; let global=0; for(let i=0;i<state.currentRoundIndex;i++) global+=state.quiz.quiz.rounds[i].questions.length; global+=state.currentQuestionIndex;
-    App.setText(els['player-progress'],current.round ? `${current.round.title} · ${Math.min(global+1,total)}/${total}` : '');
-    if(state.status==='lobby'){
-      App.setText(els['game-status'],'Lobby'); els['game-question'].innerHTML='<div class="waiting-card"><div class="pulse-dot"></div><h2>Du bist drin!</h2><p>Der Moderator startet gleich das Quiz.</p></div>'; els['submit-answer'].hidden=true; els['answer-feedback'].innerHTML=''; return;
+    const total = Quiz.allQuestions(state.quiz).length;
+    let global = 0;
+    for (let i = 0; i < state.currentRoundIndex; i++) global += state.quiz.quiz.rounds[i].questions.length;
+    global += state.currentQuestionIndex;
+    App.setText(els['player-progress'], current.round ? `${current.round.title} · ${Math.min(global + 1, total)}/${total}` : '');
+    if (els['player-progress-bar']) els['player-progress-bar'].style.width = `${total ? Math.round(((Math.min(global + 1, total)) / total) * 100) : 0}%`;
+
+    if (state.status === 'lobby') {
+      App.setText(els['game-status'], 'Lobby');
+      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · Der Moderator startet gleich.</p></div>`;
+      els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
-    if(state.status==='finished'){
-      App.setText(els['game-status'],'Beendet'); const ranked=state.players.slice().sort((a,b)=>b.score-a.score); const place=ranked.findIndex(p=>p.id===playerId)+1;
-      els['game-question'].innerHTML=`<div class="finish-card"><span class="eyebrow">Dein Ergebnis</span><h2>${place ? `Platz ${place}`:'Fertig'}</h2><p>${App.formatPoints(state.players.find(p=>p.id===playerId)?.score)}</p></div>`; els['submit-answer'].hidden=true; els['answer-feedback'].innerHTML=''; return;
+    if (state.status === 'finished') {
+      App.setText(els['game-status'], 'Beendet');
+      const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
+      const place = ranked.findIndex(p => p.id === playerId) + 1;
+      els['game-question'].innerHTML = finalPodium(ranked, place);
+      els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
-    if(!current.question){ els['game-question'].innerHTML='<div class="empty-state">Warte auf die nächste Frage.</div>'; return; }
-    if(!state.questionStartedAt){ App.setText(els['game-status'],'Bereit'); els['game-question'].innerHTML='<div class="waiting-card"><div class="pulse-dot"></div><h2>Nächste Frage bereit</h2><p>Warte, bis der Moderator die Frage öffnet.</p></div>'; els['submit-answer'].hidden=true; els['answer-feedback'].innerHTML=''; return; }
-    const answerRecord=state.answers[current.question.id]?.[playerId];
-    if(currentQuestionId!==current.question.id){ currentQuestionId=current.question.id; draftAnswer=answerRecord?.answer ?? null; }
-    if(state.questionOpen){
-      App.setText(els['game-status'],'Frage läuft'); Renderers.renderPlayer(current.question,els['game-question'],{currentAnswer:draftAnswer,readOnly:false,reveal:false,onAnswer:value=>{draftAnswer=value;updateSubmit();}});
-      els['submit-answer'].hidden=false; els['submit-answer'].disabled = draftAnswer == null; els['submit-answer'].textContent=answerRecord?'Antwort aktualisieren':'Antwort abschicken';
-      els['answer-feedback'].innerHTML=answerRecord?'<div class="notice notice--success">Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>':'';
+    if (!current.question) { els['game-question'].innerHTML = '<div class="empty-state">Warte auf die nächste Frage.</div>'; return; }
+    if (!state.questionStartedAt) {
+      App.setText(els['game-status'], 'Bereit');
+      const lastSummary = state.roundSummaries?.[state.roundSummaries.length - 1];
+      const previous = lastSummary && lastSummary.roundId !== current.round?.id ? lastSummary : null;
+      els['game-question'].innerHTML = `<div class="round-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte</p>${previous?.standings?.[0] ? `<div class="round-leader">Zwischenstand: <strong>${App.escapeHTML(previous.standings[0].name)}</strong> führt mit ${App.formatPoints(previous.standings[0].score)}</div>` : ''}</div>`;
+      els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
+    }
+
+    const answerRecord = state.answers[current.question.id]?.[playerId];
+    const questionResult = state.questionResults?.[current.question.id] || null;
+    if (currentQuestionId !== current.question.id) { currentQuestionId = current.question.id; draftAnswer = answerRecord?.answer ?? null; }
+    if (state.questionOpen) {
+      App.setText(els['game-status'], 'Frage läuft');
+      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
+      els['submit-answer'].hidden = false;
+      els['submit-answer'].disabled = draftAnswer == null;
+      els['submit-answer'].textContent = answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken';
+      els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : '';
     } else {
-      App.setText(els['game-status'],'Auflösung'); Renderers.renderPlayer(current.question,els['game-question'],{currentAnswer:answerRecord?.answer ?? draftAnswer,readOnly:true,reveal:true}); els['submit-answer'].hidden=true;
-      const correct=Quiz.correctAnswerText(current.question); const points=answerRecord?.awardedPoints;
-      els['answer-feedback'].innerHTML=`<div class="reveal-box"><span>Lösung</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord?`<div class="points-earned ${points>0?'is-positive':''}"><span>Deine Punkte</span><strong>+${Math.round(points||0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail||'')}</small></div>`:'<div class="notice">Keine Antwort abgegeben.</div>'}`;
+      App.setText(els['game-status'], 'Auflösung');
+      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result: questionResult });
+      els['submit-answer'].hidden = true;
+      const correct = Quiz.correctAnswerText(current.question, questionResult);
+      const points = answerRecord?.awardedPoints;
+      const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+      els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : '<div class="notice">Keine Antwort abgegeben.</div>'}`;
     }
+  }
+
+  function finalPodium(ranked, place) {
+    const top = ranked.slice(0, 3);
+    const order = [top[1], top[0], top[2]].filter(Boolean);
+    const podium = order.map(player => {
+      const rank = ranked.findIndex(p => p.id === player.id) + 1;
+      return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
+    }).join('');
+    const me = ranked.find(p => p.id === playerId);
+    return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}</div>`;
   }
   function updateSubmit(){ els['submit-answer'].disabled=draftAnswer==null; }
   function submit(){ if(!engine||draftAnswer==null)return; const ok=engine.submitAnswer(playerId,draftAnswer); if(ok)App.toast('Antwort gespeichert.','success'); else App.toast('Antwort konnte nicht mehr angenommen werden.','error'); }
-  function renderLeaderboard(){
-    const ranked=state.players.slice().sort((a,b)=>b.score-a.score||a.joinedAt-b.joinedAt).slice(0,8);
-    els['leaderboard'].innerHTML=ranked.map((p,i)=>`<div class="leader-row ${p.id===playerId?'is-me':''}"><span>${i+1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><b>${Math.round(p.score)} P</b></div>`).join('');
+  function renderLeaderboard() {
+    const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 8);
+    const current = engine?.getCurrent(state);
+    const gains = !state.questionOpen && current?.question ? (state.answers[current.question.id] || {}) : {};
+    els['leaderboard'].innerHTML = ranked.map((p, i) => {
+      const gain = Number(gains[p.id]?.awardedPoints) || 0;
+      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
+    }).join('');
   }
   function renderTimer(current){
     timer?.stop(); if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}

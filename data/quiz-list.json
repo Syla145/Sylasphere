@@ -1,7 +1,17 @@
 [
   {
-    "title": "JH-Quiz – Alle Fragetypen",
-    "description": "Kompaktes Referenzquiz mit allen sechs unterstützten Fragetypen.",
+    "title": "JH-Quiz: Showtime · v5",
+    "description": "Showcase mit allen zehn Fragetypen inklusive Audio, Publikums-Duell, Gleich gedacht und Hotspot.",
+    "file": "quiz-showtime.json"
+  },
+  {
+    "title": "JH-Quiz: Party Mix · v5",
+    "description": "Drei lockere Runden mit Sport, Gaming, Technik, Geschichte, Reisen, Essen, Film & Popkultur.",
+    "file": "quiz-party-mix.json"
+  },
+  {
+    "title": "Legacy-Referenz · 6 Fragetypen",
+    "description": "Kompaktes Legacy-Referenzquiz mit den ursprünglichen sechs Fragetypen – ideal für Regressionstests.",
     "file": "quiz-sample.json"
   },
   {

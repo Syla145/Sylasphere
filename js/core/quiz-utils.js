@@ -2,17 +2,38 @@
   'use strict';
 
   const App = window.SchmobinApp;
-  const SUPPORTED_TYPES = ['multiple-choice', 'estimate', 'image-quiz', 'sort', 'fight-list', 'higher-lower'];
+  const SUPPORTED_TYPES = [
+    'multiple-choice', 'image-quiz', 'audio-quiz', 'estimate', 'sort',
+    'fight-list', 'higher-lower', 'survey', 'consensus', 'hotspot'
+  ];
   const TYPE_LABELS = {
     'multiple-choice': 'Multiple Choice',
-    estimate: 'Schätzfrage',
     'image-quiz': 'Bilderquiz',
+    'audio-quiz': 'Audio-Quiz',
+    estimate: 'Schätzfrage',
     sort: 'Sortierquiz',
     'fight-list': 'Fight List',
-    'higher-lower': 'Higher / Lower'
+    'higher-lower': 'Higher / Lower',
+    survey: 'Publikums-Duell',
+    consensus: 'Gleich gedacht',
+    hotspot: 'Hotspot'
   };
   const TYPE_ICONS = {
-    'multiple-choice': '◉', estimate: '≈', 'image-quiz': '▣', sort: '↕', 'fight-list': '✎', 'higher-lower': '↗'
+    'multiple-choice': '◉', 'image-quiz': '▣', 'audio-quiz': '♪', estimate: '≈',
+    sort: '↕', 'fight-list': '✎', 'higher-lower': '↗', survey: '▥',
+    consensus: '◎', hotspot: '⌖'
+  };
+  const TYPE_DESCRIPTIONS = {
+    'multiple-choice': 'Klassische Auswahl mit einer richtigen Antwort.',
+    'image-quiz': 'Bild plus Antwortoptionen – ideal für Orte, Logos oder Details.',
+    'audio-quiz': 'Audio-Clip plus Antwortoptionen – für Songs, Sounds und Stimmen.',
+    estimate: 'Wert auf einer Skala schätzen; Nähe zum Zielwert bringt Punkte.',
+    sort: 'Elemente in die richtige Reihenfolge bringen.',
+    'fight-list': 'Mehrere freie Begriffe sammeln; jeder Treffer zählt.',
+    'higher-lower': 'Werte paarweise als höher oder niedriger einschätzen.',
+    survey: 'Wie hat das Publikum abgestimmt? Die stärkste Umfrage-Antwort gewinnt.',
+    consensus: 'Es gibt kein Vorwissen: Punkte gibt es für die Antwort der Mehrheit.',
+    hotspot: 'Auf einem Bild möglichst genau die gesuchte Position treffen.'
   };
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -24,6 +45,11 @@
     return String(value || '').normalize('NFKC').trim().toLocaleLowerCase('de-DE');
   }
   function cleanCategory(value) { return String(value || '').normalize('NFKC').trim(); }
+  function categoryHue(value) {
+    const text = categoryKey(value) || 'kategorie'; let hash = 0;
+    for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+    return Math.abs(hash) % 360;
+  }
   function slug(value, fallback = 'quiz') {
     const result = String(value || '')
       .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
@@ -39,6 +65,22 @@
       return { id: String.fromCharCode(97 + index), text: String(option ?? '') };
     });
   }
+  function normalizeSurveyOptions(options) {
+    if (!Array.isArray(options)) return [];
+    return options.map((option, index) => {
+      if (option && typeof option === 'object') {
+        return {
+          id: String(option.id ?? String.fromCharCode(97 + index)),
+          text: String(option.text ?? option.label ?? ''),
+          value: Math.max(0, numberOr(option.value ?? option.percent ?? option.percentage, 0))
+        };
+      }
+      return { id: String.fromCharCode(97 + index), text: String(option ?? ''), value: 0 };
+    });
+  }
+  function isChoiceType(type) {
+    return ['multiple-choice', 'image-quiz', 'audio-quiz', 'survey', 'consensus'].includes(type);
+  }
   function normalizeQuestion(question, index, settings) {
     const q = clone(question || {});
     q.id = String(q.id || `q_${index + 1}_${App.uid('x').slice(-6)}`);
@@ -48,9 +90,20 @@
     q.points = numberOr(q.points, numberOr(settings.defaultPoints, 100));
     q.timer = numberOr(q.timer, numberOr(settings.defaultTimer, 30));
 
-    if (q.type === 'multiple-choice' || q.type === 'image-quiz') {
+    if (['multiple-choice', 'image-quiz', 'audio-quiz', 'consensus'].includes(q.type)) {
       q.options = normalizeOptions(q.options || q.answers);
       if (q.correctAnswer == null && q.correct != null) q.correctAnswer = q.correct;
+    }
+    if (q.type === 'survey') {
+      q.options = normalizeSurveyOptions(q.options || q.answers);
+    }
+    if (q.type === 'image-quiz' || q.type === 'hotspot') {
+      q.image = String(q.image ?? q.imageUrl ?? '');
+      q.imageAlt = String(q.imageAlt ?? '');
+    }
+    if (q.type === 'audio-quiz') {
+      q.audio = String(q.audio ?? q.audioUrl ?? q.sound ?? '');
+      q.audioLabel = String(q.audioLabel ?? 'Audio-Hinweis');
     }
     if (q.type === 'estimate') {
       q.min = numberOr(q.min, 0);
@@ -80,6 +133,11 @@
         unit: String(card?.unit ?? q.unit ?? '')
       }));
     }
+    if (q.type === 'hotspot') {
+      q.targetX = Math.min(100, Math.max(0, numberOr(q.targetX ?? q.x, 50)));
+      q.targetY = Math.min(100, Math.max(0, numberOr(q.targetY ?? q.y, 50)));
+      q.radius = Math.min(50, Math.max(1, numberOr(q.radius ?? q.tolerance, 10)));
+    }
     return q;
   }
   function normalizeRound(round, index, settings) {
@@ -102,7 +160,7 @@
       rounds = [{ id: 'round_001', title: raw.roundTitle || 'Runde 1', pointsMultiplier: 1, questions: raw.questions }];
     }
     const quiz = {
-      id: String(raw.id || `quiz_${slug(raw.title || 'schmobin')}`),
+      id: String(raw.id || `quiz_${slug(raw.title || 'jh-quiz')}`),
       title: String(raw.title || 'Unbenanntes Quiz'),
       description: String(raw.description || ''),
       settings,
@@ -130,19 +188,46 @@
     const quiz = normalizeQuiz(input).quiz;
     return quiz.rounds.flatMap((round, roundIndex) => round.questions.map((question, questionIndex) => ({ question, round, roundIndex, questionIndex })));
   }
+  function optionById(question, id) {
+    return (question.options || []).find(option => String(option.id) === String(id));
+  }
+  function correctOption(question) {
+    const options = question.options || [];
+    const correct = String(question.correctAnswer ?? '');
+    // Explicit option IDs/text take precedence. Numeric indexes remain supported for legacy quiz files.
+    const direct = options.find(option => String(option.id) === correct) || options.find(option => option.text === correct);
+    if (direct) return direct;
+    const index = Number(correct);
+    return Number.isInteger(index) && index >= 0 && index < options.length ? options[index] : null;
+  }
   function answerMatches(question, answer) {
     const q = question;
-    if (q.type === 'multiple-choice' || q.type === 'image-quiz') {
-      const correct = String(q.correctAnswer ?? '');
-      const chosen = String(answer ?? '');
-      const index = Number(correct);
-      if (Number.isInteger(index) && q.options[index]) return chosen === q.options[index].id;
-      return chosen === correct || q.options.some(o => o.id === chosen && o.text === correct);
+    if (['multiple-choice', 'image-quiz', 'audio-quiz'].includes(q.type)) {
+      const correct = correctOption(q);
+      return Boolean(correct && String(answer ?? '') === String(correct.id));
     }
     return false;
   }
   function normalizeTerm(value) {
     return String(value || '').normalize('NFKC').trim().toLocaleLowerCase('de-DE').replace(/\s+/g, ' ');
+  }
+  function surveyWinnerIds(question) {
+    const options = question.options || [];
+    if (!options.length) return [];
+    const max = Math.max(...options.map(option => Number(option.value) || 0));
+    return options.filter(option => (Number(option.value) || 0) === max).map(option => String(option.id));
+  }
+  function computeConsensusResult(question, submissions) {
+    const counts = {};
+    (question.options || []).forEach(option => { counts[String(option.id)] = 0; });
+    Object.values(submissions || {}).forEach(record => {
+      const id = String(record?.answer ?? '');
+      if (Object.prototype.hasOwnProperty.call(counts, id)) counts[id] += 1;
+    });
+    const values = Object.values(counts);
+    const maxVotes = values.length ? Math.max(...values) : 0;
+    const winningOptionIds = maxVotes > 0 ? Object.keys(counts).filter(id => counts[id] === maxVotes) : [];
+    return { counts, maxVotes, totalVotes: values.reduce((sum, value) => sum + value, 0), winningOptionIds };
   }
   function scoreAnswer(question, answer, multiplier = 1) {
     const q = question;
@@ -151,9 +236,14 @@
     let raw = 0;
     let detail = '';
 
-    if (q.type === 'multiple-choice' || q.type === 'image-quiz') {
+    if (['multiple-choice', 'image-quiz', 'audio-quiz'].includes(q.type)) {
       raw = answerMatches(q, answer) ? base : 0;
       detail = raw ? 'Richtig' : 'Falsch';
+    } else if (q.type === 'survey') {
+      const winners = surveyWinnerIds(q);
+      raw = winners.includes(String(answer)) ? base : 0;
+      const option = optionById(q, answer);
+      detail = raw ? `Publikums-Favorit${option ? ` · ${option.value}%` : ''}` : (option ? `${option.value}% der Befragten` : 'Keine gültige Auswahl');
     } else if (q.type === 'estimate') {
       const value = Number(answer);
       if (Number.isFinite(value)) {
@@ -189,24 +279,56 @@
       const total = Math.max(0, cards.length - 1);
       raw = total ? Math.round(base * correctCount / total) : 0;
       detail = `${correctCount}/${total} richtig`;
+    } else if (q.type === 'hotspot') {
+      const x = Number(answer?.x);
+      const y = Number(answer?.y);
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        const distance = Math.hypot(x - Number(q.targetX), y - Number(q.targetY));
+        raw = distance <= Number(q.radius) ? base : 0;
+        detail = `${raw ? 'Treffer' : 'Daneben'} · Abstand ${Number(distance.toFixed(1))}%`;
+      }
     }
     return { points: Math.round(raw * mult), basePoints: raw, detail };
   }
-  function correctAnswerText(question) {
+  function correctAnswerText(question, result = null) {
     const q = question;
-    if (q.type === 'multiple-choice' || q.type === 'image-quiz') {
-      const option = (q.options || []).find(o => o.id === String(q.correctAnswer));
+    if (['multiple-choice', 'image-quiz', 'audio-quiz'].includes(q.type)) {
+      const option = correctOption(q);
       return option ? option.text : String(q.correctAnswer ?? '');
+    }
+    if (q.type === 'survey') {
+      return surveyWinnerIds(q).map(id => {
+        const option = optionById(q, id);
+        return option ? `${option.text} (${option.value}%)` : id;
+      }).join(' · ');
+    }
+    if (q.type === 'consensus') {
+      const ids = result?.winningOptionIds || [];
+      return ids.length ? ids.map(id => optionById(q, id)?.text || id).join(' · ') : 'Mehrheit entscheidet';
     }
     if (q.type === 'estimate') return `${q.correctAnswer}${q.unit ? ` ${q.unit}` : ''}`;
     if (q.type === 'sort') return (q.correctOrder || q.items || []).join(' → ');
     if (q.type === 'fight-list') return (q.correctAnswers || []).join(', ');
     if (q.type === 'higher-lower') return (q.cards || []).map(c => `${c.label}: ${c.value}${c.unit ? ` ${c.unit}` : ''}`).join(' · ');
+    if (q.type === 'hotspot') return 'Markierter Zielbereich';
     return '';
+  }
+  function answerLabel(question, answer) {
+    const q = question;
+    if (isChoiceType(q.type)) return optionById(q, answer)?.text || String(answer ?? '');
+    if (q.type === 'estimate') return `${answer ?? '–'}${q.unit ? ` ${q.unit}` : ''}`;
+    if (q.type === 'sort' || q.type === 'fight-list') return Array.isArray(answer) ? answer.join(' · ') : String(answer ?? '');
+    if (q.type === 'higher-lower') return (Array.isArray(answer) ? answer : []).map(value => value === 'higher' ? 'Höher' : value === 'lower' ? 'Niedriger' : '–').join(' · ');
+    if (q.type === 'hotspot') {
+      const x = Number(answer?.x), y = Number(answer?.y);
+      return Number.isFinite(x) && Number.isFinite(y) ? `X ${x.toFixed(1)}% · Y ${y.toFixed(1)}%` : 'Kein Punkt gewählt';
+    }
+    return String(answer ?? '');
   }
 
   window.SchmobinQuiz = {
-    SUPPORTED_TYPES, TYPE_LABELS, TYPE_ICONS, clone, numberOr, categoryKey, cleanCategory, slug,
-    normalizeQuiz, extractCategories, allQuestions, scoreAnswer, correctAnswerText, normalizeTerm
+    SUPPORTED_TYPES, TYPE_LABELS, TYPE_ICONS, TYPE_DESCRIPTIONS, clone, numberOr, categoryKey, cleanCategory, slug,
+    normalizeQuiz, extractCategories, allQuestions, categoryHue, scoreAnswer, correctAnswerText, answerLabel, normalizeTerm,
+    isChoiceType, optionById, correctOption, surveyWinnerIds, computeConsensusResult
   };
 })();

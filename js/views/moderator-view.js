@@ -16,7 +16,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    ['quiz-select','quiz-summary','quiz-import','create-session','setup-panel','session-panel','session-code','session-status','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box'].forEach(id => els[id] = document.getElementById(id));
+    ['quiz-select','quiz-summary','quiz-import','create-session','setup-panel','session-panel','session-code','session-status','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
     bind();
     await loadQuizList();
     const requested = (App.getParam('code') || '').toUpperCase();
@@ -54,6 +54,8 @@
       try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); }
       catch (_) { App.toast('Vollbild konnte nicht aktiviert werden.', 'error'); }
     });
+    els['copy-player-link']?.addEventListener('click', () => copyJoinLink('player'));
+    els['copy-spectator-link']?.addEventListener('click', () => copyJoinLink('spectator'));
     document.addEventListener('keydown', event => {
       if (!engine || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
       if (event.code === 'Space') { event.preventDefault(); state?.questionOpen ? engine.closeQuestion() : engine.startQuestion(); }
@@ -123,6 +125,8 @@
     const current = engine.getCurrent(state);
     App.setText(els['session-code'], state.code);
     App.setText(els['session-status'], statusLabel(state));
+    if (els['player-link']) els['player-link'].href = `./spieler.html?code=${encodeURIComponent(state.code)}`;
+    if (els['spectator-link']) els['spectator-link'].href = `./zuschauer.html?code=${encodeURIComponent(state.code)}`;
     const qIndexGlobal = questionGlobalIndex(state);
     const total = Quiz.allQuestions(state.quiz).length;
     App.setText(els['round-progress'], current.round ? `${current.round.title} · Frage ${qIndexGlobal + 1}/${total}` : 'Keine Frage');
@@ -135,6 +139,8 @@
   function statusLabel(s) {
     if (s.status === 'lobby') return 'Lobby';
     if (s.status === 'finished') return 'Beendet';
+    const current = engine?.getCurrent(s);
+    if (!s.questionOpen && current?.question && s.scoredQuestionIds?.includes(current.question.id)) return 'Ausgewertet';
     return s.questionOpen ? 'Frage läuft' : 'Bereit';
   }
   function questionGlobalIndex(s) {
@@ -159,24 +165,46 @@
   }
   function renderQuestion(current) {
     if (state.status === 'finished') {
-      const winners = state.players.slice().sort((a,b)=>b.score-a.score);
-      els['question-area'].innerHTML = `<div class="finish-card"><span class="eyebrow">Spiel beendet</span><h2>${winners[0] ? `🏆 ${App.escapeHTML(winners[0].name)}` : 'Fertig!'}</h2><p>${winners[0] ? `${App.formatPoints(winners[0].score)} · Glückwunsch!` : 'Keine Spieler in der Sitzung.'}</p></div>`;
+      const winners = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
+      els['question-area'].innerHTML = finalPodium(winners);
       els['answer-status'].innerHTML = ''; return;
     }
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
-    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: !state.questionOpen });
+    if (!state.questionStartedAt) {
+      els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte · ${current.question.timer || 0}s</p></div>`;
+      els['answer-status'].innerHTML = '<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>';
+      return;
+    }
+    const questionResult = state.questionResults?.[current.question.id] || null;
+    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: !state.questionOpen, result: questionResult });
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length;
     const total = state.players.length;
-    const correct = !state.questionOpen ? Quiz.correctAnswerText(current.question) : '';
-    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted/total*100) : 0}%"></span></div></div>${correct ? `<div class="reveal-box"><span>Lösung</span><strong>${App.escapeHTML(correct)}</strong></div>` : ''}${!state.questionOpen && submitted ? answerRows(current.question, answers) : ''}`;
+    const correct = !state.questionOpen ? Quiz.correctAnswerText(current.question, questionResult) : '';
+    const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : ''}${!state.questionOpen && submitted ? answerRows(current.question, answers) : ''}`;
   }
   function answerRows(question, answers) {
-    const players = new Map(state.players.map(p => [p.id,p]));
-    return `<div class="answer-review">${Object.entries(answers).map(([pid,a]) => {
-      const player = players.get(pid); const shown = Array.isArray(a.answer) ? a.answer.join(' · ') : String(a.answer ?? '');
-      return `<div><span>${App.escapeHTML(player?.name || 'Spieler')}</span><span>${App.escapeHTML(shown)}</span><strong>+${Math.round(a.awardedPoints || 0)} P</strong></div>`;
+    const players = new Map(state.players.map(p => [p.id, p]));
+    return `<div class="answer-review">${Object.entries(answers).map(([pid, a]) => {
+      const player = players.get(pid); const shown = Quiz.answerLabel(question, a.answer);
+      return `<div><span>${App.escapeHTML(player?.name || 'Spieler')}</span><span>${App.escapeHTML(shown)}</span><strong class="${Number(a.awardedPoints) > 0 ? 'score-positive' : ''}">+${Math.round(a.awardedPoints || 0)} P</strong></div>`;
     }).join('')}</div>`;
+  }
+  function finalPodium(ranked) {
+    const top = ranked.slice(0, 3); const order = [top[1], top[0], top[2]].filter(Boolean);
+    const podium = order.map(player => {
+      const rank = ranked.findIndex(p => p.id === player.id) + 1;
+      return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
+    }).join('');
+    return `<div class="final-screen"><span class="eyebrow">Spiel beendet</span><h2>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!'}</h2><div class="podium">${podium}</div></div>`;
+  }
+  async function copyJoinLink(kind) {
+    if (!state?.code) return;
+    const file = kind === 'spectator' ? 'zuschauer.html' : 'spieler.html';
+    const url = new URL(`./${file}?code=${encodeURIComponent(state.code)}`, location.href).href;
+    try { await App.copyText(url); App.toast(kind === 'spectator' ? 'Presenter-Link kopiert.' : 'Spieler-Link kopiert.', 'success'); }
+    catch (_) { App.toast('Link konnte nicht kopiert werden.', 'error'); }
   }
   function renderTimer() {
     timer?.stop();
@@ -193,7 +221,8 @@
   function renderButtons(current) {
     const finished = state.status === 'finished';
     els['btn-start-game'].disabled = state.status !== 'lobby' || !state.players.length;
-    els['btn-start-question'].disabled = finished || state.questionOpen || !current.question;
+    const alreadyScored = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
+    els['btn-start-question'].disabled = finished || state.questionOpen || !current.question || alreadyScored;
     els['btn-close-question'].disabled = finished || !state.questionOpen;
     els['btn-prev'].disabled = state.questionOpen || questionGlobalIndex(state) <= 0;
     els['btn-next'].disabled = state.questionOpen || finished;

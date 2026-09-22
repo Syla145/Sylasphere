@@ -1,0 +1,187 @@
+{
+  "quiz": {
+    "id": "quiz_jh_party_mix_v5",
+    "title": "JH-Quiz: Party Mix",
+    "description": "Drei lockere Runden mit Sport, Gaming, Technik, Geschichte, Reisen, Essen, Film & Popkultur – inklusive der neuen v5-Spielmodi.",
+    "settings": { "defaultTimer": 24, "defaultPoints": 100, "buzzerEnabled": true },
+    "categories": [
+      "Sport", "Technik", "Reisen", "Musik & Sounds", "Wissenschaft", "Essen & Trinken",
+      "Internet & Popkultur", "Geschichte", "Gaming", "Filme & Serien"
+    ],
+    "rounds": [
+      {
+        "id": "party_round_1",
+        "title": "Runde 1 · Locker rein",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "party_sport_players",
+            "type": "multiple-choice",
+            "category": "Sport",
+            "text": "Wie viele Spieler einer Fußballmannschaft stehen regulär gleichzeitig auf dem Feld?",
+            "options": [
+              { "id": "a", "text": "9" }, { "id": "b", "text": "10" }, { "id": "c", "text": "11" }, { "id": "d", "text": "12" }
+            ],
+            "correctAnswer": "c",
+            "points": 100,
+            "timer": 18
+          },
+          {
+            "id": "party_tech_byte",
+            "type": "multiple-choice",
+            "category": "Technik",
+            "text": "Wie viele Bits bilden ein Byte?",
+            "options": [
+              { "id": "a", "text": "4" }, { "id": "b", "text": "8" }, { "id": "c", "text": "16" }, { "id": "d", "text": "32" }
+            ],
+            "correctAnswer": "b",
+            "points": 100,
+            "timer": 16
+          },
+          {
+            "id": "party_image_paris",
+            "type": "image-quiz",
+            "category": "Reisen",
+            "text": "Welche Stadt gehört zu diesem Wahrzeichen?",
+            "image": "./assets/demo-landmark.svg",
+            "imageAlt": "Stilisierte Silhouette des Eiffelturms",
+            "options": [
+              { "id": "a", "text": "Paris" }, { "id": "b", "text": "Rom" }, { "id": "c", "text": "Prag" }, { "id": "d", "text": "Wien" }
+            ],
+            "correctAnswer": "a",
+            "points": 110,
+            "timer": 18
+          },
+          {
+            "id": "party_audio_direction",
+            "type": "audio-quiz",
+            "category": "Musik & Sounds",
+            "text": "Was passiert mit der Tonhöhe in diesem kurzen Clip?",
+            "audio": "./assets/demo-tone.wav",
+            "audioLabel": "Tonfolge abspielen",
+            "options": [
+              { "id": "a", "text": "Sie steigt" }, { "id": "b", "text": "Sie fällt" }, { "id": "c", "text": "Sie bleibt gleich" }, { "id": "d", "text": "Nur die Lautstärke ändert sich" }
+            ],
+            "correctAnswer": "a",
+            "points": 120,
+            "timer": 20
+          }
+        ]
+      },
+      {
+        "id": "party_round_2",
+        "title": "Runde 2 · Bauchgefühl",
+        "pointsMultiplier": 1.25,
+        "questions": [
+          {
+            "id": "party_estimate_earth",
+            "type": "estimate",
+            "category": "Wissenschaft",
+            "text": "Wie groß ist der Erddurchmesser am Äquator ungefähr?",
+            "min": 8000,
+            "max": 18000,
+            "step": 50,
+            "correctAnswer": 12756,
+            "tolerance": 250,
+            "unit": "km",
+            "points": 130,
+            "timer": 24
+          },
+          {
+            "id": "party_survey_pizza",
+            "type": "survey",
+            "category": "Essen & Trinken",
+            "text": "Beispiel-Umfrage mit 100 Stimmen: Welcher Pizza-Belag wurde am häufigsten gewählt?",
+            "options": [
+              { "id": "a", "text": "Salami", "value": 38 },
+              { "id": "b", "text": "Margherita", "value": 27 },
+              { "id": "c", "text": "Schinken", "value": 21 },
+              { "id": "d", "text": "Gemüse", "value": 14 }
+            ],
+            "points": 125,
+            "timer": 20
+          },
+          {
+            "id": "party_consensus_superpower",
+            "type": "consensus",
+            "category": "Internet & Popkultur",
+            "text": "Welche Superkraft würde eure Gruppe am ehesten wählen? Denk wie die anderen!",
+            "options": [
+              { "id": "a", "text": "Fliegen" }, { "id": "b", "text": "Unsichtbar sein" }, { "id": "c", "text": "Teleportieren" }, { "id": "d", "text": "Gedanken lesen" }
+            ],
+            "points": 150,
+            "timer": 22
+          },
+          {
+            "id": "party_hotspot_paris",
+            "type": "hotspot",
+            "category": "Reisen",
+            "text": "Treffe die Spitze des Eiffelturms.",
+            "image": "./assets/demo-landmark.svg",
+            "imageAlt": "Stilisierter Eiffelturm",
+            "targetX": 50,
+            "targetY": 13,
+            "radius": 9,
+            "points": 150,
+            "timer": 18
+          }
+        ]
+      },
+      {
+        "id": "party_round_3",
+        "title": "Runde 3 · Finale",
+        "pointsMultiplier": 1.5,
+        "questions": [
+          {
+            "id": "party_sort_history",
+            "type": "sort",
+            "category": "Geschichte",
+            "text": "Bringe diese Ereignisse in die richtige zeitliche Reihenfolge – früh nach spät.",
+            "items": ["Gutenbergs Buchdruck", "Französische Revolution", "Erster Motorflug der Brüder Wright", "Erste bemannte Mondlandung"],
+            "correctOrder": ["Gutenbergs Buchdruck", "Französische Revolution", "Erster Motorflug der Brüder Wright", "Erste bemannte Mondlandung"],
+            "points": 150,
+            "timer": 30
+          },
+          {
+            "id": "party_fight_tastes",
+            "type": "fight-list",
+            "category": "Essen & Trinken",
+            "text": "Nenne bis zu fünf grundlegende Geschmacksrichtungen.",
+            "correctAnswers": ["süß", "sauer", "salzig", "bitter", "umami"],
+            "maxEntries": 5,
+            "pointsPerAnswer": 30,
+            "points": 150,
+            "timer": 26
+          },
+          {
+            "id": "party_hl_games",
+            "type": "higher-lower",
+            "category": "Gaming",
+            "text": "Kam das nächste Spiel später oder früher heraus?",
+            "cards": [
+              { "id": "g1", "label": "Pong", "value": 1972, "unit": "" },
+              { "id": "g2", "label": "Tetris", "value": 1984, "unit": "" },
+              { "id": "g3", "label": "Doom", "value": 1993, "unit": "" },
+              { "id": "g4", "label": "Super Mario Bros.", "value": 1985, "unit": "" },
+              { "id": "g5", "label": "Minecraft (Vollversion)", "value": 2011, "unit": "" }
+            ],
+            "points": 170,
+            "timer": 30
+          },
+          {
+            "id": "party_movie_term",
+            "type": "multiple-choice",
+            "category": "Filme & Serien",
+            "text": "Wie nennt man die Fortsetzung eines Films auf Englisch?",
+            "options": [
+              { "id": "a", "text": "Pilot" }, { "id": "b", "text": "Sequel" }, { "id": "c", "text": "Trailer" }, { "id": "d", "text": "Remix" }
+            ],
+            "correctAnswer": "b",
+            "points": 120,
+            "timer": 16
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 'v4';
+  const APP_VERSION = 'v5';
 
   const App = {
     version: APP_VERSION,
@@ -47,6 +47,12 @@
       URL.revokeObjectURL(url);
     },
     getParam(name) { return new URLSearchParams(location.search).get(name); },
+    async copyText(value) {
+      const text = String(value ?? '');
+      if (navigator.clipboard?.writeText && window.isSecureContext) { await navigator.clipboard.writeText(text); return true; }
+      const area = document.createElement('textarea'); area.value = text; area.style.position = 'fixed'; area.style.opacity = '0';
+      document.body.appendChild(area); area.select(); const ok = document.execCommand('copy'); area.remove(); return ok;
+    },
     toast(message, type = 'info', timeout = 3600) {
       let stack = document.getElementById('toast-stack');
       if (!stack) {
