@@ -1,0 +1,12 @@
+[
+  {
+    "title": "Schmobin – Alle Fragetypen",
+    "description": "Kompaktes Referenzquiz mit allen sechs unterstützten Fragetypen.",
+    "file": "quiz-sample.json"
+  },
+  {
+    "title": "Demo komplett – 3 Runden",
+    "description": "Umfangreicher Import- und Funktionstest mit vielen Kategorien, Timern und Punktewerten.",
+    "file": "quiz-demo-komplett.json"
+  }
+]

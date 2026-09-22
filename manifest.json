@@ -1,0 +1,12 @@
+{
+  "name": "Schmobin Quiz Arena",
+  "short_name": "Schmobin",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0a1020",
+  "theme_color": "#0a1020",
+  "description": "Statische Quiz-App für Moderator, Spieler, Zuschauer und Quiz-Editor.",
+  "icons": [
+    {"src":"./assets/schmobin-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
