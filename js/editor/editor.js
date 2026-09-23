@@ -212,25 +212,19 @@
     mult.min = '0'; mult.step = '0.1';
     mult.addEventListener('input', e => { round.pointsMultiplier = nonNegative(e.target.value, 1); queueSave(); });
 
-    const addControl = div('add-question-control');
-    const typeSelect = document.createElement('select');
-    typeSelect.className = 'select select--compact';
-    Quiz.SUPPORTED_TYPES.forEach(type => {
-      const option = document.createElement('option');
-      option.value = type;
-      option.textContent = `${Quiz.TYPE_ICONS[type] || '•'} ${Quiz.TYPE_LABELS[type]}`;
-      typeSelect.append(option);
-    });
+    // Der Fragetyp wird direkt in der jeweiligen Frage gewählt. Neue Fragen übernehmen
+    // den Typ der letzten Frage dieser Runde (sonst Multiple Choice) und lassen sich dort umstellen.
     const addButton = button('+ Frage', 'btn btn--small btn--primary', () => {
-      round.questions.push(newQuestion(typeSelect.value));
+      const lastType = round.questions[round.questions.length - 1]?.type;
+      round.questions.push(newQuestion(Quiz.SUPPORTED_TYPES.includes(lastType) ? lastType : Quiz.SUPPORTED_TYPES[0]));
       structuralChange();
     });
-    addControl.append(typeSelect, addButton);
+    addButton.title = 'Neue Frage zu dieser Runde hinzufügen';
 
     const actions = div('round-head-actions');
     const up = button('↑', 'icon-btn', () => moveRound(ri, -1)); up.title = 'Runde nach oben'; up.disabled = ri === 0;
     const down = button('↓', 'icon-btn', () => moveRound(ri, 1)); down.title = 'Runde nach unten'; down.disabled = ri === state.quiz.rounds.length - 1;
-    actions.append(addControl, up, down, button('Duplizieren', 'btn btn--small btn--ghost', () => duplicateRound(ri)), button('Löschen', 'btn btn--small btn--danger', () => deleteRound(ri)));
+    actions.append(addButton, up, down,button('Duplizieren', 'btn btn--small btn--ghost', () => duplicateRound(ri)), button('Löschen', 'btn btn--small btn--danger', () => deleteRound(ri)));
     head.append(title, multWrap, actions); card.append(head);
 
     const body = div('');

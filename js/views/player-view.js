@@ -15,6 +15,7 @@
 
   function init() {
     ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar'].forEach(id => els[id] = document.getElementById(id));
+    els['game-question'].addEventListener('quiz:interaction-end', () => { if (deferredState) render(deferredState); });
     const code = (App.getParam('code') || Session.lastCode() || Online?.lastCode?.() || '').toUpperCase(); if (code) els['room-code'].value = code;
     renderAvatars();
     els['join-btn'].addEventListener('click', join);
@@ -91,7 +92,12 @@
     }
   }
 
+  // Während eine Sortier-Karte gezogen wird, keine Neu-Renderings (z. B. durch Antworten
+  // anderer Spieler) durchlassen – sonst würde die Karte mitten im Ziehen ersetzt.
+  let deferredState = null;
   function render(next) {
+    if (els['game-question']?.querySelector('.is-sorting')) { deferredState = next; return; }
+    deferredState = null;
     state=next; const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
     if (els['game-mode']) { els['game-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['game-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['game-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }

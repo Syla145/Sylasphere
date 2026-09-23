@@ -516,10 +516,12 @@
       const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
       const now = Firebase.serverNow(this.context);
       if (question.type === 'buzzer') {
-        await this.modules.database.update(this.roomRef, {
-          [`buzzerClaims/${question.id}`]: null,
-          [`buzzerBlocked/${question.id}`]: null
-        });
+        // Firebase-Regeln erlauben Schreibzugriff auf gesperrte Spieler nur pro Spieler-Eintrag
+        // (buzzerBlocked/<frage>/<uid>). Das komplette Löschen von buzzerBlocked/<frage>
+        // führte zu PERMISSION_DENIED – daher jeden Eintrag einzeln zurücksetzen.
+        const reset = { [`buzzerClaims/${question.id}`]: null };
+        Object.keys(this.raw.buzzerBlocked?.[question.id] || {}).forEach(uid => { reset[`buzzerBlocked/${question.id}/${uid}`] = null; });
+        await this.modules.database.update(this.roomRef, reset);
       }
       await this.patchPublic({
         status: 'playing', questionOpen: true, questionStartedAt: now,

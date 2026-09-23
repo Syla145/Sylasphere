@@ -1,0 +1,18 @@
+const fs=require('fs'),path=require('path');const root=path.resolve(__dirname,'..');let pass=0,fail=0;const ok=(c,m)=>{if(c)pass++;else{fail++;console.error('FAIL',m)}};
+const online=fs.readFileSync(path.join(root,'js/core/online-session-engine.js'),'utf8');
+const start=online.slice(online.indexOf('async startQuestion()'),online.indexOf('async lockQuestion()'));
+ok(!/\[`buzzerBlocked\/\$\{question\.id\}`\]\s*:\s*null/.test(start),'startQuestion does not delete buzzerBlocked/<qid> as a whole (PERMISSION_DENIED)');
+ok(/buzzerBlocked\/\$\{question\.id\}\/\$\{uid\}/.test(start),'startQuestion resets blocked players individually');
+const rules=JSON.parse(fs.readFileSync(path.join(root,'firebase-database.rules.json'),'utf8')).rules.rooms['$code'];
+ok(String(rules.buzzerBlocked['$qid']['.write']||'').includes('ownerUid'),'moderator may reset buzzerBlocked/<qid>');
+ok(!String(rules.buzzerBlocked['$qid']['.write']||'').includes('auth.uid === $uid'),'players still cannot write buzzerBlocked');
+const editor=fs.readFileSync(path.join(root,'js/editor/editor.js'),'utf8');
+ok(!editor.includes('typeSelect'),'round header has no question type select');
+const renderers=fs.readFileSync(path.join(root,'js/question-types/renderers.js'),'utf8');
+ok(renderers.includes('enableSortDrag')&&renderers.includes('pointerdown'),'sort quiz uses pointer-based drag and drop');
+ok(!renderers.includes('setPointerCapture('),'sort drag does not rely on pointer capture');
+const player=fs.readFileSync(path.join(root,'js/views/player-view.js'),'utf8');
+ok(player.includes('quiz:interaction-end')&&player.includes('.is-sorting'),'player view defers re-render while dragging');
+const css=fs.readFileSync(path.join(root,'css/main.css'),'utf8');
+ok(css.includes('#answer-feedback:not(:empty)'),'answer feedback spacing defined');
+console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

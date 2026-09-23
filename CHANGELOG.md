@@ -1,5 +1,11 @@
 # Sylasphere – Changelog
 
+## v12 – Feinschliff Editor, Spieler-UX & Buzzer-Fix
+- **Editor:** Fragetyp-Auswahl im Rundenkopf entfernt – der Typ wird direkt in der Frage gewählt. „+ Frage“ übernimmt den Typ der letzten Frage der Runde (sonst Multiple Choice). Titel und Multiplikator stehen jetzt bündig nebeneinander.
+- **Spieler:** Infotexte unter den Antworten („Antwort gespeichert …“, „Antworten sind geschlossen“, Auflösung, Buzzer-Hinweise) haben einheitlich mehr Abstand; ebenso in der Zuschaueransicht.
+- **Sortierquiz:** Echtes Drag & Drop für Maus und Touch (Griff ⠿ oder kurz gedrückt halten), mit Animation, Auto-Scroll am Bildschirmrand und Live-Nummerierung. ↑/↓-Buttons bleiben als Alternative. Eingehende Updates anderer Spieler unterbrechen das Ziehen nicht mehr.
+- **Online-Buzzer:** `PERMISSION_DENIED` beim Starten einer Buzzer-Frage durch den Moderator behoben. Gesperrte Spieler werden jetzt einzeln zurückgesetzt, was mit den bestehenden v10-Regeln funktioniert. Die Regeln erlauben dem Moderator zusätzlich das Zurücksetzen auf Fragenebene (erneutes Veröffentlichen optional).
+
 ## v10 – Editor Upgrade
 - Editor-Einstieg trennt **Quiz editieren** und **Neues Quiz erstellen**.
 - Bestehende Quizze aus `data/` können direkt im Editor geladen werden.

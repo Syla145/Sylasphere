@@ -56,6 +56,7 @@
         "buzzerBlocked": {
           ".read": "auth != null",
           "$qid": {
+            ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid",
             "$uid": {
               ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid",
               ".validate": "!newData.exists() || newData.val() === true"
