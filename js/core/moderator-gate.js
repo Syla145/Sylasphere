@@ -19,7 +19,7 @@
    * Firebase-Konsole unter config/moderatorKeys anlegen (siehe FIREBASE_SETUP.md).
    * Später wird dieses Modul durch Login + Moderator-Rolle ersetzt.
    */
-  const MODERATOR_CODE_HASH = 'dbbcd827657ee6ddf39af2f630ad8d77d34ea0b66440971313f72ce6e069fa41';
+  const MODERATOR_CODE_HASH = '3324cb69664921bc390d821b2c47f6c67e8c4e0937476fba9af69da58df53f17';
   const HASH_PREFIX = 'sylasphere:';
   const STORAGE_KEY = 'sylasphere:moderator-code';
   const INVALID_KEY_CHARS = /[.#$\[\]\/]/;
