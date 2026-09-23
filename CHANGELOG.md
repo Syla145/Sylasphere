@@ -1,5 +1,11 @@
 # Sylasphere – Changelog
 
+## v13 – Moderator-Code & flüssigere Spieleransicht
+- **Moderator-Code:** Die Moderatorseite ist jetzt mit einem Code geschützt. Online prüft Firebase den Code selbst (`config/moderatorKeys`, für niemanden lesbar). Nur freigeschaltete Moderatoren können Online-Räume anlegen. Einrichtung siehe `FIREBASE_SETUP.md`, Code erzeugen mit `tools/moderator-code.html`. Der Code bleibt auf dem Gerät gespeichert, „🔒 Sperren“ in der Kopfzeile meldet ab.
+- **Spieleransicht:** Die Frage wird nur noch neu gezeichnet, wenn sich für den Spieler etwas ändert (neue Frage, Phase, Buzzer-Status). Antworten anderer Spieler unterbrechen das Tippen in Textfeldern (Aufzählfrage, Text-Buzzer) und das Ziehen am Schätz-Regler nicht mehr.
+- **Tests:** `tests/v13-rules-eval.js` wertet die echten Firebase-Regeln gegen Testfälle aus (Code-Prüfung, Raum anlegen, Buzzer).
+- **Aufräumen:** Die alten Dateien im Hauptordner werden nicht mehr mitgeliefert.
+
 ## v12.2 – Lösung für den Moderator
 - Der Moderator sieht die Lösung jetzt dauerhaft in einer gelb gestrichelten Box „🔒 Lösung · nur für dich sichtbar“: schon vor dem Öffnen der Frage (inkl. Fragetext), während der Antwortphase und beim Buzzer während der Prüfung.
 - Schätzfragen zeigen zusätzlich die Toleranz, Hotspot-Fragen markieren den Zielbereich direkt auf dem Bild. Bei Konsens-Fragen gibt es naturgemäß keine feste Lösung.

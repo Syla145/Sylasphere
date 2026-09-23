@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Moderator-Code erzeugen · Sylasphere</title>
+<link rel="stylesheet" href="../css/main.css?v=13">
+</head>
+<body>
+<main class="container" style="max-width:640px;padding:48px 0">
+  <div class="panel panel-pad">
+    <span class="eyebrow">Werkzeug</span>
+    <h1 style="margin:6px 0 10px">Moderator-Code festlegen</h1>
+    <p style="color:var(--muted)">Die Berechnung läuft nur in deinem Browser. Nichts wird gespeichert oder verschickt.</p>
+    <form id="form" class="join-form" style="margin-top:16px">
+      <label class="field-group"><span class="field-label">Neuer Code</span><input id="code" class="input" autocomplete="off" placeholder="z. B. Schatztruhe-42"></label>
+      <button class="btn btn--primary" type="submit">Hash erzeugen</button>
+    </form>
+    <div id="out" hidden style="margin-top:18px;display:grid;gap:12px">
+      <div class="reveal-box"><span>1 · In js/core/moderator-gate.js bei MODERATOR_CODE_HASH eintragen</span><strong id="hash" style="word-break:break-all;font-family:ui-monospace,monospace;font-size:.9rem"></strong></div>
+      <div class="reveal-box"><span>2 · In der Firebase-Konsole anlegen (Realtime Database → Daten)</span><strong id="path" style="word-break:break-all;font-family:ui-monospace,monospace;font-size:.9rem"></strong><small>Wert: true</small></div>
+    </div>
+    <p id="err" class="field-error" style="color:var(--danger)"></p>
+  </div>
+</main>
+<script>
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const code = document.getElementById('code').value.trim();
+  const err = document.getElementById('err'); err.textContent = '';
+  if (!code) { err.textContent = 'Bitte einen Code eingeben.'; return; }
+  if (/[.#$\[\]\/]/.test(code)) { err.textContent = 'Der Code darf keine der Zeichen . # $ [ ] / enthalten.'; return; }
+  if (code.length < 6) { err.textContent = 'Bitte mindestens 6 Zeichen verwenden.'; return; }
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('sylasphere:' + code));
+  document.getElementById('hash').textContent = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+  document.getElementById('path').textContent = 'config / moderatorKeys / ' + code;
+  document.getElementById('out').hidden = false;
+});
+</script>
+</body>
+</html>

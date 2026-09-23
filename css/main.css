@@ -131,3 +131,20 @@ a{color:inherit;text-decoration:none}button,input,select,textarea{font:inherit}b
 .moderator-solution strong{font-size:1.05rem;line-height:1.35}
 .moderator-solution small{color:var(--muted);line-height:1.4}
 .moderator-solution .moderator-solution-question{color:#dbe2f2}
+
+/* v13 – Moderator-Zugang per Code */
+html.moderator-locked #setup-panel,html.moderator-locked #session-panel{display:none!important}
+.moderator-gate{min-height:calc(100vh - 160px);display:grid;place-items:center;padding:24px 0 60px}
+.moderator-gate-card{width:min(440px,100%);display:grid;gap:14px;text-align:center}
+.moderator-gate-card h1{margin:0;font-size:clamp(1.6rem,4vw,2.1rem);letter-spacing:-.03em}
+.moderator-gate-card p{margin:0;color:var(--muted);line-height:1.5}
+.moderator-gate-card .field-group{text-align:left}
+.moderator-gate-card .input{text-align:center;font-size:1.1rem;letter-spacing:.08em}
+.moderator-gate-card .btn{min-height:50px}
+.moderator-gate-icon{width:64px;height:64px;margin:0 auto 4px;display:grid;place-items:center;border-radius:20px;font-size:1.8rem;background:linear-gradient(135deg,rgba(124,92,255,.28),rgba(40,215,208,.18));border:1px solid rgba(157,135,255,.35)}
+.gate-error{min-height:1.3em;color:#ff9aa8!important;font-weight:650}
+.gate-player-link{justify-self:center;color:var(--muted)}
+.gate-player-link:hover{color:var(--text)}
+.moderator-gate.is-shaking .moderator-gate-card{animation:gateShake .38s ease}
+@keyframes gateShake{20%,60%{transform:translateX(-7px)}40%,80%{transform:translateX(7px)}}
+.firebase-status[data-state="error"]{color:#ff9aa8;border-color:rgba(255,97,117,.35)}

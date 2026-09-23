@@ -145,23 +145,37 @@
 
     if (answerWindowOpen) {
       App.setText(els['game-status'], 'Frage läuft');
-      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
+      renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
       els['submit-answer'].hidden = false; els['submit-answer'].disabled = draftAnswer == null;
       els['submit-answer'].textContent = answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken';
       els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : '';
     } else if (!resolved) {
       App.setText(els['game-status'], 'Antworten geschlossen');
-      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: false, result: questionResult });
+      renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: false, result: questionResult });
       els['submit-answer'].hidden = true;
       els['answer-feedback'].innerHTML = `<div class="notice notice--warning reveal-wait"><strong>⏱ Antworten sind geschlossen.</strong><span>${answerRecord ? 'Deine Antwort ist gespeichert. ' : ''}Der Moderator löst die Frage gleich auf.</span></div>`;
     } else {
       App.setText(els['game-status'], 'Auflösung');
-      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result: questionResult });
+      renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result: questionResult });
       els['submit-answer'].hidden = true;
       const correct = Quiz.correctAnswerText(current.question, questionResult); const points = answerRecord?.awardedPoints;
       const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
       els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : '<div class="notice">Keine Antwort abgegeben.</div>'}`;
     }
+  }
+
+  /*
+   * Zeichnet die Frage nur neu, wenn sich für diesen Spieler wirklich etwas ändert
+   * (andere Frage, Phase, Auflösung, Buzzer-Status). Antworten anderer Spieler lösen
+   * so kein Neuzeichnen mehr aus – Textfelder behalten den Fokus, Regler springen nicht.
+   */
+  function renderQuestion(question, ctx) {
+    const host = els['game-question'];
+    const frozenAnswer = ctx.readOnly || ctx.reveal ? (ctx.currentAnswer ?? null) : null;
+    const key = JSON.stringify([question.id, Boolean(ctx.readOnly), Boolean(ctx.reveal), ctx.result ?? null, frozenAnswer]);
+    if (host.dataset.renderKey === key && host.querySelector('.question-shell')) return;
+    Renderers.renderPlayer(question, host, ctx);
+    host.dataset.renderKey = key;
   }
 
   function renderBuzzer(current, answerRecord, questionResult, resolved) {
@@ -172,7 +186,7 @@
 
     if (resolved) {
       App.setText(els['game-status'], 'Auflösung');
-      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result, playerId });
+      renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result, playerId });
       els['submit-answer'].hidden = true;
       const points = answerRecord?.awardedPoints || 0;
       const winnerText = result.winnerId ? `${result.winnerName || 'Spieler'} gewinnt den Buzzer` : 'Keine Wertung';
@@ -182,7 +196,7 @@
     }
 
     App.setText(els['game-status'], answerWindowOpen ? 'Buzzer offen' : 'Buzzer gesperrt');
-    Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: !answerWindowOpen, reveal: false, result, playerId, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
+    renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: !answerWindowOpen, reveal: false, result, playerId, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
 
     if (answerWindowOpen && !eliminated) {
       els['submit-answer'].hidden = false;

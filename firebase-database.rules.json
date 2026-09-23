@@ -2,11 +2,21 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "config": {
+      ".read": false,
+      ".write": false
+    },
+    "moderatorGrants": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && newData.isString() && newData.val().length >= 4 && newData.val().length <= 64 && root.child('config').child('moderatorKeys').child(newData.val()).val() === true"
+      }
+    },
     "rooms": {
       "$code": {
         "meta": {
           ".read": "auth != null",
-          ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid) || data.child('ownerUid').val() === auth.uid)",
+          ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid && root.child('moderatorGrants').child(auth.uid).isString() && root.child('config').child('moderatorKeys').child(root.child('moderatorGrants').child(auth.uid).val()).val() === true) || data.child('ownerUid').val() === auth.uid)",
           ".validate": "newData.hasChildren(['ownerUid','createdAt','quizTitle','schemaVersion']) && newData.child('ownerUid').isString() && newData.child('ownerUid').val().length > 10 && newData.child('createdAt').isNumber() && newData.child('quizTitle').isString() && newData.child('quizTitle').val().length <= 160"
         },
         "outline": {

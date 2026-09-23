@@ -1,4 +1,4 @@
-# Sylasphere v10 – Firebase Setup
+# Sylasphere v13 – Firebase Setup
 
 Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Projekt hinterlegt.
 
@@ -9,8 +9,56 @@ Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Proj
 3. Den kompletten Inhalt aus `firebase-database.rules.json` einfügen.
 4. **Publish / Veröffentlichen**.
 
-## Wichtig beim Update auf v10
+## Neu in v13: Moderator-Code
 
-v10 enthält einen echten Online-Buzzer. Dafür wurden zusätzliche geschützte Pfade für atomare Buzzer-Claims und für gesperrte Spieler ergänzt. Deshalb müssen die mitgelieferten v10-Regeln erneut veröffentlicht werden.
+Online-Räume darf nur noch anlegen, wer einen gültigen Moderator-Code eingegeben hat. Firebase prüft den Code selbst, deshalb lässt sich das nicht über den Browser umgehen.
+
+**Reihenfolge ist wichtig. Erst den Code anlegen, dann die Regeln veröffentlichen.** Sonst kann kurzzeitig niemand einen Online-Raum erstellen.
+
+### 1. Eigenen Code festlegen
+
+1. Die Seite `tools/moderator-code.html` öffnen (lokal oder auf deiner Website).
+2. Neuen Code eingeben (mindestens 6 Zeichen, keine der Zeichen `. # $ [ ] /`).
+3. Der angezeigte **Hash** kommt in `js/core/moderator-gate.js` bei `MODERATOR_CODE_HASH`.
+   Er schaltet die Moderatorseite im Browser frei, auch im lokalen Testmodus.
+
+Voreingestellt ist der Platzhalter-Code `Quizmaster`. Bitte ersetzen.
+
+### 2. Code in Firebase hinterlegen
+
+Firebase Console → **Realtime Database** → Reiter **Daten**:
+
+1. Mit der Maus auf die oberste Zeile (Datenbank-URL) → **+** klicken.
+2. Schlüssel `config` anlegen, darunter `moderatorKeys`, darunter als Schlüssel **deinen Code**, Wert `true`.
+
+Ergebnis:
+
+```
+config
+  └─ moderatorKeys
+       └─ DeinCode: true
+```
+
+Mehrere Codes (z. B. für mehrere Moderatoren) sind möglich: einfach weitere Einträge unter `moderatorKeys`.
+Einen Code **sperren**: Eintrag löschen. Moderatoren mit diesem Code können danach keine neuen Räume mehr anlegen. Laufende Räume funktionieren weiter.
+
+Den Pfad `config` kann kein Spieler und kein Moderator lesen oder verändern. Nur du in der Konsole.
+
+### 3. Regeln veröffentlichen
+
+Wie oben: Inhalt von `firebase-database.rules.json` einfügen → **Veröffentlichen**.
+
+## Wie es technisch funktioniert
+
+- Beim Freischalten schreibt die Moderatorseite den Code nach `moderatorGrants/<anonyme-UID>`.
+  Die Regel erlaubt das nur, wenn `config/moderatorKeys/<Code>` den Wert `true` hat.
+- Beim Anlegen eines Raums prüft die Regel für `rooms/<code>/meta`, ob die UID einen gültigen Grant besitzt.
+- Die lokale Sperre (Hash in `moderator-gate.js`) ist nur eine Bequemlichkeit für die Oberfläche und den lokalen Modus. Der echte Schutz liegt in Firebase.
+- Später wird das durch Login + Moderator-Rolle ersetzt. Der Aufbau (`moderatorGrants/<uid>`) passt dazu.
+
+## Frühere Updates
+
+- **v12:** Moderator darf Buzzer-Sperren auf Fragenebene zurücksetzen.
+- **v10:** Echter Online-Buzzer mit geschützten Pfaden für atomare Buzzer-Claims und gesperrte Spieler.
 
 Die Spieler benötigen weiterhin kein sichtbares Konto, keine E-Mail und kein Passwort. Die anonyme Firebase-ID dient nur technisch für Reconnect und Zugriffsrechte.

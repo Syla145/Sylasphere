@@ -8,6 +8,7 @@
   const Firebase = window.JHQuizFirebase;
   const Renderers = window.SchmobinRenderers;
   const Timer = window.SchmobinTimer;
+  const Gate = window.SylasphereModeratorGate;
 
   let activeQuiz = null;
   let engine = null;
@@ -21,6 +22,7 @@
   async function init() {
     ['quiz-select','quiz-summary','quiz-import','create-session','create-online-session','firebase-status','setup-panel','session-panel','session-code','session-status','session-mode','transport-hint','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-resolve-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
     bind();
+    if (Gate) await Gate.whenUnlocked();
     await loadQuizList();
 
     const requested = (App.getParam('code') || '').toUpperCase();
@@ -55,7 +57,14 @@
       button.disabled = true; button.textContent = '🌐 Firebase verbindet …';
       setFirebaseStatus('Verbindung zu Firebase wird aufgebaut …');
       try {
-        const instance = await Online.create(validation.normalized);
+        if (Gate) await Gate.ensureOnlineGrant();
+        let instance;
+        try { instance = await Online.create(validation.normalized); }
+        catch (error) {
+          const explained = Gate?.explainCreateError(error);
+          if (explained) { setFirebaseStatus(explained, 'error'); throw new Error(explained); }
+          throw error;
+        }
         await connectEngine(instance, 'online');
         history.replaceState(null, '', `?code=${engine.code}&mode=online`);
         setFirebaseStatus('✓ Online-Modus bereit. Spieler können von überall beitreten.', 'ready');
