@@ -162,7 +162,7 @@
       App.setText(els['game-status'], 'Frage läuft');
       renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, stage, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
       els['submit-answer'].hidden = false; els['submit-answer'].disabled = draftAnswer == null;
-      els['submit-answer'].textContent = stages ? `Antwort abschicken · jetzt ${stages[Math.min(stages.length - 1, stage)].percent} %` : (answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken');
+      els['submit-answer'].textContent = stages ? `Abschicken · ${stages[Math.min(stages.length - 1, stage)].percent} %` : (answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken');
       els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : (stages ? '<div class="notice">Du kannst nur einmal abschicken – danach ist deine Antwort gesperrt.</div>' : '');
     } else if (!resolved) {
       App.setText(els['game-status'], 'Antworten geschlossen');

@@ -232,7 +232,7 @@ html.moderator-locked #setup-panel,html.moderator-locked #session-panel{display:
 .review-empty{margin-top:14px}
 .all-answers{display:grid;gap:6px;margin-top:4px}
 .all-answers-title{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.all-answers-row{display:grid;grid-template-columns:22px minmax(70px,auto) minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 11px;border:1px solid var(--line);border-radius:11px;background:rgba(var(--overlay-rgb),.03)}
+.all-answers-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:8px 11px;border:1px solid var(--line);border-radius:11px;background:rgba(var(--overlay-rgb),.03)}
 .all-answers-row.is-right .all-answers-mark{color:var(--success)}
 .all-answers-row.is-wrong .all-answers-mark{color:var(--danger)}
 .all-answers-row.is-me{border-color:rgba(var(--accent-rgb),.55);background:rgba(var(--accent-rgb),.08)}
@@ -246,7 +246,7 @@ html.moderator-locked #setup-panel,html.moderator-locked #session-panel{display:
 .sound-toggle{white-space:nowrap}
 .sound-toggle.needs-unlock{border-color:rgba(var(--warning-rgb),.6);color:var(--warning-text);animation:revealReady 1.6s ease-in-out infinite}
 .sound-toggle.is-off,.btn.is-off{opacity:.75}
-.song-stages{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:7px;margin:4px 0 12px}
+.song-stages{display:flex;gap:7px;margin:4px 0 12px}.song-stages>.song-stage{flex:1 1 0;min-width:0}
 .song-stage{display:grid;justify-items:center;gap:1px;padding:9px 6px;border:1px solid var(--line);border-radius:13px;background:rgba(var(--overlay-rgb),.03);text-align:center;transition:.2s ease}
 .song-stage b{font-size:1.05rem}
 .song-stage span{font-weight:750;font-size:.9rem}
@@ -364,3 +364,42 @@ html[data-theme="pub"] .brand-mark{background:linear-gradient(135deg,#e8a33a,#c7
 .session-theme{margin:4px 0 14px}
 /* Moderator: Stufenleiste der Song-Frage nur einmal (in der Steuerung) zeigen */
 #question-area .song-stages,#question-area .sound-toggle{display:none}
+
+/* v18 – Layout-Feinschliff (Mobil & Desktop) */
+.all-answers-row strong{min-width:0;overflow-wrap:anywhere}
+.all-answers-row .all-answers-text{grid-column:2/-1;font-weight:650}
+.all-answers-row .all-answers-text:empty{display:none}
+.song-stage{padding:8px 4px}
+.song-stage span{white-space:nowrap}.song-stage small{text-align:center;line-height:1.25}
+.topic-option .topic-chip{min-height:38px;padding:6px 12px 6px 8px}
+.song-control-actions .btn{text-wrap:balance}
+#session-panel .page-grid.three>*{min-width:0}
+@media(max-width:900px){
+  #session-panel .page-grid.three{grid-template-columns:1fr;padding:14px!important;gap:14px}
+  #session-panel .page-grid.three>.sidebar-stack:last-child{display:contents}
+  #session-panel .page-grid.three>.moderator-stage{order:1}
+  #session-panel .page-grid.three>.sidebar-stack:last-child>.panel:first-child{order:2}
+  #session-panel .page-grid.three>.sidebar-stack:first-child{order:3;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:14px}
+  #session-panel .page-grid.three>.sidebar-stack:last-child>.panel:last-child{order:4}
+  #session-panel .timer-card{padding:12px}
+  #session-panel .timer-ring{width:88px}
+  #session-panel .timer-number{font-size:1.7rem}
+}
+@media(max-width:760px){
+  .session-top{flex-wrap:wrap;padding:14px 16px;gap:10px 14px}
+  .session-top>div:nth-child(2){order:3;flex:1 1 100%;min-width:0}
+  .session-top .session-status{flex-wrap:wrap}
+  .session-top #btn-new-session{padding:8px 11px;font-size:.88rem}
+}
+@media(max-width:560px){
+  #session-panel .page-grid.three>.sidebar-stack:first-child{grid-template-columns:1fr}
+  #session-panel .timer-card{justify-self:stretch}
+  .app-header{gap:10px}
+  .top-actions{gap:6px;justify-content:flex-end}
+  .top-actions .btn{padding:8px 10px;font-size:.86rem;white-space:nowrap}
+  #btn-fullscreen{display:none}
+  .song-stage b{font-size:.95rem}
+  .song-stage span{font-size:.82rem}
+  .song-stage small{font-size:.66rem}
+}
+@media(max-width:400px){.app-header .brand{gap:8px}.app-header .brand-mark{width:32px;height:32px;font-size:17px}.top-actions .btn{padding:7px 9px}}

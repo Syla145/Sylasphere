@@ -1,5 +1,13 @@
 # Sylasphere – Changelog
 
+## v18 – Layout-Feinschliff (Handy & PC)
+Komplette Prüfung aller Seiten und Fragetypen in 5 Bildschirmbreiten (360, 390, 768, 1280, 1920 px) und allen 4 Designs – ohne Befund.
+- **Moderator am Handy/Tablet (bis 900 px):** neue Reihenfolge – Frage & Antwortstatus → Steuerung → Spieler + kleinerer Timer → Links teilen. Kopfzeile läuft nicht mehr über (Vollbild-Knopf am Handy ausgeblendet), Raumcode-Leiste bricht sauber um.
+- **„Alle Antworten“:** zweizeilig (Name + Punkte, darunter die Antwort). Lange Namen quetschen die Antwort nicht mehr zu senkrechten Buchstaben.
+- **Schätzfrage:** Ohne Antwort stand dort „0 …“ und der Regler lag ganz links. Jetzt startet er in der Mitte; Moderator/Zuschauer zeigen „–“.
+- **Song-Enthüllung:** Stufen immer in einer Reihe; kürzere Knopftexte („Abschicken · 100 %“, „▶ Stufe 1 · 0,1 s“, „⏭ Weiter · 1 s“).
+- **Themenauswahl im Editor:** größere Tippflächen am Handy.
+
 ## v17 – Designs (Templates)
 - **4 Designs:** Neon Arena (bisheriger Look), Retro-Show (70er-Spielshow mit Gold, Rot und Sonnenstrahlen), Clean Light (hell, gut für Beamer und Tageslicht) und Pub Quiz (Kreidetafel, Holz, Bernstein).
 - **Auswahl:** im Editor pro Quiz (mit Live-Vorschau) und beim Moderator in „Sitzung starten“ für die jeweilige Sitzung überschreibbar. Spieler und Zuschauer übernehmen das Design automatisch, auch online. Jedes Gerät merkt sich das zuletzt genutzte Design, damit beim Laden nichts aufblitzt.

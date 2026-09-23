@@ -33,7 +33,7 @@
   function answerEntriesHTML(entries, meId = '') {
     if (!Array.isArray(entries) || !entries.length) return '';
     const esc = window.SchmobinApp.escapeHTML;
-    return `<div class="all-answers"><div class="all-answers-title">Alle Antworten</div>${entries.map(entry => `<div class="all-answers-row ${entry.correct ? 'is-right' : 'is-wrong'}${entry.playerId === meId ? ' is-me' : ''}"><span class="all-answers-mark">${entry.correct ? '✓' : '✗'}</span><strong>${esc(entry.name)}</strong><span>${esc(entry.answer)}</span><b>+${Math.round(entry.points || 0)}</b></div>`).join('')}</div>`;
+    return `<div class="all-answers"><div class="all-answers-title">Alle Antworten</div>${entries.map(entry => `<div class="all-answers-row ${entry.correct ? 'is-right' : 'is-wrong'}${entry.playerId === meId ? ' is-me' : ''}"><span class="all-answers-mark">${entry.correct ? '✓' : '✗'}</span><strong>${esc(entry.name)}</strong><b>+${Math.round(entry.points || 0)}</b><span class="all-answers-text">${esc(entry.answer)}</span></div>`).join('')}</div>`;
   }
 
   window.SchmobinRenderers = { renderPlayer, renderModerator, answerEntriesHTML };

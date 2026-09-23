@@ -60,9 +60,11 @@
       const wrap = Kit.baseQuestion(q);
       const block = el('div', 'estimate-block');
       const min = Number(q.min); const max = Number(q.max); const step = Number(q.step || 1);
-      let value = Number(ctx.currentAnswer);
-      if (!Number.isFinite(value)) value = min + (max - min) / 2;
-      const output = el('output', 'estimate-value', withUnit(value, q.unit));
+      // null/'' = noch keine Antwort (Number(null) wäre 0 → falsche Anzeige „0 …“)
+      const raw = ctx.currentAnswer;
+      const hasAnswer = raw != null && raw !== '' && Number.isFinite(Number(raw));
+      let value = hasAnswer ? Number(raw) : Kit.clamp(min + Math.round((max - min) / 2 / step) * step, min, max);
+      const output = el('output', 'estimate-value', !hasAnswer && ctx.readOnly ? '–' : withUnit(value, q.unit));
       const rangeWrap = el('div', 'range-wrap');
       const input = document.createElement('input');
       input.type = 'range'; input.min = min; input.max = max; input.step = step; input.value = value; input.disabled = Boolean(ctx.readOnly);
@@ -77,7 +79,7 @@
       labels.innerHTML = `<span>${escapeHTML(withUnit(min, q.unit))}</span><span>${escapeHTML(withUnit(max, q.unit))}</span>`;
       input.addEventListener('input', () => { value = Number(input.value); output.textContent = withUnit(value, q.unit); ctx.onAnswer?.(value); });
       block.append(output, rangeWrap, labels); wrap.append(block); container.replaceChildren(wrap);
-      if (ctx.currentAnswer == null && !ctx.readOnly) ctx.onAnswer?.(value);
+      if (!hasAnswer && !ctx.readOnly) ctx.onAnswer?.(value);
     },
 
     editor(q, ui, box) {

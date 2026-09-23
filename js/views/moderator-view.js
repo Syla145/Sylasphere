@@ -406,7 +406,7 @@
     const sound = `<button type="button" class="btn btn--small${media.enabled ? '' : ' is-off'}" data-song-action="mute">${media.enabled ? '🔊 Ton hier an' : '🔇 Ton hier aus'}</button>`;
     const controls = resolved
       ? `<button type="button" class="btn" data-song-action="reveal">▶ Auflösung erneut abspielen</button>${sound}`
-      : `<button type="button" class="btn btn--success" data-song-action="play" ${state.questionStartedAt ? '' : 'disabled'}>▶ Stufe ${stage + 1} abspielen (${String(stages[stage].duration).replace('.', ',')} s)</button><button type="button" class="btn btn--primary" data-song-action="next" ${state.questionOpen && !last ? '' : 'disabled'}>⏭ Nächste Stufe${last ? '' : ` (${String(stages[stage + 1].duration).replace('.', ',')} s)`}</button>${sound}`;
+      : `<button type="button" class="btn btn--success" data-song-action="play" ${state.questionStartedAt ? '' : 'disabled'}>▶ Stufe ${stage + 1} · ${String(stages[stage].duration).replace('.', ',')} s</button><button type="button" class="btn btn--primary" data-song-action="next" ${state.questionOpen && !last ? '' : 'disabled'}>⏭ Weiter${last ? '' : ` · ${String(stages[stage + 1].duration).replace('.', ',')} s`}</button>${sound}`;
     return `<div class="song-control"><div class="song-stages">${chips}</div><div class="song-control-actions">${controls}</div><p class="microcopy">Jeder Klick auf ▶ spielt die aktuelle Stufe erneut für alle. Spieler können antworten, bis du zur nächsten Stufe wechselst oder die Antworten schließt.</p></div>`;
   }
 
