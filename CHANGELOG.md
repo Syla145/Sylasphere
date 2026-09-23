@@ -45,3 +45,14 @@
 
 ## v5 – Showtime Update · 22.09.2026
 - Vier neue Fragetypen, Game-Show-UX, Podium, Rundeneinstiege und Editor-Upgrades.
+
+## v9
+- Rebranding auf **Sylasphere** inkl. angepasster Startseite, neuem Logo-Text und Hinweis „Erstellt von JH“.
+- Landingpage vereinfacht: vier kleine Infoblöcke entfernt.
+- Neuer Fragetyp **Buzzer** im Editor mit zwei Modi:
+  - mündliche Antwort nach dem Buzzer
+  - erste Textantwort gewinnt
+- Moderator-Workflow für Buzzer-Fragen:
+  - erster Spieler sperrt den Buzzer
+  - Moderator kann **richtig werten & auflösen** oder **falsch werten, Spieler sperren und Buzzer neu freigeben**
+- Spieleransicht für Buzzer-Fragen mit Live-Status, Sperrhinweis und schneller Button-/Text-Eingabe.

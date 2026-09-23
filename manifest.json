@@ -1,11 +1,11 @@
 {
-  "name": "JH-Quiz – Quiz Arena",
-  "short_name": "JH-Quiz",
+  "name": "Sylasphere – Quiz Arena",
+  "short_name": "Sylasphere",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a1020",
   "theme_color": "#0a1020",
-  "description": "JH-Quiz – Quiz Arena v8 mit lokalem Modus und Firebase Realtime Online-Multiplayer.",
+  "description": "Sylasphere – Quiz Arena v9 mit lokalem Modus und Firebase Realtime Online-Multiplayer.",
   "icons": [
     {
       "src": "./assets/jh-quiz-icon.svg",

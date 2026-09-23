@@ -4,7 +4,7 @@
   const App = window.SchmobinApp;
   const SUPPORTED_TYPES = [
     'multiple-choice', 'image-quiz', 'audio-quiz', 'estimate', 'sort',
-    'fight-list', 'higher-lower', 'survey', 'consensus', 'hotspot'
+    'fight-list', 'higher-lower', 'survey', 'consensus', 'hotspot', 'buzzer'
   ];
   const TYPE_LABELS = {
     'multiple-choice': 'Multiple Choice',
@@ -16,12 +16,13 @@
     'higher-lower': 'Higher / Lower',
     survey: 'Publikums-Duell',
     consensus: 'Gleich gedacht',
-    hotspot: 'Hotspot'
+    hotspot: 'Hotspot',
+    buzzer: 'Buzzer'
   };
   const TYPE_ICONS = {
     'multiple-choice': '◉', 'image-quiz': '▣', 'audio-quiz': '♪', estimate: '≈',
     sort: '↕', 'fight-list': '✎', 'higher-lower': '↗', survey: '▥',
-    consensus: '◎', hotspot: '⌖'
+    consensus: '◎', hotspot: '⌖', buzzer: '⚡'
   };
   const TYPE_DESCRIPTIONS = {
     'multiple-choice': 'Klassische Auswahl mit einer richtigen Antwort.',
@@ -33,7 +34,8 @@
     'higher-lower': 'Werte paarweise als höher oder niedriger einschätzen.',
     survey: 'Wie hat das Publikum abgestimmt? Die stärkste Umfrage-Antwort gewinnt.',
     consensus: 'Es gibt kein Vorwissen: Punkte gibt es für die Antwort der Mehrheit.',
-    hotspot: 'Auf einem Bild möglichst genau die gesuchte Position treffen.'
+    hotspot: 'Auf einem Bild möglichst genau die gesuchte Position treffen.',
+    buzzer: 'Geschwindigkeit zählt: Der erste Spieler buzzert oder sendet eine Schnellantwort, der Moderator entscheidet.'
   };
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -137,6 +139,12 @@
       q.targetX = Math.min(100, Math.max(0, numberOr(q.targetX ?? q.x, 50)));
       q.targetY = Math.min(100, Math.max(0, numberOr(q.targetY ?? q.y, 50)));
       q.radius = Math.min(50, Math.max(1, numberOr(q.radius ?? q.tolerance, 10)));
+    }
+    if (q.type === 'buzzer') {
+      q.timer = 0;
+      q.buzzerMode = String(q.buzzerMode || q.mode || 'spoken');
+      q.solution = String(q.solution || q.correctAnswer || q.answer || '');
+      q.penalty = numberOr(q.penalty, 0);
     }
     return q;
   }
@@ -311,6 +319,7 @@
     if (q.type === 'fight-list') return (q.correctAnswers || []).join(', ');
     if (q.type === 'higher-lower') return (q.cards || []).map(c => `${c.label}: ${c.value}${c.unit ? ` ${c.unit}` : ''}`).join(' · ');
     if (q.type === 'hotspot') return 'Markierter Zielbereich';
+    if (q.type === 'buzzer') return q.solution || 'Moderatorentscheidung';
     return '';
   }
   function answerLabel(question, answer) {
@@ -323,6 +332,7 @@
       const x = Number(answer?.x), y = Number(answer?.y);
       return Number.isFinite(x) && Number.isFinite(y) ? `X ${x.toFixed(1)}% · Y ${y.toFixed(1)}%` : 'Kein Punkt gewählt';
     }
+    if (q.type === 'buzzer') return q.buzzerMode === 'spoken' ? 'Mündliche Antwort' : String(answer ?? '');
     return String(answer ?? '');
   }
 

@@ -91,9 +91,10 @@
         event.preventDefault();
         const current = engine.getCurrent(state);
         const resolved = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
-        if (state?.questionOpen) safe(() => engine.lockQuestion());
-        else if (state?.questionStartedAt && !resolved) safe(() => engine.resolveQuestion());
-        else if (!state?.questionStartedAt && !resolved) safe(() => engine.startQuestion());
+        if (!state?.questionStartedAt && !resolved) safe(() => engine.startQuestion());
+        else if (current.question?.type === 'buzzer') { if (!state?.questionOpen && !resolved) safe(() => engine.resolveQuestion()); }
+        else if (state?.questionOpen) safe(() => engine.lockQuestion());
+        else if (!resolved) safe(() => engine.resolveQuestion());
       }
       if (event.key === 'ArrowRight') safe(() => engine.move(1));
       if (event.key === 'ArrowLeft') safe(() => engine.move(-1));
@@ -125,7 +126,7 @@
   async function connectEngine(instance, mode) {
     if (engine && engine !== instance) { try { await engine.destroy?.(); } catch (_) {} }
     engine = instance; transport = mode;
-    let existing = mode === 'online' ? await engine.waitForState() : engine.load();
+    const existing = mode === 'online' ? await engine.waitForState() : engine.load();
     if (!existing) { try { await engine.destroy?.(); } catch (_) {} engine = null; throw new Error('Sitzung nicht gefunden.'); }
     els['setup-panel'].hidden = true; els['session-panel'].hidden = false;
     engine.subscribe(render);
@@ -176,18 +177,17 @@
     if (!els['validation-box']) return;
     const items = [...validation.errors.map(x => ({...x, kind:'error'})), ...validation.warnings.map(x => ({...x, kind:'warning'}))];
     if (!items.length) { els['validation-box'].innerHTML = '<div class="notice notice--success">Quiz-Datei ist plausibel und spielbereit.</div>'; return; }
-    els['validation-box'].innerHTML = `<details ${validation.errors.length ? 'open' : ''}><summary>${validation.errors.length} Fehler, ${validation.warnings.length} Hinweise</summary><div class="validation-list">${items.map(x => `<div class="validation-item validation-item--${x.kind}"><code>${App.escapeHTML(x.path)}</code><span>${App.escapeHTML(x.message)}</span></div>`).join('')}</div></details>`;
+    els['validation-box'].innerHTML = `<details ${validation.errors.length ? 'open' : ''}><summary>${validation.errors.length} Fehler · ${validation.warnings.length} Hinweise</summary><div class="validation-list">${items.slice(0, 18).map(item => `<div class="validation-item validation-item--${item.kind}"><code>${App.escapeHTML(item.path)}</code><span>${App.escapeHTML(item.message)}</span></div>`).join('')}${items.length > 18 ? `<div class="microcopy">+ ${items.length - 18} weitere</div>` : ''}</div></details>`;
   }
 
-  function setFirebaseStatus(text, kind = '') {
+  function setFirebaseStatus(message, kind = 'info') {
     if (!els['firebase-status']) return;
-    els['firebase-status'].textContent = text;
-    els['firebase-status'].classList.toggle('is-ready', kind === 'ready');
-    els['firebase-status'].classList.toggle('is-error', kind === 'error');
+    els['firebase-status'].textContent = message;
+    els['firebase-status'].dataset.state = kind;
   }
 
-  function render(nextState) {
-    state = nextState;
+  function render(next) {
+    state = next;
     const current = engine.getCurrent(state);
     App.setText(els['session-code'], state.code);
     App.setText(els['session-status'], statusLabel(state));
@@ -260,9 +260,10 @@
     }
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
     if (!state.questionStartedAt) {
-      els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte · ${current.question.timer || 0}s</p></div>`;
+      els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte${current.question.type === 'buzzer' ? ' · ohne Zeitlimit' : ` · ${current.question.timer || 0}s`}</p></div>`;
       els['answer-status'].innerHTML = '<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>'; return;
     }
+
     const questionResult = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
@@ -271,8 +272,33 @@
     const submitted = Object.keys(answers).length; const total = state.players.length;
     const correct = resolved ? Quiz.correctAnswerText(current.question, questionResult) : '';
     const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+
+    if (current.question.type === 'buzzer') {
+      const buzzer = questionResult && questionResult.kind === 'buzzer' ? questionResult : { status: state.questionOpen ? 'open' : 'idle', eliminatedIds: [] };
+      const eligible = Math.max(0, total - (buzzer.eliminatedIds || []).length);
+      const contender = buzzer.contenderName || findPlayerName(buzzer.contenderId);
+      let html = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Buzzer-Versuche</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>`;
+      html += `<div class="stat-cards"><div><span>Status</span><strong>${buzzer.status === 'locked' ? 'Prüfung läuft' : buzzer.status === 'resolved' ? 'Aufgelöst' : buzzer.status === 'exhausted' ? 'Kein Spieler frei' : state.questionOpen ? 'Buzzer offen' : 'Geschlossen'}</strong></div><div><span>Verbleibend</span><strong>${eligible}</strong></div></div>`;
+      if (buzzer.contenderId) html += `<div class="reveal-box"><span>Schnellster Spieler</span><strong>${App.escapeHTML(contender || 'Spieler')}</strong>${buzzer.mode === 'text' && buzzer.contenderAnswer ? `<small>${App.escapeHTML(String(buzzer.contenderAnswer))}</small>` : '<small>Antwort erfolgt mündlich</small>'}</div>`;
+      if ((buzzer.eliminatedIds || []).length) {
+        const blocked = (buzzer.eliminatedIds || []).map(findPlayerName).filter(Boolean).map(name => `<span class="chip">${App.escapeHTML(name)}</span>`).join('');
+        if (blocked) html += `<div class="chip-row" style="margin-top:12px">${blocked}</div>`;
+      }
+      if (!resolved) html += `<div class="buzzer-admin-actions"><button type="button" class="btn btn--reveal" data-buzzer-action="resolve" ${buzzer.contenderId || buzzer.status === 'exhausted' ? '' : 'disabled'}>${buzzer.contenderId ? '✅ Richtig werten & auflösen' : 'Ohne Gewinner auflösen'}</button><button type="button" class="btn" data-buzzer-action="wrong" ${buzzer.contenderId ? '' : 'disabled'}>❌ Falsch · Spieler sperren & neu freigeben</button></div>`;
+      if (resolved && correct) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>`;
+      if (resolved && submitted) html += answerRows(current.question, answers);
+      els['answer-status'].innerHTML = html;
+      els['answer-status'].querySelector('[data-buzzer-action="resolve"]')?.addEventListener('click', () => safe(() => engine.resolveQuestion()));
+      els['answer-status'].querySelector('[data-buzzer-action="wrong"]')?.addEventListener('click', () => safe(() => engine.markBuzzerIncorrect()));
+      return;
+    }
+
     const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
     els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : ''}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
+  }
+
+  function findPlayerName(playerId) {
+    return state.players.find(player => player.id === playerId)?.name || '';
   }
 
   function answerRows(question, answers) {
@@ -304,9 +330,14 @@
   function renderTimer() {
     timer?.stop();
     const current = engine?.getCurrent(state);
+    els['timer-ring']?.classList.remove('is-critical', 'is-ended');
+    if (current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id)) {
+      App.setText(els['timer-number'], '⚡');
+      els['timer-ring']?.style.setProperty('--timer-progress', '360deg');
+      return;
+    }
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     const pendingReveal = Boolean(current?.question && state.questionStartedAt && !state.questionOpen && !resolved);
-    els['timer-ring']?.classList.remove('is-critical', 'is-ended');
     if (pendingReveal) { App.setText(els['timer-number'], '0'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); els['timer-ring']?.classList.add('is-ended'); return; }
     if (!state.questionOpen || !state.questionEndsAt) { App.setText(els['timer-number'], '–'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); return; }
     const total = Math.max(1, state.questionEndsAt - (state.questionStartedAt || Date.now()));
@@ -321,16 +352,19 @@
 
   function renderButtons(current) {
     const finished = state.status === 'finished';
+    const isBuzzer = current.question?.type === 'buzzer';
     els['btn-start-game'].disabled = state.status !== 'lobby' || !state.players.length;
     const alreadyScored = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
     const started = Boolean(current.question && state.questionStartedAt);
     const pendingReveal = started && !state.questionOpen && !alreadyScored;
+    const buzzerResult = isBuzzer ? (state.questionResults?.[current.question.id] || {}) : null;
     els['btn-start-question'].disabled = finished || started || !current.question || alreadyScored;
-    els['btn-close-question'].disabled = finished || !state.questionOpen;
-    els['btn-resolve-question'].disabled = finished || !pendingReveal;
-    els['btn-resolve-question'].classList.toggle('is-ready', pendingReveal);
+    els['btn-close-question'].disabled = finished || !state.questionOpen || isBuzzer;
+    els['btn-resolve-question'].disabled = finished || !pendingReveal || isBuzzer;
+    els['btn-resolve-question'].classList.toggle('is-ready', pendingReveal && !isBuzzer);
     els['btn-prev'].disabled = state.questionOpen || pendingReveal || questionGlobalIndex(state) <= 0;
     els['btn-next'].disabled = state.questionOpen || pendingReveal || finished;
+    if (isBuzzer && started && !alreadyScored && buzzerResult?.status === 'open') els['btn-next'].disabled = true;
     els['btn-finish'].disabled = finished;
   }
 

@@ -38,8 +38,6 @@
       return 'local';
     }
     if (hint === 'online') return 'online';
-
-    // Manual code entry: online first, then local fallback.
     try { if (await Online.exists(code, 'player')) return 'online'; } catch (_) {}
     if (Session.exists(code)) return 'local';
     throw new Error('Sitzung nicht gefunden. Prüfe den 6-stelligen Code.');
@@ -65,7 +63,6 @@
         const stored = identity.storedPlayerId();
         const reusable = await identity.reusablePlayerId();
         const context = await Firebase.ready('player');
-        // Duplicated tabs can inherit sessionStorage/Auth. Give the duplicate a fresh anonymous UID.
         if (stored && !reusable && context.auth.currentUser?.uid === stored) await Firebase.rotateAnonymous('player');
         engine = await Online.connect(code, 'player');
         await engine.waitForState();
@@ -137,6 +134,9 @@
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const timedOut = Boolean(state.questionOpen && state.questionEndsAt && Date.now() >= Number(state.questionEndsAt));
     const answerWindowOpen = state.questionOpen && !timedOut;
+
+    if (current.question.type === 'buzzer') return renderBuzzer(current, answerRecord, questionResult, resolved);
+
     if (answerWindowOpen) {
       App.setText(els['game-status'], 'Frage läuft');
       Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
@@ -158,6 +158,47 @@
     }
   }
 
+  function renderBuzzer(current, answerRecord, questionResult, resolved) {
+    const result = questionResult && questionResult.kind === 'buzzer' ? questionResult : { mode: current.question.buzzerMode || 'spoken', status: state.questionOpen ? 'open' : 'idle', eliminatedIds: [] };
+    const myTurn = result.contenderId && String(result.contenderId) === String(playerId);
+    const eliminated = Array.isArray(result.eliminatedIds) && result.eliminatedIds.includes(playerId);
+    const answerWindowOpen = state.questionOpen;
+
+    if (resolved) {
+      App.setText(els['game-status'], 'Auflösung');
+      Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result, playerId });
+      els['submit-answer'].hidden = true;
+      const points = answerRecord?.awardedPoints || 0;
+      const winnerText = result.winnerId ? `${result.winnerName || 'Spieler'} gewinnt den Buzzer` : 'Keine Wertung';
+      const solution = Quiz.correctAnswerText(current.question, result) || '–';
+      els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>Buzzer-Ergebnis</span><strong>${App.escapeHTML(winnerText)}</strong></div><div class="reveal-box"><span>Lösung</span><strong>${App.escapeHTML(solution)}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : ''}`;
+      return;
+    }
+
+    App.setText(els['game-status'], answerWindowOpen ? 'Buzzer offen' : 'Buzzer gesperrt');
+    Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: !answerWindowOpen, reveal: false, result, playerId, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
+
+    if (answerWindowOpen && !eliminated) {
+      els['submit-answer'].hidden = false;
+      els['submit-answer'].textContent = current.question.buzzerMode === 'text' ? (answerRecord ? 'Schnellantwort aktualisieren' : 'Schnellantwort senden') : 'Jetzt buzzern';
+      els['submit-answer'].disabled = current.question.buzzerMode === 'text' ? !String(draftAnswer ?? '').trim() : false;
+      els['answer-feedback'].innerHTML = '<div class="notice">⚡ Geschwindigkeit zählt. Nur der erste Spieler kommt durch.</div>';
+      return;
+    }
+
+    els['submit-answer'].hidden = true;
+    if (myTurn) {
+      els['answer-feedback'].innerHTML = current.question.buzzerMode === 'text'
+        ? '<div class="notice notice--success">✓ Du warst zuerst. Deine Antwort wurde gesendet und wird jetzt geprüft.</div>'
+        : '<div class="notice notice--success">✓ Du warst zuerst. Antworte jetzt mündlich, der Moderator prüft deine Antwort.</div>';
+    } else if (eliminated) {
+      els['answer-feedback'].innerHTML = '<div class="notice notice--warning">Du bist für diese Frage gesperrt, weil deine letzte Buzzer-Antwort falsch war.</div>';
+    } else {
+      const contender = result.contenderName || 'Ein anderer Spieler';
+      els['answer-feedback'].innerHTML = `<div class="notice notice--warning">${App.escapeHTML(contender)} ist dran. Warte auf die Entscheidung des Moderators.</div>`;
+    }
+  }
+
   function finalPodium(ranked, place) {
     const top = ranked.slice(0, 3); const order = [top[1], top[0], top[2]].filter(Boolean);
     const podium = order.map(player => {
@@ -168,18 +209,27 @@
     return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}</div>`;
   }
 
-  function updateSubmit(){ els['submit-answer'].disabled=draftAnswer==null; }
+  function updateSubmit(){
+    const current = engine?.getCurrent(state);
+    if (current?.question?.type === 'buzzer' && current.question.buzzerMode === 'spoken') { els['submit-answer'].disabled = false; return; }
+    els['submit-answer'].disabled=draftAnswer==null || (typeof draftAnswer === 'string' && !draftAnswer.trim());
+  }
 
   async function submit(){
-    if(!engine||draftAnswer==null)return;
+    if(!engine)return;
+    const current = engine.getCurrent(state);
+    if (!current.question) return;
+    if (current.question.type !== 'buzzer' && draftAnswer == null) return;
+    if (current.question.type === 'buzzer' && current.question.buzzerMode === 'text' && !String(draftAnswer ?? '').trim()) return;
+    const payload = current.question.type === 'buzzer' && current.question.buzzerMode === 'spoken' ? null : draftAnswer;
     const button = els['submit-answer']; button.disabled = true;
     try {
-      const ok = await engine.submitAnswer(playerId,draftAnswer);
-      if(ok) App.toast('Antwort gespeichert.','success'); else App.toast('Antwort konnte nicht mehr angenommen werden.','error');
+      const ok = await engine.submitAnswer(playerId,payload);
+      if(ok) App.toast(current.question.type === 'buzzer' ? 'Buzzer gesendet.' : 'Antwort gespeichert.','success'); else App.toast('Antwort konnte nicht mehr angenommen werden.','error');
     } catch (error) { App.toast(transport === 'online' ? Firebase.friendlyError(error) : error.message, 'error'); }
     finally {
       const stillOpen = Boolean(state?.questionOpen && (!state.questionEndsAt || Date.now() < Number(state.questionEndsAt)));
-      if (stillOpen) button.disabled = draftAnswer == null;
+      if (stillOpen) updateSubmit();
     }
   }
 
@@ -195,7 +245,10 @@
   }
 
   function renderTimer(current){
-    timer?.stop(); if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
+    timer?.stop();
+    els['player-timer'].classList.remove('is-critical');
+    if (current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id)) { App.setText(els['player-timer'],'⚡'); return; }
+    if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
     timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
   }
 

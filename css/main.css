@@ -77,3 +77,16 @@ a{color:inherit;text-decoration:none}button,input,select,textarea{font:inherit}b
 @media(max-width:760px){.player-layout{width:min(100% - 12px,820px)}.player-main-grid{gap:12px}.player-leader-panel{order:2}.session-status{flex-wrap:wrap}}
 
 .mode-pill.is-offline{border-color:rgba(255,183,77,.55);background:rgba(255,183,77,.12);color:#ffd18a}
+
+/* v9 additions */
+.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.04);color:var(--muted);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.buzzer-panel{display:grid;gap:12px;margin-top:16px}
+.buzzer-state{display:grid;gap:6px;padding:14px 16px;border-radius:18px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04)}
+.buzzer-state strong{font-size:1rem}
+.buzzer-state small{color:var(--muted)}
+.buzzer-state--open{box-shadow:0 0 0 1px rgba(40,215,208,.15) inset}
+.buzzer-state--locked{box-shadow:0 0 0 1px rgba(124,92,255,.18) inset}
+.buzzer-state--blocked{opacity:.9}
+.buzzer-state--resolved{box-shadow:0 0 0 1px rgba(123,220,118,.18) inset}
+.buzzer-admin-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:14px}
+@media (max-width: 720px){.buzzer-admin-actions{grid-template-columns:1fr}}

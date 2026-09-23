@@ -122,6 +122,24 @@
       const question = round?.questions?.[state.currentQuestionIndex];
       return { quiz, round, question };
     }
+    initialBuzzerState(question) {
+      return {
+        kind: 'buzzer',
+        mode: String(question?.buzzerMode || 'spoken'),
+        status: 'open',
+        contenderId: '',
+        contenderName: '',
+        contenderAnswer: null,
+        winnerId: '',
+        winnerName: '',
+        winnerAnswer: null,
+        eliminatedIds: [],
+        reopenedCount: 0,
+        lastIncorrectId: '',
+        lastIncorrectAnswer: null,
+        resolvedAt: null
+      };
+    }
     joinPlayer(name, avatar = '🦊', preferredId = '') {
       const cleanName = String(name || '').trim().slice(0, 28);
       if (!cleanName) throw new Error('Bitte einen Spielernamen eingeben.');
@@ -153,7 +171,7 @@
         if (!question) throw new Error('Keine Frage verfügbar.');
         if (state.scoredQuestionIds?.includes(question.id)) throw new Error('Diese Frage wurde bereits ausgewertet. Bitte zur nächsten Frage wechseln.');
         if (state.questionStartedAt) throw new Error('Diese Frage wurde bereits gestartet. Bitte erst auflösen oder zur nächsten Frage wechseln.');
-        const questionTimer = Number(question.timer);
+        const questionTimer = question.type === 'buzzer' ? 0 : Number(question.timer);
         const defaultTimer = Number(state.quiz.quiz.settings.defaultTimer);
         const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
         state.status = 'playing';
@@ -161,6 +179,7 @@
         state.questionStartedAt = Date.now();
         state.questionEndsAt = duration > 0 ? Date.now() + duration * 1000 : null;
         state.answers[question.id] = state.answers[question.id] || {};
+        if (question.type === 'buzzer') state.questionResults[question.id] = this.initialBuzzerState(question);
       });
     }
     lockQuestion() {
@@ -189,27 +208,51 @@
           consensusResult = Quiz.computeConsensusResult(question, answers);
           state.questionResults[question.id] = consensusResult;
         }
-        state.players.forEach(player => {
-          const submission = answers[player.id];
-          if (!submission) return;
-          let result;
-          if (question.type === 'consensus') {
-            const won = consensusResult.winningOptionIds.includes(String(submission.answer));
-            const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
-            const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
-            result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
-          } else {
-            result = Quiz.scoreAnswer(question, submission.answer, multiplier);
-          }
-          submission.awardedPoints = result.points;
-          submission.scoreDetail = result.detail;
-          submission.scoredAt = Date.now();
-          player.score = Math.round((Number(player.score) || 0) + result.points);
-        });
+        if (question.type === 'buzzer') {
+          const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
+          const winnerId = String(result.contenderId || '');
+          const winnerPlayer = winnerId ? state.players.find(player => player.id === winnerId) : null;
+          if (winnerId && !answers[winnerId]) answers[winnerId] = { answer: Quiz.clone(result.contenderAnswer), submittedAt: Date.now() };
+          state.players.forEach(player => {
+            const submission = answers[player.id];
+            if (!submission) return;
+            const points = winnerId && player.id === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+            submission.awardedPoints = points;
+            submission.scoreDetail = player.id === winnerId ? 'Schnellste richtige Antwort' : 'Nicht gewertet';
+            submission.scoredAt = Date.now();
+            player.score = Math.round((Number(player.score) || 0) + points);
+          });
+          result.status = 'resolved';
+          result.winnerId = winnerId;
+          result.winnerName = winnerPlayer?.name || '';
+          result.winnerAnswer = winnerId ? (answers[winnerId]?.answer ?? result.contenderAnswer) : null;
+          result.resolvedAt = Date.now();
+          state.questionResults[question.id] = result;
+        } else {
+          state.players.forEach(player => {
+            const submission = answers[player.id];
+            if (!submission) return;
+            let result;
+            if (question.type === 'consensus') {
+              const won = consensusResult.winningOptionIds.includes(String(submission.answer));
+              const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+              const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
+              result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
+            } else {
+              result = Quiz.scoreAnswer(question, submission.answer, multiplier);
+            }
+            submission.awardedPoints = result.points;
+            submission.scoreDetail = result.detail;
+            submission.scoredAt = Date.now();
+            player.score = Math.round((Number(player.score) || 0) + result.points);
+          });
+        }
         state.scoredQuestionIds.push(question.id);
       });
     }
     submitAnswer(playerId, answer) {
+      const current = this.getCurrent(this.load());
+      if (current.question?.type === 'buzzer') return this.buzz(playerId, answer);
       let accepted = false;
       this.mutate(state => {
         const { question } = this.getCurrent(state);
@@ -221,6 +264,54 @@
         accepted = true;
       });
       return accepted;
+    }
+    buzz(playerId, answer = null) {
+      let accepted = false;
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        if (!state.questionOpen || !question || question.type !== 'buzzer') return;
+        const player = state.players.find(p => p.id === playerId);
+        if (!player) return;
+        const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
+        if (result.status !== 'open') return;
+        if ((result.eliminatedIds || []).includes(playerId)) return;
+        state.answers[question.id] = state.answers[question.id] || {};
+        state.answers[question.id][playerId] = { answer: Quiz.clone(answer), submittedAt: Date.now() };
+        result.status = 'locked';
+        result.contenderId = playerId;
+        result.contenderName = player.name;
+        result.contenderAnswer = Quiz.clone(answer);
+        state.questionResults[question.id] = result;
+        state.questionOpen = false;
+        state.questionEndsAt = null;
+        accepted = true;
+      });
+      return accepted;
+    }
+    markBuzzerIncorrect() {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        if (!question || question.type !== 'buzzer' || !state.questionStartedAt) throw new Error('Keine aktive Buzzer-Frage.');
+        const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
+        if (!result.contenderId) throw new Error('Noch kein Spieler hat gebuzzert.');
+        if (!result.eliminatedIds.includes(result.contenderId)) result.eliminatedIds.push(result.contenderId);
+        result.lastIncorrectId = result.contenderId;
+        result.lastIncorrectAnswer = result.contenderAnswer;
+        result.contenderId = '';
+        result.contenderName = '';
+        result.contenderAnswer = null;
+        const remaining = state.players.filter(player => !result.eliminatedIds.includes(player.id));
+        if (remaining.length) {
+          result.status = 'open';
+          result.reopenedCount = Number(result.reopenedCount || 0) + 1;
+          state.questionOpen = true;
+        } else {
+          result.status = 'exhausted';
+          state.questionOpen = false;
+        }
+        state.questionEndsAt = null;
+        state.questionResults[question.id] = result;
+      });
     }
     setPlayerScore(playerId, score) {
       this.mutate(state => {

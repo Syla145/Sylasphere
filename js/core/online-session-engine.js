@@ -60,7 +60,27 @@
     if (q.type === 'survey' && Array.isArray(q.options)) {
       q.options = q.options.map(option => ({ id: option.id, text: option.text }));
     }
+    if (q.type === 'buzzer') delete q.solution;
     return q;
+  }
+
+  function initialBuzzerState(question) {
+    return {
+      kind: 'buzzer',
+      mode: String(question?.buzzerMode || 'spoken'),
+      status: 'open',
+      contenderId: '',
+      contenderName: '',
+      contenderAnswer: null,
+      winnerId: '',
+      winnerName: '',
+      winnerAnswer: null,
+      eliminatedIds: [],
+      reopenedCount: 0,
+      lastIncorrectId: '',
+      lastIncorrectAnswer: null,
+      resolvedAt: null
+    };
   }
 
   function answersByQuestion(rawAnswers) {
@@ -105,6 +125,17 @@
     if (question.type === 'hotspot') {
       const hits = records.filter(record => Number(record?.awardedPoints) > 0).length;
       return { kind: 'hotspot', hits, total: records.length };
+    }
+    if (question.type === 'buzzer') {
+      return {
+        kind: 'buzzer',
+        total: records.length,
+        winnerId: String(questionResult?.winnerId || ''),
+        winnerName: String(questionResult?.winnerName || ''),
+        contenderId: String(questionResult?.contenderId || ''),
+        contenderName: String(questionResult?.contenderName || ''),
+        status: String(questionResult?.status || 'open')
+      };
     }
     return { kind: question.type, count: records.length };
   }
@@ -458,7 +489,7 @@
       if (!question) throw new Error('Keine Frage verfügbar.');
       if (state.scoredQuestionIds.includes(question.id)) throw new Error('Diese Frage wurde bereits ausgewertet. Bitte zur nächsten Frage wechseln.');
       if (state.questionStartedAt) throw new Error('Diese Frage wurde bereits gestartet. Bitte erst auflösen oder zur nächsten Frage wechseln.');
-      const questionTimer = Number(question.timer);
+      const questionTimer = question.type === 'buzzer' ? 0 : Number(question.timer);
       const defaultTimer = Number(this.raw.hostQuiz.quiz.settings.defaultTimer);
       const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
       const now = Firebase.serverNow(this.context);
@@ -467,7 +498,7 @@
         questionEndsAt: duration > 0 ? now + duration * 1000 : null,
         currentQuestionId: question.id,
         currentQuestion: publicQuestion(question, false),
-        questionResult: null, publicStats: null, scoreDeltas: null
+        questionResult: question.type === 'buzzer' ? clean(initialBuzzerState(question)) : null, publicStats: null, scoreDeltas: null
       });
     }
 
@@ -508,33 +539,59 @@
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         let consensusResult = null;
         if (question.type === 'consensus') consensusResult = Quiz.computeConsensusResult(question, answers);
+        const buzzerResult = question.type === 'buzzer' ? clone(this.raw.public?.questionResult || initialBuzzerState(question)) : null;
         const deltas = {};
         const updates = {};
         const profiles = this.raw.profiles || {};
 
-        Object.keys(profiles).forEach(uid => {
-          const submission = answers[uid];
-          if (!submission) return;
-          let result;
-          if (question.type === 'consensus') {
-            const won = consensusResult.winningOptionIds.includes(String(submission.answer));
-            const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
-            const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
-            result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
-          } else result = Quiz.scoreAnswer(question, submission.answer, multiplier);
-          deltas[uid] = Math.round(Number(result.points) || 0);
-          updates[`answers/${uid}/${question.id}/awardedPoints`] = deltas[uid];
-          updates[`answers/${uid}/${question.id}/scoreDetail`] = String(result.detail || '');
-          updates[`answers/${uid}/${question.id}/scoredAt`] = now;
-          updates[`scores/${uid}`] = Math.round((Number(scores[uid]) || 0) + deltas[uid]);
-        });
+        if (question.type === 'buzzer') {
+          const winnerId = String(buzzerResult?.contenderId || '');
+          const winnerProfile = winnerId ? profiles[winnerId] || {} : {};
+          if (winnerId && !answers[winnerId]) {
+            answers[winnerId] = { answer: clone(buzzerResult.contenderAnswer), submittedAt: now };
+            updates[`answers/${winnerId}/${question.id}`] = clean(answers[winnerId]);
+          }
+          Object.keys(profiles).forEach(uid => {
+            const submission = answers[uid];
+            if (!submission) return;
+            const points = winnerId && uid === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+            deltas[uid] = points;
+            updates[`answers/${uid}/${question.id}/awardedPoints`] = points;
+            updates[`answers/${uid}/${question.id}/scoreDetail`] = uid === winnerId ? 'Schnellste richtige Antwort' : 'Nicht gewertet';
+            updates[`answers/${uid}/${question.id}/scoredAt`] = now;
+            updates[`scores/${uid}`] = Math.round((Number(scores[uid]) || 0) + points);
+          });
+          buzzerResult.status = 'resolved';
+          buzzerResult.winnerId = winnerId;
+          buzzerResult.winnerName = String(winnerProfile?.name || '');
+          buzzerResult.winnerAnswer = winnerId ? (answers[winnerId]?.answer ?? buzzerResult.contenderAnswer) : null;
+          buzzerResult.resolvedAt = now;
+        } else {
+          Object.keys(profiles).forEach(uid => {
+            const submission = answers[uid];
+            if (!submission) return;
+            let result;
+            if (question.type === 'consensus') {
+              const won = consensusResult.winningOptionIds.includes(String(submission.answer));
+              const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+              const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
+              result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
+            } else result = Quiz.scoreAnswer(question, submission.answer, multiplier);
+            deltas[uid] = Math.round(Number(result.points) || 0);
+            updates[`answers/${uid}/${question.id}/awardedPoints`] = deltas[uid];
+            updates[`answers/${uid}/${question.id}/scoreDetail`] = String(result.detail || '');
+            updates[`answers/${uid}/${question.id}/scoredAt`] = now;
+            updates[`scores/${uid}`] = Math.round((Number(scores[uid]) || 0) + deltas[uid]);
+          });
+        }
 
+        const statsSource = question.type === 'buzzer' ? buzzerResult : consensusResult;
         const statsAnswers = Object.fromEntries(Object.entries(answers).map(([uid, record]) => [uid, Object.assign({}, record, { awardedPoints: deltas[uid] || 0 })]));
-        const stats = aggregateStats(question, statsAnswers, consensusResult);
+        const stats = aggregateStats(question, statsAnswers, statsSource);
         updates[`public/questionOpen`] = false;
         updates[`public/questionEndsAt`] = null;
         updates[`public/currentQuestion`] = clean(publicQuestion(question, true));
-        updates[`public/questionResult`] = consensusResult ? clean(consensusResult) : null;
+        updates[`public/questionResult`] = question.type === 'buzzer' ? clean(buzzerResult) : (consensusResult ? clean(consensusResult) : null);
         updates[`public/publicStats`] = clean(stats);
         updates[`public/scoreDeltas`] = clean(deltas);
         updates[`public/resolved/${question.id}`] = true;
@@ -547,9 +604,10 @@
     }
 
     async submitAnswer(playerId, answer) {
-      if (this.role !== 'player' || String(playerId) !== this.userId) return false;
       const state = this.load();
       const { question } = this.getCurrent(state);
+      if (question?.type === 'buzzer') return this.buzz(playerId, answer);
+      if (this.role !== 'player' || String(playerId) !== this.userId) return false;
       if (!state?.questionOpen || !question) return false;
       const rawEndsAt = Number(this.raw.public?.questionEndsAt);
       if (Number.isFinite(rawEndsAt) && rawEndsAt > 0 && Firebase.serverNow(this.context) > rawEndsAt + 500) return false;
@@ -561,6 +619,72 @@
         [`profiles/${this.userId}/updatedAt`]: now
       });
       return true;
+    }
+
+    async buzz(playerId, answer = null) {
+      if (this.role !== 'player' || String(playerId) !== this.userId) return false;
+      const state = this.load();
+      const { question } = this.getCurrent(state);
+      if (!state?.questionOpen || !question || question.type !== 'buzzer') return false;
+      const dbm = this.modules.database;
+      const ref = dbm.ref(this.db, `rooms/${this.code}/public/questionResult`);
+      const tx = await dbm.runTransaction(ref, current => {
+        const result = current && typeof current === 'object' ? current : initialBuzzerState(question);
+        if (String(result.status || 'open') !== 'open') return;
+        if (Array.isArray(result.eliminatedIds) && result.eliminatedIds.includes(this.userId)) return;
+        result.status = 'locked';
+        result.contenderId = this.userId;
+        result.contenderName = String(this.raw.profiles?.[this.userId]?.name || 'Spieler');
+        result.contenderAnswer = clone(answer);
+        return result;
+      }, { applyLocally: false });
+      if (!tx.committed) return false;
+      const now = Firebase.serverNow(this.context);
+      await dbm.update(this.roomRef, {
+        [`answers/${this.userId}/${question.id}`]: clean({ answer: clone(answer), submittedAt: now }),
+        [`profiles/${this.userId}/lastAnsweredQuestionId`]: question.id,
+        [`profiles/${this.userId}/updatedAt`]: now,
+        'public/questionOpen': false,
+        'public/questionEndsAt': null,
+        'public/updatedAt': now
+      });
+      return true;
+    }
+
+    async markBuzzerIncorrect() {
+      this.assertModerator();
+      const state = this.load();
+      const { question } = this.getCurrent(state);
+      if (!question || question.type !== 'buzzer' || !state.questionStartedAt) throw new Error('Keine aktive Buzzer-Frage.');
+      const result = clone(this.raw.public?.questionResult || initialBuzzerState(question));
+      if (!result.contenderId) throw new Error('Noch kein Spieler hat gebuzzert.');
+      if (!Array.isArray(result.eliminatedIds)) result.eliminatedIds = [];
+      if (!result.eliminatedIds.includes(result.contenderId)) result.eliminatedIds.push(result.contenderId);
+      result.lastIncorrectId = result.contenderId;
+      result.lastIncorrectAnswer = result.contenderAnswer;
+      result.contenderId = '';
+      result.contenderName = '';
+      result.contenderAnswer = null;
+      const remaining = state.players.filter(player => !result.eliminatedIds.includes(player.id));
+      const now = Firebase.serverNow(this.context);
+      if (remaining.length) {
+        result.status = 'open';
+        result.reopenedCount = Number(result.reopenedCount || 0) + 1;
+        await this.modules.database.update(this.roomRef, {
+          'public/questionResult': clean(result),
+          'public/questionOpen': true,
+          'public/questionEndsAt': null,
+          'public/updatedAt': now
+        });
+      } else {
+        result.status = 'exhausted';
+        await this.modules.database.update(this.roomRef, {
+          'public/questionResult': clean(result),
+          'public/questionOpen': false,
+          'public/questionEndsAt': null,
+          'public/updatedAt': now
+        });
+      }
     }
 
     async setPlayerScore(playerId, score) {

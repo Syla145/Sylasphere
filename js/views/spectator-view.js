@@ -77,7 +77,7 @@
 
   function renderQuestion(current) {
     if (state.status === 'lobby') {
-      els['spectator-question'].innerHTML = `<div class="waiting-card presenter lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">JH-Quiz</span><h1>${App.escapeHTML(state.quiz.quiz.title)}</h1><p>Lobby geöffnet · ${state.players.length} Spieler${transport === 'online' ? ' · Online' : ''}</p></div>`;
+      els['spectator-question'].innerHTML = `<div class="waiting-card presenter lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">Sylasphere</span><h1>${App.escapeHTML(state.quiz.quiz.title)}</h1><p>Lobby geöffnet · ${state.players.length} Spieler${transport === 'online' ? ' · Online' : ''}</p></div>`;
       els['spectator-stats'].innerHTML = ''; return;
     }
     if (state.status === 'finished') {

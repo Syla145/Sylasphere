@@ -33,7 +33,7 @@
   function createBlankQuiz() {
     return Quiz.normalizeQuiz({ quiz: {
       id: `quiz_${Date.now().toString(36)}`,
-      title: 'Mein JH-Quiz', description: '',
+      title: 'Mein Sylasphere Quiz', description: '',
       settings: { defaultTimer: 30, defaultPoints: 100, buzzerEnabled: true },
       rounds: [{ id: App.uid('round'), title: 'Runde 1', pointsMultiplier: 1, questions: [newQuestion('multiple-choice')] }]
     }});
@@ -51,6 +51,7 @@
     if (type === 'survey') Object.assign(base, { options:[{id:'a',text:'Antwort A',value:40},{id:'b',text:'Antwort B',value:30},{id:'c',text:'Antwort C',value:20},{id:'d',text:'Antwort D',value:10}] });
     if (type === 'consensus') Object.assign(base, { options: defaultOptions() });
     if (type === 'hotspot') Object.assign(base, { image:'./assets/demo-landmark.svg', targetX:50, targetY:50, radius:10 });
+    if (type === 'buzzer') Object.assign(base, { timer: 0, buzzerMode: 'spoken', solution: '', penalty: 0 });
     return Quiz.normalizeQuiz({quiz:{title:'x',settings:state?.quiz?.settings||{},rounds:[{questions:[base]}]}}).quiz.rounds[0].questions[0];
   }
 
@@ -260,7 +261,7 @@
       box.append(div('editor-help', 'Trage die Ergebnisse einer Umfrage in Prozent ein. Die Antwort mit dem höchsten Anteil ist die gesuchte Top-Antwort.'));
       renderChoiceEditor(q, box, 'survey');
     } else if (q.type === 'consensus') {
-      box.append(div('editor-help', 'Keine richtige Antwort nötig: Beim Schließen der Frage wertet JH-Quiz automatisch aus, welche Option die meisten Spieler gewählt haben.'));
+      box.append(div('editor-help', 'Keine richtige Antwort nötig: Beim Schließen der Frage wertet Sylasphere automatisch aus, welche Option die meisten Spieler gewählt haben.'));
       renderChoiceEditor(q, box, 'consensus');
     } else if (q.type === 'hotspot') {
       const image = input('text', q.image || '', 'input'); image.placeholder = './assets/bild.jpg oder https://…';
@@ -330,6 +331,19 @@
       const max = input('number', q.maxEntries || 5, 'input'); max.min = '1'; max.addEventListener('input', e => { q.maxEntries = Math.max(1, Math.round(Number(e.target.value) || 1)); queueSave(); });
       const ppa = input('number', q.pointsPerAnswer || 0, 'input'); ppa.min = '0'; ppa.addEventListener('input', e => { q.pointsPerAnswer = nonNegative(e.target.value, 0); queueSave(); });
       grid.append(labelField('Max. Eingaben', max), labelField('Punkte je Treffer', ppa)); box.append(grid);
+    } else if (q.type === 'buzzer') {
+      box.append(div('editor-help', 'Speed-Frage ohne Zeitlimit: Der erste Spieler buzzert oder sendet eine Schnellantwort. Der Moderator prüft richtig/falsch manuell und kann den Buzzer bei Fehlern erneut freigeben.'));
+      const grid = div('dynamic-grid');
+      const mode = document.createElement('select'); mode.className = 'select';
+      [['spoken','Mündliche Antwort nach dem Buzzer'],['text','Erste Textantwort gewinnt']].forEach(([value,label]) => {
+        const option = document.createElement('option'); option.value = value; option.textContent = label; option.selected = String(q.buzzerMode || 'spoken') === value; mode.append(option);
+      });
+      mode.addEventListener('change', e => { q.buzzerMode = e.target.value; structuralChange(); });
+      const solution = document.createElement('textarea'); solution.className = 'input textarea'; solution.rows = 3; solution.value = q.solution || ''; solution.placeholder = 'Optional: Musterlösung / Auflösung für Moderator und Reveal';
+      solution.addEventListener('input', e => { q.solution = e.target.value; queueSave(); });
+      const penalty = input('number', q.penalty ?? 0, 'input'); penalty.min = '0'; penalty.step = '1'; penalty.addEventListener('input', e => { q.penalty = nonNegative(e.target.value, 0); queueSave(); });
+      grid.append(labelField('Buzzer-Modus', mode), labelField('Punktabzug bei falscher Antwort (optional)', penalty));
+      box.append(grid, labelField('Lösung / Hinweistext', solution));
     } else if (q.type === 'higher-lower') {
       const list = div('');
       (q.cards || []).forEach((card, i) => {

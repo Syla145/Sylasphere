@@ -239,6 +239,42 @@
     container.replaceChildren(wrap);
   }
 
+  function renderBuzzer(question, container, ctx) {
+    const wrap = baseQuestion(question);
+    const state = ctx.result && ctx.result.kind === 'buzzer' ? ctx.result : { mode: question.buzzerMode || 'spoken', status: 'open', eliminatedIds: [] };
+    const mode = state.mode || question.buzzerMode || 'spoken';
+    const contenderName = state.contenderName || ctx.contenderName || '—';
+    const me = ctx.playerId || '';
+    const lockedByMe = me && state.contenderId && String(state.contenderId) === String(me);
+    const eliminated = me && Array.isArray(state.eliminatedIds) && state.eliminatedIds.includes(String(me));
+    wrap.append(el('p', 'question-hint', mode === 'spoken' ? '⚡ Der erste Buzzer gewinnt das Rederecht. Der Moderator entscheidet danach über richtig oder falsch.' : '⚡ Der erste Spieler mit Antwort gewinnt. Der Moderator prüft die Antwort manuell.'));
+    const panel = el('div', 'buzzer-panel');
+    if (ctx.reveal) {
+      const winner = state.winnerName || contenderName || 'Kein Spieler';
+      panel.innerHTML = '<div class="buzzer-state buzzer-state--resolved"><strong>' + (state.winnerId ? 'Gewertet' : 'Aufgelöst') + '</strong><span>' + App.escapeHTML(state.winnerId ? winner : 'Ohne Gewinner') + '</span>' + ((state.winnerAnswer != null && String(state.winnerAnswer).trim()) ? '<small>' + App.escapeHTML(String(state.winnerAnswer)) + '</small>' : '') + '</div>';
+    } else if (state.status === 'locked') {
+      const text = mode === 'spoken' ? (lockedByMe ? 'Du warst zuerst – antworte jetzt mündlich.' : contenderName + ' hat gebuzzert.') : (lockedByMe ? 'Du warst zuerst – deine Antwort wurde gesendet.' : contenderName + ' hat zuerst geantwortet.');
+      panel.innerHTML = '<div class="buzzer-state buzzer-state--locked"><strong>Buzzer gesperrt</strong><span>' + App.escapeHTML(text) + '</span>' + ((mode === 'text' && state.contenderAnswer) ? '<small>Antwort: ' + App.escapeHTML(String(state.contenderAnswer)) + '</small>' : '') + '</div>';
+    } else if (state.status === 'exhausted') {
+      panel.innerHTML = '<div class="buzzer-state"><strong>Kein Spieler mehr frei</strong><span>Alle bisherigen Buzzer-Versuche wurden bereits ausgeschlossen.</span></div>';
+    } else if (eliminated) {
+      panel.innerHTML = '<div class="buzzer-state buzzer-state--blocked"><strong>Für diese Frage gesperrt</strong><span>Deine letzte Antwort war falsch. Warte auf die nächste Frage.</span></div>';
+    } else {
+      panel.innerHTML = '<div class="buzzer-state buzzer-state--open"><strong>Buzzer ist frei</strong><span>' + App.escapeHTML(mode === 'spoken' ? 'Drücke schnell den Buzzer und antworte dann mündlich.' : 'Schreibe deine Antwort und sende sie als Schnellantwort.') + '</span></div>';
+    }
+    wrap.append(panel);
+    if (mode === 'text' && !ctx.readOnly && !ctx.reveal && !eliminated && state.status !== 'locked' && state.status !== 'exhausted') {
+      const field = el('div', 'field-group');
+      const input = document.createElement('textarea');
+      input.className = 'input textarea'; input.rows = 4; input.placeholder = 'Deine Schnellantwort';
+      input.value = ctx.currentAnswer || '';
+      input.addEventListener('input', () => ctx.onAnswer?.(input.value));
+      field.append(el('label', 'field-label', 'Schnellantwort'), input);
+      wrap.append(field);
+    }
+    container.replaceChildren(wrap);
+  }
+
   const renderers = {
     'multiple-choice': { renderPlayer: (q, c, ctx) => renderChoice(q, c, ctx) },
     'image-quiz': { renderPlayer: (q, c, ctx) => renderChoice(q, c, ctx, 'image') },
@@ -249,7 +285,8 @@
     'higher-lower': { renderPlayer: renderHigherLower },
     survey: { renderPlayer: (q, c, ctx) => renderChoice(q, c, ctx) },
     consensus: { renderPlayer: (q, c, ctx) => renderChoice(q, c, ctx) },
-    hotspot: { renderPlayer: renderHotspot }
+    hotspot: { renderPlayer: renderHotspot },
+    buzzer: { renderPlayer: renderBuzzer }
   };
   Object.values(renderers).forEach(renderer => { renderer.renderModerator = renderer.renderPlayer; });
 
