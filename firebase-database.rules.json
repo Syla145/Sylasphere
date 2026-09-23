@@ -12,11 +12,52 @@
         ".write": "auth != null && auth.uid === $uid && newData.isString() && newData.val().length >= 4 && newData.val().length <= 64 && root.child('config').child('moderatorKeys').child(newData.val()).val() === true"
       }
     },
+    "admins": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+    "moderators": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
+        ".validate": "newData.hasChildren(['grantedAt','grantedBy']) && newData.child('grantedAt').isNumber() && newData.child('grantedBy').val() === auth.uid && (!newData.child('name').exists() || (newData.child('name').isString() && newData.child('name').val().length <= 60)) && (!newData.child('email').exists() || (newData.child('email').isString() && newData.child('email').val().length <= 120))"
+      }
+    },
+    "moderatorRequests": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && ((auth.uid === $uid && auth.provider !== 'anonymous' && !root.child('moderators').child($uid).exists()) || root.child('admins').child(auth.uid).val() === true)",
+        ".validate": "newData.hasChildren(['name','email','requestedAt']) && newData.child('name').isString() && newData.child('name').val().length <= 60 && newData.child('email').isString() && newData.child('email').val().length <= 120 && newData.child('requestedAt').isNumber() && (!newData.child('note').exists() || (newData.child('note').isString() && newData.child('note').val().length <= 200))"
+      }
+    },
+    "userQuizzes": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",
+        ".write": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",
+        "index": {
+          "$qid": {
+            ".validate": "$qid.matches(/^[A-Za-z0-9_-]+$/) && $qid.length >= 4 && $qid.length <= 40 && newData.hasChildren(['title','updatedAt']) && newData.child('title').isString() && newData.child('title').val().length <= 160 && newData.child('updatedAt').isNumber()"
+          }
+        },
+        "data": {
+          "$qid": {
+            ".validate": "$qid.matches(/^[A-Za-z0-9_-]+$/) && $qid.length >= 4 && $qid.length <= 40 && newData.hasChildren(['json']) && newData.child('json').isString() && newData.child('json').val().length <= 4000000"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
     "rooms": {
       "$code": {
         "meta": {
           ".read": "auth != null",
-          ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid && root.child('moderatorGrants').child(auth.uid).isString() && root.child('config').child('moderatorKeys').child(root.child('moderatorGrants').child(auth.uid).val()).val() === true) || data.child('ownerUid').val() === auth.uid)",
+          ".write": "auth != null && ((!data.exists() && newData.child('ownerUid').val() === auth.uid && ((root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true) || (root.child('moderatorGrants').child(auth.uid).isString() && root.child('config').child('moderatorKeys').child(root.child('moderatorGrants').child(auth.uid).val()).val() === true))) || data.child('ownerUid').val() === auth.uid)",
           ".validate": "newData.hasChildren(['ownerUid','createdAt','quizTitle','schemaVersion']) && newData.child('ownerUid').isString() && newData.child('ownerUid').val().length > 10 && newData.child('createdAt').isNumber() && newData.child('quizTitle').isString() && newData.child('quizTitle').val().length <= 160"
         },
         "outline": {

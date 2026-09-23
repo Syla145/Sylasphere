@@ -5,9 +5,18 @@
   const Validator = window.SchmobinValidator;
   const Renderers = window.SchmobinRenderers;
   const AUTOSAVE_KEY = 'schmobin:editor:autosave:v2';
+  const CLOUD_ID_KEY = 'sylasphere:editor:cloud-id';
+  const Cloud = () => window.SylasphereCloud;
+  const Account = () => window.SylasphereAccount;
+  const AccountUI = () => window.SylasphereAccountUI;
 
   let state = null;
   let saveTimer = null;
+  // v19: Online-Speicher – ist cloudId gesetzt, wird jede Änderung automatisch online gespeichert
+  let cloudId = readCloudId();
+  let cloudTimer = null;
+  let cloudStatus = { kind: 'idle', at: 0, message: '' };
+  let cloudSaving = null;
   const els = {};
 
   document.addEventListener('DOMContentLoaded', init);
@@ -15,11 +24,158 @@
   async function init() {
     await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
     ['editor-start','editor-workspace','choose-edit-quiz','choose-new-quiz','editor-load-panel','editor-quiz-select','load-selected-quiz','continue-autosave','editor-import-start','editor-start-message','back-to-editor-start','edit-title','edit-description','edit-default-timer','edit-default-points','add-round','new-quiz','editor-import','validate-quiz','export-quiz','editor-validation','editor-categories','rounds-container','category-list','autosave-state','preview-backdrop','preview-content','preview-close'].forEach(id => els[id] = document.getElementById(id));
+    els['cloud-panel'] = document.getElementById('cloud-panel');
+    els['cloud-save-box'] = document.getElementById('cloud-save-box');
     bindGlobal();
     bindStartScreen();
     await loadEditorQuizList();
     updateAutosaveChoice();
     showStart();
+    initAccount();
+  }
+
+  // ---------------------------------------------------------------- Konto & Online-Speicher (v19)
+  function readCloudId() { try { return localStorage.getItem(CLOUD_ID_KEY) || ''; } catch (_) { return ''; } }
+  function setCloudId(id) {
+    cloudId = id || '';
+    try { if (cloudId) localStorage.setItem(CLOUD_ID_KEY, cloudId); else localStorage.removeItem(CLOUD_ID_KEY); } catch (_) {}
+    cloudStatus = { kind: cloudId ? 'saved' : 'idle', at: cloudId ? Date.now() : 0, message: '' };
+    renderCloudBox();
+  }
+
+  async function initAccount() {
+    if (!Account() || !AccountUI() || !window.JHQuizFirebase) return;
+    try { await Account().init(); }
+    catch (error) { console.warn('Konto nicht verfügbar', error); renderCloudPanel(); renderCloudBox(); return; }
+    document.getElementById('account-slot')?.replaceWith(AccountUI().headerButton({ onLogin: openLogin }));
+    let lastKey = '';
+    Account().onChange(stateNow => {
+      const key = `${stateNow.user?.uid || '-'}|${stateNow.role || ''}`;
+      if (key === lastKey) return;
+      lastKey = key;
+      renderCloudPanel(); renderCloudBox();
+    });
+    renderCloudPanel(); renderCloudBox();
+  }
+
+  function openLogin() { AccountUI()?.openAccountDialog({ intro: 'Melde dich an, um deine Quizze online zu speichern und auf jedem Gerät weiterzubearbeiten.' }); }
+
+  function accountHint() {
+    const s = Account()?.state();
+    if (!s?.ready) return { text: 'Anmeldung wird geladen …', action: null };
+    if (!s.user || s.user.isAnonymous) return { text: 'Melde dich an, um Quizze online zu speichern und auf jedem Gerät weiterzubearbeiten.', action: 'Anmelden' };
+    if (s.role === 'pending') return { text: 'Deine Moderator-Anfrage wartet noch auf Freigabe. Danach kannst du Quizze online speichern.', action: 'Status ansehen' };
+    if (s.role && s.role !== 'moderator' && s.role !== 'admin') return { text: 'Online speichern können nur freigeschaltete Moderatoren.', action: 'Zugang anfragen' };
+    return null;
+  }
+
+  async function renderCloudPanel() {
+    const panel = els['cloud-panel'];
+    if (!panel) return;
+    if (!Account() || !window.JHQuizFirebase) { panel.hidden = true; return; }
+    panel.hidden = false;
+    const hint = accountHint();
+    if (hint) {
+      panel.innerHTML = `<div class="section-title"><div><span class="eyebrow">☁️ Meine Quizze</span><h2>Online speichern</h2><p>${App.escapeHTML(hint.text)}</p></div></div>`;
+      if (hint.action) panel.querySelector('.section-title').append(button(hint.action, 'btn btn--primary', openLogin));
+      return;
+    }
+    panel.innerHTML = '<div class="section-title"><div><span class="eyebrow">☁️ Meine Quizze</span><h2>Deine gespeicherten Quizze</h2><p>Online gespeichert – auf jedem Gerät mit deinem Konto verfügbar.</p></div></div><div class="cloud-list"><p class="microcopy">Lade …</p></div>';
+    const listBox = panel.querySelector('.cloud-list');
+    let entries = [];
+    try { entries = await Cloud().list(); }
+    catch (error) { listBox.innerHTML = `<div class="notice notice--error">${App.escapeHTML(Account().errorText(error))}</div>`; return; }
+    if (!entries.length) { listBox.innerHTML = '<p class="microcopy" style="margin:0">Noch keine Quizze gespeichert. Öffne oder erstelle ein Quiz und tippe auf „☁️ Online speichern“.</p>'; return; }
+    listBox.replaceChildren(...entries.map(entry => {
+      const row = div('cloud-row');
+      const info = div('cloud-row-info');
+      info.innerHTML = `<strong>${App.escapeHTML(entry.title)}</strong><span>${entry.roundCount || 0} Runden · ${entry.questionCount || 0} Fragen · ${App.escapeHTML(Cloud().formatDate(entry.updatedAt))}</span>`;
+      const actions = div('cloud-row-actions');
+      actions.append(
+        button('Öffnen', 'btn btn--primary btn--small', () => openCloudQuiz(entry.id)),
+        button('▶', 'btn btn--small', () => { location.href = `./moderator.html?quiz=${encodeURIComponent('cloud:' + entry.id)}`; }),
+        button('⧉', 'btn btn--small', async () => { try { await Cloud().duplicate(entry.id); App.toast('Kopie angelegt.', 'success'); renderCloudPanel(); } catch (e) { App.toast(Account().errorText(e), 'error'); } }),
+        button('🗑', 'btn btn--danger btn--small', async () => {
+          if (!confirm(`„${entry.title}“ endgültig aus „Meine Quizze“ löschen?`)) return;
+          try { await Cloud().remove(entry.id); if (entry.id === cloudId) setCloudId(''); App.toast('Gelöscht.', 'success'); renderCloudPanel(); }
+          catch (e) { App.toast(Account().errorText(e), 'error'); }
+        })
+      );
+      actions.children[1].title = 'Direkt moderieren'; actions.children[2].title = 'Duplizieren'; actions.children[3].title = 'Löschen';
+      row.append(info, actions);
+      return row;
+    }));
+  }
+
+  async function openCloudQuiz(id) {
+    try {
+      const data = await Cloud().load(id);
+      const validation = Validator.validate(data);
+      state = validation.normalized;
+      setCloudId(id);
+      openWorkspace(`„${state.quiz.title}“ geöffnet.`);
+      if (!validation.valid) App.toast('Hinweis: Das Quiz enthält noch Fehler (siehe „Quiz prüfen“).', 'error');
+    } catch (error) { App.toast(`Öffnen fehlgeschlagen: ${Account().errorText(error)}`, 'error'); }
+  }
+
+  function renderCloudBox() {
+    const box = els['cloud-save-box'];
+    if (!box) return;
+    if (!Account() || !window.JHQuizFirebase) { box.hidden = true; return; }
+    box.hidden = false;
+    const hint = accountHint();
+    if (hint) {
+      box.innerHTML = `<div class="cloud-save-state"><span>☁️</span><small>${App.escapeHTML(hint.text)}</small></div>`;
+      if (hint.action) box.append(button(hint.action, 'btn btn--small', openLogin));
+      return;
+    }
+    const labels = {
+      idle: ['Nur auf diesem Gerät', 'Noch nicht online gespeichert.'],
+      pending: ['Änderungen …', 'Wird gleich online gespeichert.'],
+      saving: ['Speichert …', 'Wird online gespeichert.'],
+      saved: ['Online gespeichert', cloudStatus.at ? `Zuletzt ${new Date(cloudStatus.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} · Änderungen werden automatisch gespeichert.` : 'Änderungen werden automatisch gespeichert.'],
+      error: ['Nicht gespeichert', cloudStatus.message || 'Online-Speichern fehlgeschlagen.']
+    };
+    const [title, text] = labels[cloudStatus.kind] || labels.idle;
+    box.innerHTML = `<div class="cloud-save-state is-${cloudStatus.kind}"><span>${cloudStatus.kind === 'error' ? '⚠️' : '☁️'}</span><div><strong>${App.escapeHTML(title)}</strong><small>${App.escapeHTML(text)}</small></div></div>`;
+    const actions = div('cloud-save-actions');
+    if (!cloudId) actions.append(button('☁️ Online speichern', 'btn btn--primary btn--small', () => cloudSave({ manual: true })));
+    else {
+      if (cloudStatus.kind === 'error') actions.append(button('Erneut versuchen', 'btn btn--small', () => cloudSave({ manual: true })));
+      actions.append(button('▶ Moderieren', 'btn btn--small', async () => { await cloudSave({ manual: false }); location.href = `./moderator.html?quiz=${encodeURIComponent('cloud:' + cloudId)}`; }));
+      actions.append(button('Als Kopie speichern', 'btn btn--ghost btn--small', () => cloudSave({ manual: true, asCopy: true })));
+    }
+    box.append(actions);
+  }
+
+  function queueCloudSave() {
+    if (!cloudId || !Cloud()?.available()) return;
+    clearTimeout(cloudTimer);
+    cloudStatus = Object.assign({}, cloudStatus, { kind: 'pending' });
+    renderCloudBox();
+    cloudTimer = setTimeout(() => cloudSave({ manual: false }), 2500);
+  }
+
+  async function cloudSave({ manual = false, asCopy = false } = {}) {
+    if (!state || !Cloud()?.available()) { if (manual) openLogin(); return; }
+    clearTimeout(cloudTimer);
+    if (cloudSaving) { try { await cloudSaving; } catch (_) {} }
+    cloudStatus = Object.assign({}, cloudStatus, { kind: 'saving' });
+    renderCloudBox();
+    cloudSaving = (async () => {
+      const data = Quiz.clone(state);
+      if (asCopy && data.quiz) data.quiz.title = `${data.quiz.title || 'Quiz'} (Kopie)`;
+      const result = await Cloud().save(data, asCopy ? '' : cloudId);
+      if (asCopy) { state.quiz.title = data.quiz.title; els['edit-title'].value = state.quiz.title; localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state)); }
+      if (result.id !== cloudId) setCloudId(result.id);
+      cloudStatus = { kind: 'saved', at: Date.now(), message: '' };
+      if (manual) App.toast(asCopy ? 'Als Kopie in „Meine Quizze“ gespeichert.' : 'In „Meine Quizze“ gespeichert.', 'success');
+    })();
+    try { await cloudSaving; }
+    catch (error) {
+      cloudStatus = { kind: 'error', at: cloudStatus.at, message: Account().errorText(error) };
+      if (manual) App.toast(`Online-Speichern fehlgeschlagen: ${cloudStatus.message}`, 'error');
+    } finally { cloudSaving = null; renderCloudBox(); }
   }
 
   function bindStartScreen() {
@@ -29,6 +185,7 @@
     });
     els['choose-new-quiz'].addEventListener('click', () => {
       state = createBlankQuiz();
+      setCloudId('');
       openWorkspace('Neues Quiz erstellt.');
     });
     els['load-selected-quiz'].addEventListener('click', () => loadSelectedEditorQuiz());
@@ -84,6 +241,7 @@
       const validation = Validator.validate(data);
       if (!validation.valid) { App.toast('Das Quiz enthält Fehler. Bitte zuerst korrigieren oder als JSON importieren.', 'error'); return; }
       state = validation.normalized;
+      setCloudId('');
       openWorkspace(`„${state.quiz.title}“ geladen.`);
     } catch (error) { App.toast(`Quiz konnte nicht geladen werden: ${error.message}`, 'error'); }
   }
@@ -94,6 +252,7 @@
       const validation = Validator.validate(data);
       if (!validation.valid) { showValidation(validation); App.toast('Import enthält Fehler und wurde nicht übernommen.', 'error'); return false; }
       state = validation.normalized;
+      setCloudId('');
       if (openAfter) openWorkspace(`„${state.quiz.title}“ importiert.`); else { structuralChange(); App.toast('Quiz importiert.', 'success'); }
       return true;
     } catch (error) { App.toast(error.message, 'error'); return false; }
@@ -109,6 +268,8 @@
     els['editor-start'].hidden = false;
     els['editor-workspace'].hidden = true;
     els['editor-load-panel'].hidden = true;
+    if (cloudId && cloudTimer) cloudSave({ manual: false });
+    renderCloudPanel();
     updateAutosaveChoice();
     App.setText(els['autosave-state'], state ? 'Entwurf gespeichert' : 'Editor bereit');
   }
@@ -117,7 +278,8 @@
     els['editor-start'].hidden = true;
     els['editor-workspace'].hidden = false;
     renderAll();
-    queueSave();
+    renderCloudBox();
+    queueSave(false);
     if (message) App.toast(message, 'success');
   }
 
@@ -145,7 +307,7 @@
     els['edit-default-timer'].addEventListener('input', e => { state.quiz.settings.defaultTimer = nonNegative(e.target.value, 30); queueSave(); });
     els['edit-default-points'].addEventListener('input', e => { state.quiz.settings.defaultPoints = nonNegative(e.target.value, 100); queueSave(); });
     els['add-round'].addEventListener('click', () => { state.quiz.rounds.push({ id: App.uid('round'), title: `Runde ${state.quiz.rounds.length + 1}`, pointsMultiplier: 1, questions: [] }); structuralChange(); });
-    els['new-quiz'].addEventListener('click', () => { if (confirm('Neues Quiz anlegen? Der aktuelle Entwurf wird durch ein neues Quiz ersetzt.')) { state = createBlankQuiz(); structuralChange(); App.toast('Neues Quiz erstellt.', 'success'); } });
+    els['new-quiz'].addEventListener('click', () => { if (confirm('Neues Quiz anlegen? Der aktuelle Entwurf wird durch ein neues Quiz ersetzt.')) { state = createBlankQuiz(); setCloudId(''); structuralChange(); App.toast('Neues Quiz erstellt.', 'success'); } });
     els['editor-import'].addEventListener('change', async e => {
       const file = e.target.files?.[0]; if (!file) return;
       await importIntoEditor(file, false);
@@ -159,14 +321,18 @@
     els['preview-close'].addEventListener('click', closePreview);
     els['preview-backdrop'].addEventListener('click', e => { if (e.target === els['preview-backdrop']) closePreview(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !els['preview-backdrop'].hidden) closePreview(); });
+    // Strg/Cmd+S: online speichern (falls angemeldet)
+    document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && state && !els['editor-workspace'].hidden) { e.preventDefault(); if (Cloud()?.available()) cloudSave({ manual: true }); else openLogin(); } });
+    window.addEventListener('beforeunload', e => { if (cloudStatus.kind === 'pending' || cloudStatus.kind === 'saving') { cloudSave({ manual: false }); e.preventDefault(); e.returnValue = ''; } });
   }
 
   function nonNegative(value, fallback = 0) { const n = Number(value); return Number.isFinite(n) && n >= 0 ? n : fallback; }
-  function queueSave() {
+  function queueSave(syncCloud = true) {
     clearTimeout(saveTimer); App.setText(els['autosave-state'], 'Änderungen …');
     saveTimer = setTimeout(() => {
       localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(state)); App.setText(els['autosave-state'], `Gespeichert ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`);
     }, 350);
+    if (syncCloud !== false) queueCloudSave();
   }
   function structuralChange() { renderAll(); queueSave(); }
   function renderAll() {

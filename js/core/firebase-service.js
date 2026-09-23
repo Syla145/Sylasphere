@@ -45,7 +45,10 @@
       ? modules.auth.browserLocalPersistence
       : modules.auth.browserSessionPersistence;
     await modules.auth.setPersistence(auth, persistence);
-    if (!auth.currentUser) await modules.auth.signInAnonymously(auth);
+    auth.languageCode = 'de';
+    // Gespeicherte Anmeldung (z. B. Moderator-Konto) erst wiederherstellen lassen,
+    // sonst würde sofort ein neues Gastkonto angelegt.
+    if (typeof auth.authStateReady === 'function') { try { await auth.authStateReady(); } catch (_) {} }
 
     const db = modules.database.getDatabase(app);
     const context = {
@@ -74,10 +77,23 @@
     return context;
   }
 
-  async function ready(role = 'player') {
+  const anonymousPending = new Map();
+  /**
+   * Firebase-Kontext einer Rolle. Standard: ohne Anmeldung wird automatisch ein
+   * anonymes Gastkonto angelegt (Spieler, Zuschauer, Moderator ohne Konto).
+   * { anonymous: false } liefert den Kontext ohne Gastanmeldung (Login-Bildschirm).
+   */
+  async function ready(role = 'player', { anonymous = true } = {}) {
     const key = appName(role);
     if (!contexts.has(key)) contexts.set(key, createContext(role));
-    return contexts.get(key);
+    const context = await contexts.get(key);
+    if (anonymous && !context.auth.currentUser) {
+      if (!anonymousPending.has(key)) {
+        anonymousPending.set(key, context.modules.auth.signInAnonymously(context.auth).finally(() => anonymousPending.delete(key)));
+      }
+      await anonymousPending.get(key);
+    }
+    return context;
   }
 
   async function rotateAnonymous(role = 'player') {
@@ -104,7 +120,7 @@
 
   function friendlyError(error) {
     const code = String(error?.code || '');
-    if (/auth\/operation-not-allowed/i.test(code)) return 'Firebase: Anonyme Anmeldung ist noch nicht aktiviert.';
+    if (/auth\/operation-not-allowed/i.test(code)) return 'Firebase: Diese Anmeldeart ist in der Firebase-Konsole noch nicht aktiviert (Authentication → Sign-in method).';
     if (/permission-denied/i.test(code)) return 'Firebase: Zugriff verweigert. Bitte die mitgelieferten Realtime-Database-Regeln veröffentlichen.';
     if (/network-request-failed|network-error|failed-precondition/i.test(code)) return 'Firebase ist gerade nicht erreichbar. Prüfe die Internetverbindung.';
     return error?.message || 'Firebase-Verbindung fehlgeschlagen.';

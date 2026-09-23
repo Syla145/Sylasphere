@@ -1,5 +1,15 @@
 # Sylasphere – Changelog
 
+## v19 – Konten, Moderator-Freigabe und „Meine Quizze“
+- **Anmeldung für Moderatoren** mit Google oder E-Mail + Passwort, inklusive „Passwort vergessen“. Spieler treten weiterhin ohne Konto als Gast bei.
+- **Moderator-Rechte vergibt der Admin:** Eine Anmeldung allein reicht nicht. Neue Konten fragen den Zugang an; auf der neuen Seite **`admin.html`** bestätigst du Anfragen, lehnst sie ab oder entziehst Rechte. Freigaben greifen sofort, ohne Neuladen. Die Firebase-Regeln setzen das serverseitig durch.
+- **Meine Quizze:** Im Editor online speichern. Danach wird automatisch gespeichert, auf jedem Gerät mit deinem Konto verfügbar. Dazu gibt es öffnen, duplizieren, löschen, „▶ Moderieren“ und Strg+S. Beim Moderator stehen die eigenen Quizze oben in der Auswahl. Nur der Besitzer kann sie lesen.
+- **Konto-Menü** oben rechts (Moderator, Editor, Verwaltung): Name, Rolle, Abmelden, Link zur Verwaltung für Admins.
+- Online-Räume gehören jetzt dem Konto. Nach Neuladen oder auf einem anderen Gerät bleibt man Besitzer des Raums.
+- Der **Gastmodus mit Moderator-Code** bleibt als Alternative erhalten (ohne Online-Speicher).
+- Alles im kostenlosen Firebase-Tarif. **Einrichtung nötig:** siehe `FIREBASE_SETUP.md` → „Neu in v19“.
+- Neue Dateien: `admin.html`, `js/core/account.js`, `js/core/account-ui.js`, `js/core/cloud-quizzes.js`, `js/views/admin-view.js`, `tests/v19-accounts.js`.
+
 ## v18 – Layout-Feinschliff (Handy & PC)
 Komplette Prüfung aller Seiten und Fragetypen in 5 Bildschirmbreiten (360, 390, 768, 1280, 1920 px) und allen 4 Designs – ohne Befund.
 - **Moderator am Handy/Tablet (bis 900 px):** neue Reihenfolge – Frage & Antwortstatus → Steuerung → Spieler + kleinerer Timer → Links teilen. Kopfzeile läuft nicht mehr über (Vollbild-Knopf am Handy ausgeblendet), Raumcode-Leiste bricht sauber um.

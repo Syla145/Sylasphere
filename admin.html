@@ -1,0 +1,12 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a1020"><meta name="robots" content="noindex"><title>Moderatoren verwalten · Sylasphere</title><link rel="manifest" href="./manifest.json"><link rel="icon" href="./assets/jh-quiz-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./css/main.css?v=19"><script src="./js/core/themes.js?v=19"></script><script defer src="./js/core/app.js?v=19"></script><script defer src="./js/core/firebase-service.js?v=19"></script><script defer src="./js/core/account.js?v=19"></script><script defer src="./js/core/account-ui.js?v=19"></script><script defer src="./js/views/admin-view.js?v=19"></script></head><body>
+<header class="container app-header"><a class="brand" href="./"><span class="brand-mark">SY</span><span>Sylasphere<small>Quiz Arena <span class="version-tag">v19</span> · Verwaltung</small></span></a><div class="top-actions"><a class="btn btn--ghost hide-mobile" href="./moderator.html">Moderator</a><span id="account-slot"></span></div></header>
+<main class="container admin-shell">
+  <section id="admin-gate" class="moderator-gate"><div class="panel panel-pad moderator-gate-card" id="admin-gate-card"><p class="microcopy">Anmeldung wird geladen …</p></div></section>
+  <section id="admin-panel" hidden>
+    <div class="section-title admin-head"><div><span class="eyebrow">🛡️ Admin</span><h1>Moderatoren verwalten</h1><p>Wer hier freigeschaltet ist, kann Online-Räume erstellen und Quizze online speichern. Spieler brauchen kein Konto.</p></div></div>
+    <div class="admin-grid">
+      <div class="panel panel-pad"><div class="section-title"><h2>Offene Anfragen <span id="request-count" class="pill">0</span></h2></div><div id="request-list" class="admin-list"><p class="microcopy">Lade …</p></div></div>
+      <div class="panel panel-pad"><div class="section-title"><h2>Moderatoren <span id="moderator-count" class="pill">0</span></h2></div><div id="moderator-list" class="admin-list"><p class="microcopy">Lade …</p></div><p class="microcopy">Admins (wie du) haben immer Moderator-Rechte. Weitere Admins trägst du in der Firebase-Konsole ein (siehe FIREBASE_SETUP.md).</p></div>
+    </div>
+  </section>
+</main></body></html>

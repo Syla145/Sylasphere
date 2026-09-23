@@ -1,4 +1,4 @@
-# Sylasphere v13 – Firebase Setup
+# Sylasphere – Firebase Setup
 
 Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Projekt hinterlegt.
 
@@ -9,7 +9,74 @@ Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Proj
 3. Den kompletten Inhalt aus `firebase-database.rules.json` einfügen.
 4. **Publish / Veröffentlichen**.
 
-## Neu in v13: Moderator-Code
+## Neu in v19: Konten, Moderator-Freigabe und „Meine Quizze“
+
+Moderatoren melden sich jetzt mit **Google** oder **E-Mail + Passwort** an. Eine Anmeldung allein gibt **keine** Moderator-Rechte: Neue Konten fragen den Zugang an, und du schaltest sie als Admin frei. Spieler brauchen weiterhin kein Konto.
+
+Alles bleibt im kostenlosen Spark-Tarif.
+
+**Wichtig: Reihenfolge einhalten.** Erst die Anmeldearten aktivieren, dann die Regeln veröffentlichen, dann dich als Admin eintragen.
+
+### 1. Anmeldearten aktivieren
+
+Firebase Console → **Authentication** → **Sign-in method** → **Neuen Anbieter hinzufügen**:
+
+1. **E-Mail/Passwort** → aktivieren (nur den oberen Schalter, „E-Mail-Link“ bleibt aus) → Speichern.
+2. **Google** → aktivieren → bei „Support-E-Mail“ deine E-Mail wählen → Speichern.
+3. **Anonym** bleibt aktiviert (für Spieler und Zuschauer).
+
+### 2. Deine Website freigeben
+
+Authentication → **Einstellungen** (Settings) → **Autorisierte Domains** → **Domain hinzufügen**:
+deine GitHub-Pages-Adresse ohne `https://` und ohne Pfad, also z. B. `syla145.github.io`.
+`localhost` steht dort schon.
+
+Ohne diesen Schritt meldet der Google-Login „Diese Website ist in Firebase noch nicht freigegeben“.
+
+### 3. Regeln veröffentlichen
+
+Realtime Database → **Regeln** → Inhalt von `firebase-database.rules.json` komplett einfügen → **Veröffentlichen**.
+
+### 4. Dich selbst als Admin eintragen (einmalig)
+
+1. Auf deiner Website `moderator.html` öffnen und **mit dem Konto anmelden, das Admin sein soll** (z. B. Google).
+2. Du siehst „Noch nicht freigeschaltet“. Dort auf **Konto-ID anzeigen** tippen und die ID kopieren (⧉).
+   (Alternativ: Authentication → Nutzer → Spalte „Nutzer-UID“.)
+3. Firebase Console → Realtime Database → **Daten**: Mit der Maus auf die oberste Zeile → **+**
+   Schlüssel `admins`, darunter als Schlüssel **deine Konto-ID**, Wert `true`.
+
+```
+admins
+  └─ AbC123deineKontoID: true
+```
+
+4. Seite neu laden. Du bist jetzt Admin und damit auch Moderator.
+
+### Moderatoren freischalten
+
+- Neue Moderatoren melden sich auf `moderator.html` an und tippen auf **Moderator-Zugang anfragen**.
+- Du öffnest **`admin.html`** (auch über dein Konto-Menü oben rechts → „Moderatoren verwalten“) und tippst auf **✓ Freischalten**.
+- Beim Anfragenden geht es danach automatisch weiter, ohne Neuladen.
+- **Entziehen:** In `admin.html` bei „Moderatoren“. Das Konto kann danach keine neuen Räume mehr erstellen. Seine Quizze bleiben gespeichert, sind aber erst nach erneuter Freischaltung wieder erreichbar.
+- Weitere Admins: wie Schritt 4 unter `admins` eintragen.
+
+### Meine Quizze (Online-Speicher)
+
+- Im Editor: **☁️ Online speichern**. Danach wird jede Änderung automatisch gespeichert (nach ca. 2 Sekunden).
+- Die Quizze liegen in der Realtime Database unter `userQuizzes/<Konto-ID>`. Nur der Besitzer kann sie lesen, auch Admins nicht.
+- Beim Moderator stehen sie in der Quiz-Auswahl oben unter „☁️ Meine Quizze“.
+- Platz: Der Gratis-Tarif hat 1 GB. Ein normales Quiz braucht 10 bis 50 KB, das reicht also für zehntausende Quizze.
+- **Bilder und Audio** bitte weiterhin im GitHub-Repo (`assets/`) ablegen oder per Link einbinden. Den Firebase-Dateispeicher gibt es nicht mehr kostenlos.
+
+### Gastmodus mit Moderator-Code
+
+Der bisherige Moderator-Code funktioniert weiter unter „Ohne Konto mit Moderator-Code fortfahren“. Damit lassen sich Räume erstellen, aber keine Quizze online speichern. Der Gastmodus lässt sich abschalten, indem du alle Einträge unter `config/moderatorKeys` löschst (dann klappt nur noch der lokale Testmodus mit dem Code).
+
+### Später: automatische Freigabe
+
+Der Aufbau (`moderatorRequests` → `moderators`) erlaubt es, später z. B. Einladungslinks oder eine automatische Freigabe zu ergänzen, ohne bestehende Konten umzustellen.
+
+## v13: Moderator-Code (Gastmodus)
 
 Online-Räume darf nur noch anlegen, wer einen gültigen Moderator-Code eingegeben hat. Firebase prüft den Code selbst, deshalb lässt sich das nicht über den Browser umgehen.
 

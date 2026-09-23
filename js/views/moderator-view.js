@@ -166,25 +166,58 @@
   }
 
   async function loadQuizList() {
+    const select = els['quiz-select'];
+    const previous = select.value;
+    let files = [];
+    let fileError = null;
     try {
       const response = await fetch(`./data/quiz-list.json?cb=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const list = await response.json();
-      els['quiz-select'].replaceChildren();
-      (Array.isArray(list) ? list : list.quizzes || []).forEach(item => {
-        const option = document.createElement('option'); option.value = item.file || item.filename || ''; option.textContent = item.title || option.value; option.dataset.description = item.description || ''; els['quiz-select'].append(option);
-      });
-      if (els['quiz-select'].options.length) await loadSelectedQuiz();
-      else throw new Error('Keine Quiz-Dateien in quiz-list.json gefunden.');
-    } catch (error) {
-      els['quiz-summary'].innerHTML = `<div class="notice notice--error">Quiz-Liste konnte nicht geladen werden: ${App.escapeHTML(error.message)}. Eigene JSON-Dateien können weiterhin importiert werden.</div>`;
+      files = Array.isArray(list) ? list : list.quizzes || [];
+    } catch (error) { fileError = error; }
+
+    // v19: eigene Quizze aus dem Online-Speicher (nur mit freigeschaltetem Konto)
+    let cloud = [];
+    const Cloud = window.SylasphereCloud;
+    if (Cloud?.available()) {
+      try { cloud = await Cloud.list(); }
+      catch (error) { App.toast(`Meine Quizze konnten nicht geladen werden: ${window.SylasphereAccount.errorText(error)}`, 'error'); }
     }
+
+    select.replaceChildren();
+    const group = (label, items) => {
+      if (!items.length) return;
+      const optgroup = document.createElement('optgroup'); optgroup.label = label;
+      items.forEach(item => optgroup.append(item));
+      select.append(optgroup);
+    };
+    group('☁️ Meine Quizze', cloud.map(entry => {
+      const option = document.createElement('option');
+      option.value = `cloud:${entry.id}`;
+      option.textContent = `${entry.title} · ${entry.questionCount || 0} Fragen`;
+      return option;
+    }));
+    group(cloud.length ? '📁 Beispiel-Quizze' : 'Quizze', files.map(item => {
+      const option = document.createElement('option'); option.value = item.file || item.filename || ''; option.textContent = item.title || option.value; option.dataset.description = item.description || '';
+      return option;
+    }));
+
+    const wanted = App.getParam('quiz') || previous;
+    if (wanted && [...select.options].some(option => option.value === wanted)) select.value = wanted;
+    if (select.options.length) await loadSelectedQuiz();
+    else els['quiz-summary'].innerHTML = `<div class="notice notice--error">Quiz-Liste konnte nicht geladen werden${fileError ? `: ${App.escapeHTML(fileError.message)}` : ''}. Eigene JSON-Dateien können weiterhin importiert werden.</div>`;
   }
 
   async function loadSelectedQuiz() {
-    const file = els['quiz-select'].value; if (!file) return;
+    const value = els['quiz-select'].value; if (!value) return;
     try {
-      const safeFile = file.replace(/^\.\//, '');
+      if (value.startsWith('cloud:')) {
+        const data = await window.SylasphereCloud.load(value.slice(6));
+        setQuiz(data, '☁️ Meine Quizze');
+        return;
+      }
+      const safeFile = value.replace(/^\.\//, '');
       const response = await fetch(`./data/${safeFile}?cb=${Date.now()}`, { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       setQuiz(await response.json(), safeFile);
