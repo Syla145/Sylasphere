@@ -3,36 +3,69 @@
   const App = window.SchmobinApp;
   const Quiz = window.SchmobinQuiz;
   const Session = window.SchmobinSession;
+  const Online = window.JHQuizOnlineSession;
+  const Firebase = window.JHQuizFirebase;
   const Renderers = window.SchmobinRenderers;
   const Timer = window.SchmobinTimer;
-  let engine = null, state = null, timer = null;
+  let engine = null, state = null, timer = null, transport = 'local', connecting = false;
   const els = {};
 
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
-    ['spectator-connect','spectator-code-input','spectator-connect-btn','spectator-error','spectator-live','spectator-code','spectator-status','spectator-progress','spectator-timer','spectator-question','spectator-stats','spectator-leaderboard'].forEach(id => els[id] = document.getElementById(id));
+    ['spectator-connect','spectator-code-input','spectator-connect-btn','spectator-error','spectator-live','spectator-code','spectator-status','spectator-mode','spectator-progress','spectator-timer','spectator-question','spectator-stats','spectator-leaderboard'].forEach(id => els[id] = document.getElementById(id));
     els['spectator-connect-btn'].addEventListener('click', () => connect(els['spectator-code-input'].value));
     els['spectator-code-input'].addEventListener('keydown', e => { if (e.key === 'Enter') connect(e.currentTarget.value); });
     els['spectator-code-input'].addEventListener('input', e => e.currentTarget.value = e.currentTarget.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6));
-    const code = (App.getParam('code') || Session.lastCode() || '').toUpperCase();
-    if (code && Session.exists(code)) connect(code); else if (code) els['spectator-code-input'].value = code;
+    const code = (App.getParam('code') || Session.lastCode() || Online?.lastCode?.() || '').toUpperCase();
+    if (code) { els['spectator-code-input'].value = code; if (App.getParam('code')) connect(code); }
   }
-  function connect(code) {
+
+  async function resolveTransport(code) {
+    const hint = String(App.getParam('mode') || '').toLowerCase();
+    if (hint === 'local') {
+      if (!Session.exists(code)) throw new Error('Lokale Sitzung nicht gefunden.');
+      return 'local';
+    }
+    if (hint === 'online') return 'online';
+    try { if (await Online.exists(code, 'spectator')) return 'online'; } catch (_) {}
+    if (Session.exists(code)) return 'local';
+    throw new Error('Sitzung nicht gefunden.');
+  }
+
+  async function connect(code) {
+    if (connecting) return;
     code = String(code || '').trim().toUpperCase();
-    if (!Session.exists(code)) { els['spectator-error'].textContent = 'Sitzung nicht gefunden.'; return; }
-    engine?.destroy(); engine = new Session(code);
-    els['spectator-connect'].hidden = true; els['spectator-live'].hidden = false;
-    history.replaceState(null, '', `?code=${code}`); engine.subscribe(render);
+    els['spectator-error'].textContent = '';
+    if (code.length !== 6) { els['spectator-error'].textContent = 'Bitte einen gültigen 6-stelligen Raumcode eingeben.'; return; }
+    connecting = true; els['spectator-connect-btn'].disabled = true; els['spectator-connect-btn'].textContent = 'Verbinden …';
+    try {
+      const selected = await resolveTransport(code);
+      try { await engine?.destroy?.(); } catch (_) {}
+      if (selected === 'online') {
+        engine = await Online.connect(code, 'spectator');
+        await engine.waitForState(); transport = 'online';
+      } else { engine = new Session(code); transport = 'local'; }
+      els['spectator-connect'].hidden = true; els['spectator-live'].hidden = false;
+      history.replaceState(null, '', `?code=${code}&mode=${transport}`);
+      engine.subscribe(render);
+    } catch (error) {
+      els['spectator-error'].textContent = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Verbindung fehlgeschlagen.');
+    } finally {
+      connecting = false; els['spectator-connect-btn'].disabled = false; els['spectator-connect-btn'].textContent = 'Verbinden';
+    }
   }
+
   function render(next) {
     state = next;
     const current = engine.getCurrent(state);
     App.setText(els['spectator-code'], state.code);
+    if (els['spectator-mode']) { els['spectator-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['spectator-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['spectator-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
     let statusLabel = 'Bereit';
+    const timedOut = Boolean(state.questionOpen && state.questionEndsAt && Date.now() >= Number(state.questionEndsAt));
     if (state.status === 'lobby') statusLabel = 'Lobby';
     else if (state.status === 'finished') statusLabel = 'Beendet';
-    else if (state.questionOpen) statusLabel = 'Live';
+    else if (state.questionOpen && !timedOut) statusLabel = 'Live';
     else if (current.question && state.questionStartedAt && state.scoredQuestionIds?.includes(current.question.id)) statusLabel = 'Auflösung';
     else if (current.question && state.questionStartedAt) statusLabel = 'Antworten geschlossen';
     App.setText(els['spectator-status'], statusLabel);
@@ -41,15 +74,15 @@
     App.setText(els['spectator-progress'], current.round ? `${current.round.title} · Frage ${Math.min(idx + 1, total)}/${total}` : '');
     renderQuestion(current); renderLeaderboard(); renderTimer();
   }
+
   function renderQuestion(current) {
     if (state.status === 'lobby') {
-      els['spectator-question'].innerHTML = `<div class="waiting-card presenter lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">JH-Quiz</span><h1>${App.escapeHTML(state.quiz.quiz.title)}</h1><p>Lobby geöffnet · ${state.players.length} Spieler</p></div>`;
+      els['spectator-question'].innerHTML = `<div class="waiting-card presenter lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">JH-Quiz</span><h1>${App.escapeHTML(state.quiz.quiz.title)}</h1><p>Lobby geöffnet · ${state.players.length} Spieler${transport === 'online' ? ' · Online' : ''}</p></div>`;
       els['spectator-stats'].innerHTML = ''; return;
     }
     if (state.status === 'finished') {
       const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
-      els['spectator-question'].innerHTML = finalPodium(ranked);
-      els['spectator-stats'].innerHTML = ''; return;
+      els['spectator-question'].innerHTML = finalPodium(ranked); els['spectator-stats'].innerHTML = ''; return;
     }
     if (!current.question) return;
     if (!state.questionStartedAt) {
@@ -58,11 +91,11 @@
     }
     const result = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
-    const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
+    const timedOut = Boolean(state.questionOpen && state.questionEndsAt && Date.now() >= Number(state.questionEndsAt));
+    const pendingReveal = (!state.questionOpen || timedOut) && state.questionStartedAt && !resolved;
     Renderers.renderPlayer(current.question, els['spectator-question'], { readOnly: true, reveal: resolved, currentAnswer: null, result });
     const answers = state.answers[current.question.id] || {};
-    const submitted = Object.keys(answers).length;
-    const total = state.players.length;
+    const submitted = Object.keys(answers).length; const total = state.players.length;
     let html = `<div class="presenter-response"><strong>${submitted}/${total}</strong><span>Antworten</span></div>`;
     if (pendingReveal) html += '<div class="notice notice--warning reveal-wait"><strong>Antworten geschlossen</strong><span>Die Auflösung folgt durch den Moderator.</span></div>';
     if (resolved) {
@@ -73,7 +106,20 @@
     }
     els['spectator-stats'].innerHTML = html;
   }
+
   function stats(q, answers, result) {
+    const remote = state.online ? state.publicStats : null;
+    if (remote) {
+      if (remote.kind === 'choice') {
+        const counts = remote.counts || {}; const max = Math.max(1, ...Object.values(counts).map(Number));
+        return `<div class="stat-bars">${(q.options || []).map(o => `<div><span>${App.escapeHTML(o.text)}</span><div class="bar"><i style="width:${Math.round((Number(counts[o.id]) || 0) / max * 100)}%"></i></div><b>${Number(counts[o.id]) || 0}</b></div>`).join('')}</div>`;
+      }
+      if (remote.kind === 'estimate' && Number(remote.count) > 0) return `<div class="stat-cards"><div><span>Ø Schätzung</span><strong>${Number(Number(remote.average).toFixed(1))}${q.unit ? ` ${App.escapeHTML(q.unit)}` : ''}</strong></div><div><span>Spanne</span><strong>${remote.min}–${remote.max}</strong></div></div>`;
+      if (remote.kind === 'fight-list') return `<div class="chip-row large">${(remote.top || []).map(item => `<span class="chip">${App.escapeHTML(item.term)} <b>${item.count}×</b></span>`).join('')}</div>`;
+      if (remote.kind === 'hotspot') return `<div class="stat-cards"><div><span>Treffer</span><strong>${remote.hits || 0}/${remote.total || 0}</strong></div><div><span>Trefferquote</span><strong>${remote.total ? Math.round((remote.hits || 0) / remote.total * 100) : 0}%</strong></div></div>`;
+      return '';
+    }
+
     const values = Object.values(answers).map(a => a.answer);
     if (!values.length) return '';
     if (['multiple-choice', 'image-quiz', 'audio-quiz', 'survey', 'consensus'].includes(q.type)) {
@@ -99,6 +145,7 @@
     }
     return '';
   }
+
   function finalPodium(ranked) {
     const top = ranked.slice(0, 3); const order = [top[1], top[0], top[2]].filter(Boolean);
     const podium = order.map(player => {
@@ -107,6 +154,7 @@
     }).join('');
     return `<div class="final-screen presenter"><span class="eyebrow">Finale</span><h1>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Quiz beendet'}</h1><div class="podium">${podium}</div></div>`;
   }
+
   function renderLeaderboard() {
     const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 10);
     const current = engine.getCurrent(state);
@@ -117,6 +165,7 @@
       return `<div class="leader-row presenter-row"><span>${i + 1}</span><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
     }).join('');
   }
+
   function renderTimer() {
     timer?.stop();
     if (!state.questionOpen || !state.questionEndsAt) { App.setText(els['spectator-timer'], '–'); return; }

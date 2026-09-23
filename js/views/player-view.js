@@ -3,23 +3,26 @@
   const App = window.SchmobinApp;
   const Quiz = window.SchmobinQuiz;
   const Session = window.SchmobinSession;
+  const Online = window.JHQuizOnlineSession;
+  const Firebase = window.JHQuizFirebase;
   const Renderers = window.SchmobinRenderers;
   const Timer = window.SchmobinTimer;
   const PlayerIdentity = window.JHQuizPlayerIdentity;
 
-  let engine = null, identity = null, state = null, playerId = '', currentQuestionId = '', draftAnswer = null, timer = null, joining = false;
+  let engine = null, identity = null, state = null, playerId = '', currentQuestionId = '', draftAnswer = null, timer = null, joining = false, transport = 'local';
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
 
   function init() {
-    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar'].forEach(id => els[id] = document.getElementById(id));
-    const code = (App.getParam('code') || Session.lastCode() || '').toUpperCase(); if (code) els['room-code'].value = code;
+    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar'].forEach(id => els[id] = document.getElementById(id));
+    const code = (App.getParam('code') || Session.lastCode() || Online?.lastCode?.() || '').toUpperCase(); if (code) els['room-code'].value = code;
     renderAvatars();
     els['join-btn'].addEventListener('click', join);
     els['room-code'].addEventListener('input', () => els['room-code'].value = els['room-code'].value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6));
     [els['room-code'], els['player-name']].forEach(input => input.addEventListener('keydown', e => { if (e.key === 'Enter') join(); }));
     els['submit-answer'].addEventListener('click', submit);
   }
+
   function renderAvatars() {
     const avatars = ['🦊','🐼','🦁','🐸','🐙','🦄','🤖','👾','🐧','🦖'];
     els['avatar-options'].innerHTML = avatars.map((a,i)=>`<button type="button" class="avatar-choice ${i===0?'is-selected':''}" data-avatar="${a}">${a}</button>`).join('');
@@ -27,47 +30,78 @@
       const b=e.target.closest('.avatar-choice'); if(!b)return; els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x=>x.classList.toggle('is-selected',x===b));
     });
   }
+
+  async function resolveTransport(code) {
+    const hint = String(App.getParam('mode') || '').toLowerCase();
+    if (hint === 'local') {
+      if (!Session.exists(code)) throw new Error('Lokale Sitzung nicht gefunden.');
+      return 'local';
+    }
+    if (hint === 'online') return 'online';
+
+    // Manual code entry: online first, then local fallback.
+    try { if (await Online.exists(code, 'player')) return 'online'; } catch (_) {}
+    if (Session.exists(code)) return 'local';
+    throw new Error('Sitzung nicht gefunden. Prüfe den 6-stelligen Code.');
+  }
+
   async function join() {
     if (joining) return;
     const code = els['room-code'].value.trim().toUpperCase(); const name = els['player-name'].value.trim();
     els['join-error'].textContent='';
-    if (!Session.exists(code)) { els['join-error'].textContent='Sitzung nicht gefunden. Prüfe den 6-stelligen Code.'; return; }
+    if (code.length !== 6) { els['join-error'].textContent='Bitte gib den 6-stelligen Raumcode ein.'; return; }
     if (!name) { els['join-error'].textContent='Bitte gib deinen Namen ein.'; return; }
     const joinButton = els['join-btn'];
-    joining = true;
-    joinButton.disabled = true;
-    joinButton.textContent = 'Beitritt läuft …';
+    joining = true; joinButton.disabled = true; joinButton.textContent = 'Sitzung wird gesucht …';
     try {
-      engine?.destroy();
-      identity?.destroy();
-      engine = new Session(code);
-      identity = new PlayerIdentity(code);
-
-      // A stored id is reused only for a genuine reload/reconnect. If another live tab
-      // currently owns it (e.g. Chrome "Tab duplizieren"), reusablePlayerId() returns
-      // an empty id so joinPlayer() creates a second, independent player.
-      const previous = await identity.reusablePlayerId();
+      const selected = await resolveTransport(code);
+      try { await engine?.destroy?.(); } catch (_) {}
+      identity?.destroy(); engine = null; identity = null;
       const avatar=els['avatar-options'].querySelector('.is-selected')?.dataset.avatar || '🦊';
-      playerId=engine.joinPlayer(name,avatar,previous);
-      identity.activate(playerId);
 
-      els['join-panel'].hidden=true; els['game-panel'].hidden=false; history.replaceState(null,'',`?code=${code}`);
+      if (selected === 'online') {
+        joinButton.textContent = '🌐 Online beitreten …';
+        identity = new PlayerIdentity(`ONLINE${code}`);
+        const stored = identity.storedPlayerId();
+        const reusable = await identity.reusablePlayerId();
+        const context = await Firebase.ready('player');
+        // Duplicated tabs can inherit sessionStorage/Auth. Give the duplicate a fresh anonymous UID.
+        if (stored && !reusable && context.auth.currentUser?.uid === stored) await Firebase.rotateAnonymous('player');
+        engine = await Online.connect(code, 'player');
+        await engine.waitForState();
+        playerId = await engine.joinPlayer(name, avatar);
+        identity.activate(playerId);
+        transport = 'online';
+      } else {
+        engine = new Session(code);
+        identity = new PlayerIdentity(code);
+        const previous = await identity.reusablePlayerId();
+        playerId = engine.joinPlayer(name,avatar,previous);
+        identity.activate(playerId);
+        transport = 'local';
+      }
+
+      els['join-panel'].hidden=true; els['game-panel'].hidden=false;
+      history.replaceState(null,'',`?code=${code}&mode=${transport}`);
       engine.subscribe(render);
     } catch(error) {
-      els['join-error'].textContent=error.message;
+      els['join-error'].textContent = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Beitritt fehlgeschlagen.');
       identity?.destroy(); identity = null;
+      try { await engine?.destroy?.(); } catch (_) {}
+      engine = null;
     } finally {
-      joining = false;
-      joinButton.disabled = false;
-      joinButton.textContent = 'Sitzung beitreten';
+      joining = false; joinButton.disabled = false; joinButton.textContent = 'Sitzung beitreten';
     }
   }
+
   function render(next) {
     state=next; const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
+    if (els['game-mode']) { els['game-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['game-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['game-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
     renderLeaderboard(); renderStatus(current); renderTimer(current);
   }
+
   function renderStatus(current) {
     const total = Quiz.allQuestions(state.quiz).length;
     let global = 0;
@@ -78,7 +112,7 @@
 
     if (state.status === 'lobby') {
       App.setText(els['game-status'], 'Lobby');
-      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · Der Moderator startet gleich.</p></div>`;
+      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · ${transport === 'online' ? 'Online verbunden' : 'Der Moderator startet gleich'}.</p></div>`;
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
     if (state.status === 'finished') {
@@ -101,11 +135,12 @@
     const questionResult = state.questionResults?.[current.question.id] || null;
     if (currentQuestionId !== current.question.id) { currentQuestionId = current.question.id; draftAnswer = answerRecord?.answer ?? null; }
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
-    if (state.questionOpen) {
+    const timedOut = Boolean(state.questionOpen && state.questionEndsAt && Date.now() >= Number(state.questionEndsAt));
+    const answerWindowOpen = state.questionOpen && !timedOut;
+    if (answerWindowOpen) {
       App.setText(els['game-status'], 'Frage läuft');
       Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
-      els['submit-answer'].hidden = false;
-      els['submit-answer'].disabled = draftAnswer == null;
+      els['submit-answer'].hidden = false; els['submit-answer'].disabled = draftAnswer == null;
       els['submit-answer'].textContent = answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken';
       els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : '';
     } else if (!resolved) {
@@ -117,16 +152,14 @@
       App.setText(els['game-status'], 'Auflösung');
       Renderers.renderPlayer(current.question, els['game-question'], { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result: questionResult });
       els['submit-answer'].hidden = true;
-      const correct = Quiz.correctAnswerText(current.question, questionResult);
-      const points = answerRecord?.awardedPoints;
+      const correct = Quiz.correctAnswerText(current.question, questionResult); const points = answerRecord?.awardedPoints;
       const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
       els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : '<div class="notice">Keine Antwort abgegeben.</div>'}`;
     }
   }
 
   function finalPodium(ranked, place) {
-    const top = ranked.slice(0, 3);
-    const order = [top[1], top[0], top[2]].filter(Boolean);
+    const top = ranked.slice(0, 3); const order = [top[1], top[0], top[2]].filter(Boolean);
     const podium = order.map(player => {
       const rank = ranked.findIndex(p => p.id === player.id) + 1;
       return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
@@ -134,10 +167,24 @@
     const me = ranked.find(p => p.id === playerId);
     return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}</div>`;
   }
+
   function updateSubmit(){ els['submit-answer'].disabled=draftAnswer==null; }
-  function submit(){ if(!engine||draftAnswer==null)return; const ok=engine.submitAnswer(playerId,draftAnswer); if(ok)App.toast('Antwort gespeichert.','success'); else App.toast('Antwort konnte nicht mehr angenommen werden.','error'); }
+
+  async function submit(){
+    if(!engine||draftAnswer==null)return;
+    const button = els['submit-answer']; button.disabled = true;
+    try {
+      const ok = await engine.submitAnswer(playerId,draftAnswer);
+      if(ok) App.toast('Antwort gespeichert.','success'); else App.toast('Antwort konnte nicht mehr angenommen werden.','error');
+    } catch (error) { App.toast(transport === 'online' ? Firebase.friendlyError(error) : error.message, 'error'); }
+    finally {
+      const stillOpen = Boolean(state?.questionOpen && (!state.questionEndsAt || Date.now() < Number(state.questionEndsAt)));
+      if (stillOpen) button.disabled = draftAnswer == null;
+    }
+  }
+
   function renderLeaderboard() {
-    const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 8);
+    const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 10);
     const current = engine?.getCurrent(state);
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     const gains = resolved ? (state.answers[current.question.id] || {}) : {};
@@ -146,9 +193,14 @@
       return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
     }).join('');
   }
+
   function renderTimer(current){
     timer?.stop(); if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
     timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
   }
-  function disconnect(message){ identity?.destroy(); identity=null; engine?.destroy(); engine=null; els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message; }
+
+  async function disconnect(message){
+    identity?.destroy(); identity=null; try { await engine?.destroy?.(); } catch (_) {} engine=null;
+    els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message;
+  }
 })();

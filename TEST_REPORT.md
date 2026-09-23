@@ -1,163 +1,132 @@
-# JH-Quiz – Abschlussprüfung v7 „Precise Score Update"
+# JH-Quiz – Abschlussprüfung v8 „Online Multiplayer Beta"
 
-Stand: 22.09.2026
+Stand: 23.09.2026
 
-## Ergebnis v7
+## Ergebnis
 
-Die Auflösung wurde vollständig von der Antwortphase getrennt. Der Timer schließt jetzt nur noch die Eingabe; Lösung, Statistiken und Punkte erscheinen erst nach dem expliziten Moderator-Klick auf **„✨ Frage auflösen“**.
+v8 erweitert den in v7 funktionierenden lokalen Modus um eine zweite, echte Realtime-Session-Schicht über Firebase. Die UI-, Quiz-, Kategorien-, Editor- und Auswertungslogik bleibt dabei erhalten. Moderator, Spieler und Presenter verwenden im Online-Modus denselben kompatiblen State-Vertrag wie im lokalen Modus.
 
-### Geprüfter Zustandsablauf
+## Automatisierte Prüfungen
 
-**Frage öffnen → Antworten möglich → Timer abgelaufen / Antworten manuell schließen → Antworten gesperrt, Lösung verborgen → Moderator löst auf → Punkte und Lösung erscheinen → Navigation freigegeben.**
+### 1. v8 Kern-/Regressionstest
+**32/32 bestanden**
 
-Automatisch bestanden:
+Geprüft u. a.:
+- 10 vorhandene Fragetypen bleiben registriert
+- lokaler Zwei-Spieler-Betrieb bleibt getrennt
+- manueller Reveal bleibt erhalten
+- Timer/Lock wertet nicht automatisch
+- Doppelscoring bleibt verhindert
+- `+1` und exakter Punktestand funktionieren lokal
+- Online-Outline enthält vor Start keinen Fragetext
+- korrekte Antworten/Sortierreihenfolge/Fight-List-Lösungen/Hotspot-Ziel/Survey-Werte werden vor Reveal aus dem öffentlichen Payload entfernt
 
-- **22 Session-/State-Flow-Checks** für Öffnen, Schließen, Auflösen, Doppelscoring-Schutz und Navigation
-- **10 Scoring-Checks** über alle zehn Fragetypen
-- **53 JSON-/Quiz-Validierungschecks** über alle mitgelieferten Quizdateien
-- **54 lokale HTML-Referenz-, Versions- und Cache-Buster-Checks**
-- JavaScript-Syntaxprüfung aller produktiven JavaScript-Dateien
-- sichtbare Versionsmarke **Quiz Arena v7** in allen Ansichten
-- CSS-/JS-Cache-Buster **`?v=7`**
-- `[hidden]`-Regression weiterhin abgesichert
-- bestehende Zwei-Spieler-/Duplicate-Tab-Identitätslogik bleibt unverändert erhalten
+### 2. vollständige Online-Firebase-Simulation
+**61/61 bestanden**
 
+Eine Realtime Database wurde in-memory mit getrennten Moderator-, Spieler- und Presenter-Identitäten simuliert.
 
-### Spezifische v7-Regressionen
+Geprüft:
+- Online-Raum mit 6-stelligem Code erzeugen
+- zwei unabhängige Remote-Spieler gleichzeitig beitreten
+- Spieler sehen einander in der Rangliste
+- Presenter verbindet sich separat
+- Spielstart und Fragenstart
+- Lösung vor Reveal nicht im Player-State
+- beide Antworten treffen beim Moderator ein
+- Antworten schließen vergibt keine Punkte
+- manueller Reveal vergibt Punkte
+- Lösung erscheint erst nach Reveal
+- aggregierte Presenter-Statistik
+- `+1` online
+- exakter Online-Punktestand `137`
+- Reconnect derselben anonymen UID erzeugt keinen Doppelspieler
+- **alle 10 Fragetypen** wurden anschließend durch dieselbe Online-Session gespielt und aufgelöst
+- alle **3 Runden** wurden durchlaufen
+- Finale/`finished` wurde erreicht
+- `resetScores()` setzt Scores und Resolve-Marker zurück
+- explizites Verlassen markiert Spieler als offline
+- Moderator kann Online-Spieler entfernen
 
-- `+1` erhöht exakt um einen Punkt
-- `−1` reduziert exakt um einen Punkt
-- bestehende `+10` / `−10`-Korrekturen bleiben erhalten
-- direkter Gesamtpunktestand kann auf einen beliebigen ganzzahligen Wert gesetzt werden
-- negative Korrekturwerte werden korrekt gespeichert
-- alle Änderungen laufen über die bestehende SessionEngine und synchronisieren dadurch die Ranglisten
-- Moderator-UI enthält pro Spieler fünf präzise Bedienelemente (`−10`, `−1`, Direktwert, `+1`, `+10`)
-- alle fünf HTML-Ansichten verwenden **v7** und `?v=7`
+### 3. Quiz-/Datenprüfung
+**34/34 bestanden**
 
-### Spezifische v6-Regressionen
+- alle Einträge aus `quiz-list.json` existieren
+- alle mitgelieferten Quizdateien validieren
+- Normalize → JSON-Roundtrip → Revalidate
+- alle 10 Fragetypen sind in den Bundled-Quizzen vertreten
+- kanonisch korrekte Antworten punkten bei allen deterministischen Fragetypen
+- Consensus-Mehrheit wird korrekt berechnet
+- Kategorien werden weiterhin extrahiert
 
-- Timerablauf vergibt **keine Punkte** und zeigt **keine Lösung**.
-- Nach Timerablauf werden weitere Antworten abgewiesen.
-- Der Moderator kann eine Frage auch vor Timerende über **„Antworten schließen“** sperren.
-- Fragen mit Timer `0` lassen sich manuell schließen und anschließend auflösen.
-- Eine geschlossene, noch nicht aufgelöste Frage kann nicht erneut gestartet oder übersprungen werden.
-- **„Frage auflösen“** vergibt Punkte exakt einmal; mehrfaches Klicken erzeugt kein Doppelscoring.
-- Spieler sehen in der Zwischenphase **„Antworten geschlossen“** statt der Lösung.
-- Presenter/Zuschauer sehen in der Zwischenphase ebenfalls keine Lösung oder Antwortstatistik.
-- Der Moderator sieht einen deutlich hervorgehobenen Reveal-Button, sobald aufgelöst werden kann.
+### 4. statische GitHub-Pages-Prüfung
+**77/77 bestanden**
 
----
-
-## Bestehende v5-Prüfungen (weiterhin gültig)
-
-
-## Neue Fragetypen v5
-
-Zu den sechs bestehenden Typen kommen vier vollständig integrierte Spielmodi:
-
-1. `audio-quiz` – Audio + Antwortauswahl
-2. `survey` – Publikums-Duell mit prozentualen Antwortwerten
-3. `consensus` – dynamische Mehrheitsfrage; die gewinnende Antwort entsteht aus den aktuellen Spielerantworten
-4. `hotspot` – Klick-/Tap-Zielbereich auf einem Bild
-
-Weiterhin unterstützt: `multiple-choice`, `image-quiz`, `estimate`, `sort`, `fight-list`, `higher-lower`.
-
-## Automatische Kernprüfungen
-
-Bestanden:
-
-- JavaScript-Syntax aller produktiven `.js`-Dateien mit `node --check`
-- JSON-Parsing von `manifest.json` und sämtlichen Quiz-Dateien
-- `quiz-sample.json` validiert und importierbar
-- `quiz-demo-komplett.json` validiert und importierbar
-- `quiz-showtime.json` validiert, enthält alle 10 Fragetypen
-- `quiz-party-mix.json` validiert und importierbar
-- Import → Normalisierung → JSON-Roundtrip → erneute Validierung
-- Punkteberechnung aller zehn Fragetypen
-- Kategorien-Deduplizierung ohne Verlust des gespeicherten Anzeigenamens
-- Unicode-/Umlaut-Kategorie (`Café & Kultur`)
-- Legacy-`correctAnswer` als numerischer Index einschließlich korrekter Lösungsausgabe
-- Quiz ohne Fragen wird als Fehler blockiert
-- Survey mit ausschließlich 0-%-Werten wird als Fehler blockiert
-- Higher/Lower mit identischen Nachbarwerten erzeugt einen Plausibilitätshinweis
-- Timer `0` bleibt wirklich untimed und fällt nicht auf den Standardtimer zurück
-- Rundenmultiplikator `0` bleibt `0`
-- bereits geschlossene Fragen werden nicht doppelt gewertet
-
-Der zentrale Node-/VM-Regressionslauf umfasst **101 Kernchecks** plus zusätzliche v5-Final-Validator-Edge-Cases.
-
-## Vollständige Session-Simulation
-
-Ein kompletter Engine-Durchlauf wurde deterministisch mit **zwei Spielern**, **drei Runden** und **allen zehn Fragetypen** simuliert.
-
-Geprüft wurden u. a.:
-
-- zwei getrennte Spieler-IDs
-- Spielstart
-- Frage öffnen und Antwortabgabe
-- Frage schließen und Wertung
-- Rundenmultiplikatoren
-- dynamische Mehrheitswertung
-- Hotspot-Auswertung
-- Rundensnapshots
-- Navigation zur nächsten Frage/Runde
-- Schutz vor Doppelwertung
-- Spielende
-
-Ergebnis des Testlaufs:
-
-- Anna: **1.591 Punkte**
-- Ben: **1.591 Punkte**
-- Rundenzusammenfassungen: **3/3**
-- Engine-Fehler: **0**
-
-## Zwei-Spieler-/Duplicate-Tab-Regression
-
-Die Spieleridentität wurde separat mit nachgebildetem `BroadcastChannel` und getrennten Tab-Speichern getestet:
-
-- Spieler 1 aktiv → Spieler 2 erhält eigene ID
-- duplizierter Tab übernimmt zunächst denselben `sessionStorage`-Wert → Presence-Prüfung verhindert Wiederverwendung der aktiven ID
-- echter Reload nach Ende des alten Tabs → vorhandene Spieler-ID kann wiederverwendet werden
-
-Ergebnis: **bestanden**.
-
-## Statische GitHub-Pages-Prüfung
-
-Bestanden:
-
+- keine doppelten HTML-IDs
+- alle lokalen `src`-/`href`-Referenzen vorhanden
+- alle produktiven JS-/CSS-Referenzen verwenden `?v=8`
+- sichtbare Versionsmarke `Quiz Arena v8` auf allen fünf Ansichten
 - `.nojekyll` vorhanden
-- ausschließlich statische HTML/CSS/JS/JSON-/Asset-Dateien
-- keine npm-/Build-Abhängigkeit
-- alle HTML-internen lokalen `src`-/`href`-Referenzen vorhanden
-- alle Einträge aus `quiz-list.json` zeigen auf vorhandene JSON-Dateien
-- alle lokalen Quiz-Bild-/Audio-Assets vorhanden
-- sämtliche produktiven CSS-/JS-Referenzen verwenden `?v=5`
-- sichtbare Versionsmarke **Quiz Arena v5** in allen fünf HTML-Ansichten
-- kein produktives `TODO`, `debugger` oder `console.log/debug`
+- alle `quiz-list.json`-Dateien vorhanden
+- lokale Bild-/Audio-Assets vorhanden
+- kein produktives `TODO`, `debugger`, `console.log` oder `console.debug`
 
-## Layout-/Browserprüfung
+### 5. Syntax-/Parsing-Prüfung
+Bestanden:
+- `node --check` auf sämtlichen produktiven JavaScript-Dateien und Tests
+- JSON-Parsing aller Quizdateien, Manifest und Firebase-Regeln
 
-Vor dem finalen Patchsatz wurden Desktop- und 390-px-Mobile-Renderings der v5-Oberfläche sowie des Editors visuell geprüft. Dabei wurde unter anderem ein Mobile-Overflow im Editor behoben. Ein kleiner Abstandskonflikt an den Rollen-Karten wurde im finalen Patch ebenfalls korrigiert.
+**Gesamt: 204 explizite Assertions/statische Checks + vollständige JavaScript-Syntax- und JSON-Parsing-Prüfung.**
 
-Ein erneuter vollautomatisierter Chromium-Navigationslauf des finalen Ordners konnte in dieser Ausführungsumgebung **nicht** durchgeführt werden, weil der installierte Browser lokale/HTTP-Navigation per Administratorrichtlinie mit `ERR_BLOCKED_BY_ADMINISTRATOR` blockiert. Das ist eine Einschränkung der Testumgebung, nicht der ausgelieferten GitHub-Pages-Dateien. Deshalb wurden die finalen Änderungen zusätzlich über Syntax-, DOM-ID-, Datei-/Asset-, Engine- und Datenmodelltests abgesichert.
+## Security-/Berechtigungsprüfung
 
-## UX-/Game-Show-Upgrade
+Die mitgelieferten Regeln sind bewusst granular:
 
-Enthalten und geprüft:
+- global standardmäßig kein Lese-/Schreibzugriff
+- Raum-Metadaten/öffentlicher Spielzustand nur für authentifizierte (anonyme) Firebase-Nutzer lesbar
+- Moderator-UID wird beim Erstellen des Raums festgelegt
+- nur Moderator darf `public`, `host`, Scores und Reveal-Zustände steuern
+- Spieler dürfen nur das eigene Profil und eigene Antworten schreiben
+- Antwort-Write ist nur für die aktuell offene Frage und bis zum serverseitigen Timerende erlaubt
+- vollständiges Quiz liegt ausschließlich im `host`-Bereich
+- Resolve-Lock verhindert doppelte Online-Auswertung
+- Moderator kann Antwort-Subtrees für Reset/Spielerentfernung verwalten
 
-- Rundeneinstiege
-- Kategorie-/Typ-/Punkte-Preview
-- Spieler-Fortschrittsbalken
-- dynamisches Punkte-Delta in Ranglisten
-- Top-3-Podium im Finale
-- Presenter-Status Lobby/Live/Auflösung/Beendet
-- Presenter-Auswertungen für Auswahl-, Schätz-, Fight-List- und Hotspot-Fragen
-- differenzierte Reveal-Zustände
-- kopierbare Spieler-/Presenter-Links
-- deterministische Kategorie-Farben
-- Hotspot-Zielpunkt-Picker im Editor
-- Kategorie-Vorschläge bei weiterhin frei definierbaren Kategorien
+Zusätzlich werden für den Online-Modus Fragen-IDs mit Firebase-ungültigen Key-Zeichen (`. # $ [ ] /`) vor der Raumerstellung verständlich abgelehnt. Der lokale Modus bleibt davon unberührt.
 
-## Bekannte Plattformgrenze
+## Reconnect / Presence
 
-Der Frontend-only-Mehrspielermodus synchronisiert Tabs/Fenster desselben Browsers/Geräts. Geräteübergreifendes Internet-Multiplayer benötigt ein separates Realtime-Backend.
+- Firebase Auth für Spieler: Session-Persistenz
+- Firebase Auth für Moderator: Local-Persistenz
+- Duplicate-Tab-Presence aus v4/v7 bleibt zusätzlich aktiv
+- wenn ein duplizierter Tab dieselbe gespeicherte UID geerbt hat, wird für den neuen Tab eine frische anonyme Firebase-Identität erzeugt
+- Firebase `onDisconnect()` setzt `active=false` bei Verbindungsabbruch
+- beim bewussten Raumwechsel wird `active=false` sofort geschrieben
+- UI zeigt bei verlorener Realtime-Verbindung `Reconnect`
+
+## Desktop-/Mobile-Layout
+
+Die Spieleransicht verwendet in v8:
+
+- Desktop/weite Tablets: Frage links, Live-Rangliste sticky rechts
+- unter 900 px: einspaltig
+- Smartphone: Frage zuerst, Rangliste darunter
+
+Damit bleibt die mobile Bedienung aus v7 erhalten, während die Live-Tabelle auf Desktop dauerhaft sichtbar ist.
+
+## Einschränkung der Testumgebung
+
+Ein echter Login/Write gegen das konkrete Firebase-Projekt konnte aus der Ausführungsumgebung nicht automatisiert durchgeführt werden, weil aus dem Container kein externer Netzwerkzugriff auf Firebase möglich ist. Die Firebase-Webkonfiguration und die angegebene Realtime-Database-URL sind jedoch vollständig eingebaut. Die verwendete Firebase-Browsermodul-Version sowie das Security-Rules-/Anonymous-Auth-Verfahren wurden gegen die aktuelle offizielle Firebase-Dokumentation geprüft.
+
+Der erste echte Infrastrukturtest erfolgt daher nach:
+1. Aktivierung von Anonymous Auth,
+2. Veröffentlichung von `firebase-database.rules.json`,
+3. Upload von v8 auf GitHub Pages.
+
+Dafür liegt `ONLINE_TEST_CHECKLIST.md` bei.
+
+## Noch bewusst Beta
+
+- laufende Online-Räume werden noch nicht automatisch zeitgesteuert gelöscht
+- ein Raum bleibt an die anonyme Moderator-Identität des Ersteller-Browsers gebunden; vollständiges Löschen der Site-Daten dieses Browsers verliert die Moderator-Zuordnung zu diesem bestehenden Raum
+- Firebase Browser-ESM wird direkt vom offiziellen Google-CDN geladen, damit GitHub Pages weiterhin ohne Build-Schritt funktioniert

@@ -1,54 +1,47 @@
 # JH-Quiz – Changelog
 
+## v8 – Online Multiplayer Beta · 23.09.2026
+
+### Online Multiplayer
+- Firebase Realtime Database als zweite Session-Schicht ergänzt
+- Firebase Anonymous Authentication ohne sichtbaren Nutzer-Login
+- 6-stelliger Raumcode funktioniert geräte- und standortübergreifend
+- Online-Räume werden bei manueller Code-Eingabe automatisch erkannt
+- lokaler Testmodus aus v7 bleibt vollständig erhalten
+- Reconnect mit derselben anonymen Spieleridentität
+- Duplicate-Tab-Schutz erzeugt bei Bedarf eine neue anonyme Spieler-UID
+- `onDisconnect()` markiert verlorene Verbindungen als offline
+- sichtbarer Online-/Reconnect-Status in Moderator, Spieler und Presenter
+
+### Sicherheit / Datenmodell
+- vollständiges Quiz liegt in `host/quiz` und ist nur für die Moderator-UID lesbar
+- öffentliche Quiz-Vorschau enthält vor Start keinen Fragetext
+- Lösungen, Schätzwerte, Sortierreihenfolge, Fight-List-Lösungen, Survey-Prozente und Hotspot-Ziel werden vor Reveal nicht öffentlich übertragen
+- Spieler können über Security Rules nur das eigene Profil und eigene Antworten verändern
+- Punkte, Spielstatus, Reveal und Navigation sind Moderator-Schreibrechte
+- serverseitiger Resolve-Lock schützt vor doppelter Punktevergabe
+- Antworten werden serverzeitbasiert nach Timerende abgewiesen
+- Produktionsregeln in `firebase-database.rules.json`
+
+### Spieler-UX
+- Live-Rangliste auf Desktop rechts neben dem Quiz
+- unter 900 px automatisch einspaltig; auf Smartphone Rangliste unter der Frage
+- Online-Verbindungsstatus und Reconnect-Anzeige
+- bei lokal abgelaufenem Timer wird die Eingabe auch dann sofort gesperrt, wenn der Moderator-Status kurz verzögert ankommt
+
+### Bestehende Funktionen erhalten
+- 10 Fragetypen
+- frei definierbare Kategorien
+- manueller Reveal nach Timer
+- exakte Punktkorrektur `−10 / −1 / Direktwert / +1 / +10`
+- Editor, Import/Export, Presenter und lokale Mehrspieler-Simulation
+- sichtbare Versionsmarke **Quiz Arena v8** und `?v=8` Cache-Buster
+
 ## v7 – Precise Score Update · 22.09.2026
-
-- Moderator kann Spielerpunkte jetzt auf die **1er-Stelle genau** anpassen
-- neue Schnellaktionen `−10`, `−1`, `+1`, `+10` pro Spieler
-- direkter editierbarer Gesamtpunktestand pro Spieler
-- Eingabe wird auf ganze Punkte normalisiert
-- bestehende automatische Punkteauswertung und Ranglisten-Synchronisation bleiben erhalten
-- sichtbare Versionsmarke **Quiz Arena v7** und `?v=7` Cache-Buster
-
-# JH-Quiz Changelog
+- Exakte manuelle Punktkorrektur inklusive ±1 und direktem Gesamtwert.
 
 ## v6 – Moderator Reveal Update · 22.09.2026
-
-- Timer beendet nur noch die Antwortphase; keine automatische Auflösung mehr
-- neuer Moderator-Button **„✨ Frage auflösen“**
-- neue Zwischenphase **„Antworten geschlossen“** für Moderator, Spieler und Presenter
-- Lösung, Statistiken und Punkte bleiben bis zum manuellen Reveal verborgen
-- manuelles **„Antworten schließen“** für Fragen mit und ohne Timer
-- Navigation wird blockiert, solange eine gestartete Frage noch nicht aufgelöst wurde
-- Leertasten-Shortcut folgt jetzt dem Ablauf Öffnen → Schließen → Auflösen
-- sichtbare Versionsmarke **Quiz Arena v6** und `?v=6` Cache-Buster
+- Timer schließt nur die Antwortphase; Auflösung erfolgt manuell durch den Moderator.
 
 ## v5 – Showtime Update · 22.09.2026
-
-### Neu
-- 4 neue Fragetypen: Audio-Quiz, Publikums-Duell, Gleich gedacht, Hotspot
-- 10 Fragetypen insgesamt
-- Rundeneinstiege und Kategorie-Preview
-- Top-3-Podium
-- Live-Punkte-Delta in Ranglisten
-- Presenter-Live-Auswertungen
-- sichtbarer Spielfortschritt
-- Hotspot-Zielpunkt-Picker im Editor
-- Kategorie-Vorschläge im Editor, freie Kategorien bleiben erhalten
-- neues Showcase-Quiz `quiz-showtime.json`
-- neues Partyquiz `quiz-party-mix.json`
-
-### Stabilität
-- v4-Multiplayer-/Duplicate-Tab-Fix beibehalten und regressionsgetestet
-- Schutz gegen Doppelwertung
-- Timer 0 korrekt unterstützt
-- Rundenmultiplikator 0 korrekt unterstützt
-- robustere Legacy-`correctAnswer`-Kompatibilität
-- strengere Survey-/Quiz-Validierung
-- Hinweis bei uneindeutigen Higher/Lower-Nachbarwerten
-- Spieler-Topbar-/Progress-Zuordnung korrigiert
-- lokale Assets und relative GitHub-Pages-Pfade geprüft
-
-### Branding / Deployment
-- JH-Quiz Branding
-- sichtbare Versionsmarke `Quiz Arena v5`
-- CSS-/JS-Cache-Buster `?v=5`
+- Vier neue Fragetypen, Game-Show-UX, Podium, Rundeneinstiege und Editor-Upgrades.
