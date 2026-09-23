@@ -92,8 +92,8 @@ const Online=ctx.window.JHQuizOnlineSession; const quiz=JSON.parse(fs.readFileSy
    await host.move(1); await new Promise(r=>setTimeout(r,3));
  }
  ok(host.load().status==='finished','full online showcase reaches finished state');
- ok(host.load().roundSummaries.length===3,'all three online round summaries created');
- ok(host.load().scoredQuestionIds.length===11,'all eleven online showcase questions resolved');
+ ok(host.load().roundSummaries.length===quiz.quiz.rounds.length,'all online round summaries created');
+ ok(host.load().scoredQuestionIds.length===quiz.quiz.rounds.reduce((n,r)=>n+r.questions.length,0),'all online showcase questions resolved');
 
  const annaFinal=host.load().players.find(p=>p.name==='Anna');
  await host.setPlayerScore(annaFinal.id,137); await new Promise(r=>setTimeout(r,4));

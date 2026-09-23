@@ -176,12 +176,68 @@
     els['edit-default-points'].value = state.quiz.settings.defaultPoints;
     renderCategories(); renderRounds(); showValidation(Validator.validate(state));
   }
+  // ---------- Themen (v15) ----------
+  const Topics = window.SylasphereTopics;
+  const TopicPicker = window.SylasphereTopicPicker;
+  function quizTopicNames() {
+    const names = new Map();
+    (state.quiz.categories || []).forEach(t => { if (t?.name) names.set(Topics.key(t.name), t.name); });
+    state.quiz.rounds.forEach(r => r.questions.forEach(q => { const k = Topics.key(q.category); if (k && !names.has(k)) names.set(k, q.category); }));
+    return Array.from(names.values());
+  }
+  function topicUsage(name) {
+    const k = Topics.key(name); let count = 0;
+    state.quiz.rounds.forEach(r => r.questions.forEach(q => { if (Topics.key(q.category) === k) count++; }));
+    return count;
+  }
+  function customEntry(name, create = false) {
+    state.quiz.categories = Array.isArray(state.quiz.categories) ? state.quiz.categories : [];
+    let entry = state.quiz.categories.find(t => Topics.key(t.name) === Topics.key(name));
+    if (!entry && create) { entry = { name }; state.quiz.categories.push(entry); }
+    return entry;
+  }
+  function renameTopic(oldName, newName) {
+    const clean = String(newName || '').normalize('NFKC').trim();
+    if (!clean || Topics.key(clean) === Topics.key(oldName)) return;
+    if (/[.#$\[\]\/]/.test(clean)) return App.toast('Themen dürfen keine der Zeichen . # $ [ ] / enthalten.', 'error');
+    state.quiz.rounds.forEach(r => r.questions.forEach(q => { if (Topics.key(q.category) === Topics.key(oldName)) q.category = clean; }));
+    const entry = customEntry(oldName);
+    const existing = customEntry(clean);
+    if (entry && existing && entry !== existing) state.quiz.categories.splice(state.quiz.categories.indexOf(entry), 1);
+    else if (entry) entry.name = clean;
+    structuralChange();
+  }
   function renderCategories() {
-    const categories = Quiz.extractCategories(state);
-    const suggestions = ['Allgemeinwissen','Sport','Filme & Serien','Musik','Geschichte','Geografie','Wissenschaft','Technik','Gaming','Internet & Popkultur','Essen & Trinken','Reisen','Bilderrätsel','Musik & Sounds','Community & Popkultur','Dilemma','Rekorde'];
-    const categoryOptions = [...categories, ...suggestions.filter(suggestion => !categories.some(category => Quiz.categoryKey(category) === Quiz.categoryKey(suggestion)))];
-    els['editor-categories'].innerHTML = categories.length ? categories.map(c => `<span class="chip">${App.escapeHTML(c)}</span>`).join('') : '<span class="microcopy">Noch keine Kategorien.</span>';
-    els['category-list'].innerHTML = categoryOptions.map(c => `<option value="${App.escapeHTML(c)}"></option>`).join('');
+    Topics.use(state.quiz.categories);
+    const box = els['editor-categories'];
+    const names = quizTopicNames();
+    box.replaceChildren();
+    if (!names.length) { box.append(div('microcopy', 'Noch keine Themen.')); return; }
+    names.forEach(name => {
+      const topic = Topics.resolve(name);
+      const custom = customEntry(name);
+      const count = topicUsage(name);
+      const row = document.createElement('details'); row.className = 'topic-row';
+      const summary = document.createElement('summary');
+      summary.append(TopicPicker.chip(topic, name), div('topic-row-meta', `${count} ${count === 1 ? 'Frage' : 'Fragen'}${topic.source === 'library' && !custom?.icon && !custom?.color ? ' · Bibliothek' : ''}`));
+      row.append(summary);
+      const body = div('topic-row-body');
+      const nameInput = input('text', name, 'input'); nameInput.maxLength = 40;
+      nameInput.addEventListener('change', e => renameTopic(name, e.target.value));
+      const iconInput = input('text', custom?.icon || topic.icon, 'input topic-icon-input'); iconInput.maxLength = 4; iconInput.title = 'Emoji als Icon';
+      iconInput.addEventListener('change', e => { const v = e.target.value.trim(); const entry = customEntry(name, true); if (v) entry.icon = v; else delete entry.icon; structuralChange(); });
+      const colorInput = input('color', topic.color, 'topic-color-input'); colorInput.title = 'Farbe';
+      colorInput.addEventListener('change', e => { customEntry(name, true).color = e.target.value; structuralChange(); });
+      const grid = div('topic-edit-grid');
+      grid.append(labelField('Icon', iconInput), labelField('Farbe', colorInput));
+      body.append(labelField('Name', nameInput), grid);
+      const actions = div('topic-row-actions');
+      if (custom && (custom.icon || custom.color)) actions.append(button(Topics.isLibrary(name) ? 'Bibliotheks-Look' : 'Icon/Farbe zurücksetzen', 'btn btn--small btn--ghost', () => { delete custom.icon; delete custom.color; structuralChange(); }));
+      if (!count && custom) actions.append(button('Entfernen', 'btn btn--small btn--danger', () => { state.quiz.categories.splice(state.quiz.categories.indexOf(custom), 1); structuralChange(); }));
+      if (actions.children.length) body.append(actions);
+      row.append(body);
+      box.append(row);
+    });
   }
   function renderRounds() {
     els['rounds-container'].replaceChildren();
@@ -252,10 +308,16 @@
     type.addEventListener('change', e => changeQuestionType(ri, qi, e.target.value));
     fields.append(spanField('Fragetyp', type, 'span-2'));
 
-    const category = input('text', q.category || '', 'input');
-    category.setAttribute('list', 'category-list'); category.placeholder = 'Beliebige Kategorie';
-    category.addEventListener('input', e => { q.category = e.target.value; queueSave(); renderCategories(); });
-    fields.append(spanField('Kategorie', category, 'span-2'));
+    // Thema aus Bibliothek/Quiz wählen oder neu anlegen
+    const topicPicker = TopicPicker.create({
+      value: q.category || '',
+      quizTopics: quizTopicNames,
+      onSelect: name => { q.category = name; queueSave(); renderCategories(); },
+      onCreate: name => { customEntry(name, true); }
+    });
+    const topicField = div('field-group span-2'); // bewusst kein <label>: würde Klicks im Picker an den Knopf weiterleiten
+    topicField.append(div('field-label', 'Thema'), topicPicker);
+    fields.append(topicField);
 
     const points = input('number', q.points, 'input'); points.min = '0';
     points.addEventListener('input', e => { q.points = nonNegative(e.target.value, 0); queueSave(); });

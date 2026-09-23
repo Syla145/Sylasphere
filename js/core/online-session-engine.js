@@ -329,6 +329,8 @@
         questionStartedAt: pub.questionStartedAt == null ? null : Firebase.toLocalTime(this.context, pub.questionStartedAt),
         questionEndsAt: pub.questionEndsAt == null ? null : Firebase.toLocalTime(this.context, pub.questionEndsAt),
         currentPublicQuestion: pub.currentQuestion ? clone(pub.currentQuestion) : null,
+        stage: Math.max(0, Number(pub.stage) || 0),
+        media: pub.media ? Object.assign(clone(pub.media), { at: Firebase.toLocalTime(this.context, pub.media.at) }) : null,
         answers,
         questionResults,
         scoredQuestionIds: resolved,
@@ -469,8 +471,38 @@
         questionEndsAt: duration > 0 ? now + duration * 1000 : null,
         currentQuestionId: question.id,
         currentQuestion: publicQuestion(question, false),
-        questionResult: question.type === 'buzzer' ? clean(initialBuzzerState(question)) : null, publicStats: null, scoreDeltas: null
+        questionResult: question.type === 'buzzer' ? clean(initialBuzzerState(question)) : null, publicStats: null, scoreDeltas: null,
+        // Stufen-Fragen: Stufe 1 aktiv; answerLock = Antwort nach Abgabe gesperrt (von den Firebase-Regeln geprüft)
+        stage: 0, media: null, answerLock: Quiz.locksOnSubmit(question)
       });
+    }
+
+    // ---------- Stufen & Medien (Song-Enthüllung) ----------
+    mediaCommand(question, kind, stage) {
+      return { nonce: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`, kind, stage: Number(stage) || 0, questionId: question.id, at: Firebase.serverNow(this.context) };
+    }
+    async playStage() {
+      this.assertModerator();
+      const state = this.load();
+      const { question } = this.getCurrent(state);
+      if (!question || !Quiz.stagesOf(question) || !state.questionStartedAt) throw new Error('Keine laufende Stufen-Frage.');
+      await this.patchPublic({ media: this.mediaCommand(question, 'snippet', state.stage) });
+    }
+    async advanceStage() {
+      this.assertModerator();
+      const state = this.load();
+      const { question } = this.getCurrent(state);
+      const stages = Quiz.stagesOf(question);
+      if (!question || !stages || !state.questionStartedAt) throw new Error('Keine laufende Stufen-Frage.');
+      if (!state.questionOpen) throw new Error('Die Antworten sind bereits geschlossen.');
+      const stage = Math.min((Number(state.stage) || 0) + 1, stages.length - 1);
+      await this.patchPublic({ stage, media: this.mediaCommand(question, 'snippet', stage) });
+    }
+    async playReveal() {
+      this.assertModerator();
+      const { question } = this.getCurrent(this.load());
+      if (!question || !Quiz.revealsMedia(question)) return;
+      await this.patchPublic({ media: this.mediaCommand(question, 'reveal', 0) });
     }
 
     async lockQuestion() {
@@ -483,7 +515,8 @@
 
     closeQuestion() { return this.lockQuestion(); }
 
-    async resolveQuestion() {
+    // options.verdicts: { uid: true|false } – Moderator-Prüfung (z. B. Lückentext)
+    async resolveQuestion(options = {}) {
       this.assertModerator();
       const state = this.load();
       const { question, round } = this.getCurrent(state);
@@ -513,7 +546,7 @@
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
-        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers);
+        let typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, options);
         const buzzerResult = question.type === 'buzzer' ? clone(state.questionResults?.[question.id] || initialBuzzerState(question)) : null;
         const deltas = {};
         const updates = {};
@@ -553,13 +586,18 @@
           Object.keys(profiles).forEach(uid => {
             const submission = answers[uid];
             if (!submission) return;
-            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult);
+            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, uid);
             deltas[uid] = Math.round(Number(result.points) || 0);
             updates[`answers/${uid}/${question.id}/awardedPoints`] = deltas[uid];
             updates[`answers/${uid}/${question.id}/scoreDetail`] = String(result.detail || '');
             updates[`answers/${uid}/${question.id}/scoredAt`] = now;
             updates[`scores/${uid}`] = Math.round((Number(scores[uid]) || 0) + deltas[uid]);
           });
+          if (Quiz.publishesAnswers(question)) {
+            // Antworten aller Spieler nach der Auflösung veröffentlichen (Spieler dürfen fremde Antworten sonst nicht lesen)
+            const scored = Object.fromEntries(Object.entries(answers).map(([uid, record]) => [uid, Object.assign({}, record, { awardedPoints: deltas[uid] || 0 })]));
+            typeResult = Object.assign({}, typeResult || {}, { entries: Quiz.answerEntries(question, scored, uid => profiles[uid]?.name) });
+          }
         }
 
         const statsSource = question.type === 'buzzer' ? buzzerResult : typeResult;
@@ -573,6 +611,7 @@
         updates[`public/scoreDeltas`] = clean(deltas);
         updates[`public/resolved/${question.id}`] = true;
         if (question.type === 'buzzer') updates[`buzzerClaims/${question.id}`] = null;
+        if (Quiz.revealsMedia(question)) updates[`public/media`] = clean(this.mediaCommand(question, 'reveal', 0)); // z. B. Refrain auf allen Geräten
         updates[`public/updatedAt`] = now;
         await dbm.update(this.roomRef, updates);
       } catch (error) {
@@ -591,8 +630,11 @@
       if (Number.isFinite(rawEndsAt) && rawEndsAt > 0 && Firebase.serverNow(this.context) > rawEndsAt + 500) return false;
       const now = Firebase.serverNow(this.context);
       const dbm = this.modules.database;
+      if (Quiz.locksOnSubmit(question) && state.answers?.[question.id]?.[this.userId]) return false; // Antwort ist gesperrt
+      let value = clone(answer);
+      if (Quiz.stagesOf(question) && value && typeof value === 'object') value.stage = Math.max(0, Number(this.raw.public?.stage) || 0); // Firebase prüft: = aktuelle Stufe
       await dbm.update(this.roomRef, {
-        [`answers/${this.userId}/${question.id}`]: clean({ answer: clone(answer), submittedAt: now }),
+        [`answers/${this.userId}/${question.id}`]: clean({ answer: value, submittedAt: now }),
         [`profiles/${this.userId}/lastAnsweredQuestionId`]: question.id,
         [`profiles/${this.userId}/updatedAt`]: now
       });
@@ -699,7 +741,7 @@
       const nextQuestion = quiz.rounds[ri]?.questions[qi] || null;
       await this.patchPublic({
         status, finishedAt, currentRoundIndex: ri, currentQuestionIndex: qi,
-        questionOpen: false, questionStartedAt: null, questionEndsAt: null,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, answerLock: false,
         currentQuestionId: nextQuestion?.id || '', currentQuestion: null,
         questionResult: null, publicStats: null, scoreDeltas: null,
         roundSummaries: summaries

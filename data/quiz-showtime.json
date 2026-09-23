@@ -18,7 +18,9 @@
       "Bilderrätsel",
       "Weltraum",
       "Wortwissen",
-      "Rekorde"
+      "Rekorde",
+      "Sprache & Wörter",
+      "Musik"
     ],
     "rounds": [
       {
@@ -291,6 +293,100 @@
             "buzzerMode": "spoken",
             "solution": "London",
             "penalty": 0
+          }
+        ]
+      },
+      {
+        "id": "round_new_formats",
+        "title": "Neue Formate",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "show_tf",
+            "type": "true-false",
+            "category": "Weltraum",
+            "text": "Auf dem Mond gibt es keine Schwerkraft.",
+            "correctAnswer": "false",
+            "points": 100,
+            "timer": 15
+          },
+          {
+            "id": "show_gap",
+            "type": "gap-text",
+            "category": "Sprache & Wörter",
+            "text": "Ein Wort, das vorwärts und rückwärts gelesen gleich bleibt, nennt man ___.",
+            "correctAnswers": [
+              "Palindrom",
+              "Palindrome"
+            ],
+            "points": 150,
+            "timer": 30
+          },
+          {
+            "id": "show_match",
+            "type": "matching",
+            "category": "Geografie",
+            "text": "Ordne jedem Land seine Hauptstadt zu.",
+            "pairs": [
+              {
+                "left": "Kanada",
+                "right": "Ottawa"
+              },
+              {
+                "left": "Australien",
+                "right": "Canberra"
+              },
+              {
+                "left": "Brasilien",
+                "right": "Brasília"
+              },
+              {
+                "left": "Schweiz",
+                "right": "Bern"
+              }
+            ],
+            "points": 200,
+            "timer": 40
+          },
+          {
+            "id": "show_song",
+            "type": "song-reveal",
+            "category": "Musik",
+            "text": "Welcher Song ist das? (Titel und Interpret)",
+            "audio": "./assets/demo-song.wav",
+            "clipStart": 0,
+            "stages": [
+              {
+                "duration": 0.1,
+                "percent": 100
+              },
+              {
+                "duration": 1,
+                "percent": 75
+              },
+              {
+                "duration": 3,
+                "percent": 50
+              },
+              {
+                "duration": 10,
+                "percent": 25
+              }
+            ],
+            "songTitle": "Sylasphere Theme",
+            "titleAliases": [
+              "Sylasphere"
+            ],
+            "artist": "Demo-Band",
+            "artistAliases": [
+              "Demo Band"
+            ],
+            "guessArtist": true,
+            "cover": "./assets/demo-cover.svg",
+            "revealStart": 12,
+            "revealDuration": 8,
+            "points": 200,
+            "timer": 0
           }
         ]
       }

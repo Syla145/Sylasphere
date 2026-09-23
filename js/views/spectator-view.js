@@ -59,6 +59,7 @@
 
   function render(next) {
     state = next;
+    window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
     const current = engine.getCurrent(state);
     App.setText(els['spectator-code'], state.code);
     if (els['spectator-mode']) { els['spectator-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['spectator-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['spectator-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
@@ -87,14 +88,18 @@
     }
     if (!current.question) return;
     if (!state.questionStartedAt) {
-      els['spectator-question'].innerHTML = `<div class="round-intro presenter"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h1>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h1><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte</p></div>`;
+      els['spectator-question'].innerHTML = `<div class="round-intro presenter"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.topic(current.question.category).icon}</div><h1>${App.escapeHTML(current.question.category || 'Ohne Thema')}</h1><p>${Quiz.TYPE_ICONS[current.question.type] || '•'} ${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte</p></div>`;
       els['spectator-stats'].innerHTML = ''; return;
     }
     const result = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const timedOut = Boolean(state.questionOpen && state.questionEndsAt && Date.now() >= Number(state.questionEndsAt));
     const pendingReveal = (!state.questionOpen || timedOut) && state.questionStartedAt && !resolved;
-    Renderers.renderPlayer(current.question, els['spectator-question'], { readOnly: true, reveal: resolved, currentAnswer: null, result });
+    window.SylasphereMedia?.sync(state.media, current.question); // Song-Ausschnitte auch beim Zuschauer (z. B. Discord-Stream)
+    const shown = els['spectator-question'];
+    const key = JSON.stringify([current.question.id, resolved, result ?? null]);
+    if (shown.dataset.renderKey === key && shown.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, shown, { readOnly: true, reveal: resolved, result, stage: state.stage });
+    else { Renderers.renderPlayer(current.question, shown, { readOnly: true, reveal: resolved, currentAnswer: null, result, stage: state.stage }); shown.dataset.renderKey = key; }
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length; const total = state.players.length;
     let html = `<div class="presenter-response"><strong>${submitted}/${total}</strong><span>Antworten</span></div>`;
@@ -104,6 +109,7 @@
       const label = Quiz.solutionLabel(current.question);
       html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(solution)}</strong></div>`;
       html += stats(current.question, answers, result);
+      html += Renderers.answerEntriesHTML(result?.entries);
     }
     els['spectator-stats'].innerHTML = html;
   }

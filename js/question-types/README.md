@@ -30,10 +30,10 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
   const Kit = window.SylasphereTypeKit;
 
   window.SylasphereTypes.register({
-    type: 'true-false',                 // = Dateiname
-    label: 'Wahr oder falsch',          // Anzeige in Editor und Frage
+    type: 'ja-nein',                    // = Dateiname (types/ja-nein.js)
+    label: 'Ja oder nein',              // Anzeige in Editor und Frage
     icon: '✓',
-    description: 'Eine Aussage ist wahr oder falsch.',
+    description: 'Beispiel-Vorlage: Ja/Nein-Frage.',
     solutionLabel: 'Lösung',            // optional, z. B. 'Top-Antwort'
 
     // Startwerte für eine neue Frage im Editor
@@ -45,21 +45,21 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
     // Fehler/Hinweise für „Quiz prüfen“
     validate(q, report) { if (typeof q.correctAnswer !== 'boolean') report.error('correctAnswer', 'Lösung fehlt.'); },
 
-    // Punkte ohne Runden-Multiplikator (den rechnet der Kern drauf). base = Punkte der Frage
+    // Punkte ohne Runden-Multiplikator (den rechnet der Kern drauf). base = Punkte der Frage, playerId = Spieler, result = Ergebnis aus resolve()
     score(q, answer, { base }) {
       const hit = answer === q.correctAnswer;
       return { points: hit ? base : 0, detail: hit ? 'Richtig' : 'Falsch' };
     },
 
-    solutionText: q => (q.correctAnswer ? 'Wahr' : 'Falsch'),
-    answerLabel: (q, answer) => (answer === true ? 'Wahr' : answer === false ? 'Falsch' : '–'),
+    solutionText: q => (q.correctAnswer ? 'Ja' : 'Nein'),
+    answerLabel: (q, answer) => (answer === true ? 'Ja' : answer === false ? 'Nein' : '–'),
 
     // Anzeige für Spieler, Moderator und Zuschauer
     // ctx: { currentAnswer, readOnly, reveal, result, onAnswer(value), playerId }
     render(q, container, ctx) {
       const wrap = Kit.baseQuestion(q);
       const grid = Kit.el('div', 'answer-grid');
-      [[true, 'Wahr'], [false, 'Falsch']].forEach(([value, text]) => {
+      [[true, 'Ja'], [false, 'Nein']].forEach(([value, text]) => {
         const button = Kit.el('button', 'answer-btn', text);
         button.type = 'button';
         button.disabled = Boolean(ctx.readOnly);
@@ -78,7 +78,7 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
     // Eingabefelder im Editor. ui: { div, input, button, labelField, queueSave, structuralChange, nonNegative }
     editor(q, ui, box) {
       const select = document.createElement('select'); select.className = 'select';
-      select.innerHTML = '<option value="true">Wahr</option><option value="false">Falsch</option>';
+      select.innerHTML = '<option value="true">Ja</option><option value="false">Nein</option>';
       select.value = String(q.correctAnswer);
       select.addEventListener('change', e => { q.correctAnswer = e.target.value === 'true'; ui.queueSave(); });
       box.append(ui.labelField('Richtige Antwort', select));
@@ -97,4 +97,12 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
 | `moderatorSolution(q, result)` | Eigener Text `{ text, extra }` für die Lösungsbox des Moderators. |
 | `moderatorAlwaysReveal: true` | Der Moderator sieht die Frage immer aufgelöst (Beispiel: Hotspot-Zielbereich). |
 | `noTimer: true` | Die Frage läuft ohne Timer. |
+| `review: 'manual'` | Der Moderator prüft jede Antwort per ✓/✗ (Beispiel: `gap-text.js`). Die Entscheidungen kommen über `resolve(q, answers, { verdicts })` an und werden in `score()` über `result.verdicts[playerId]` gelesen. |
+| `autoCheck(q, answer)` | Vorschlag für die Moderator-Prüfung: `true`, `false` oder `null` (unklar). |
+| `publishAnswers: true` | Nach der Auflösung sehen alle Spieler und Zuschauer die Antworten der anderen. |
+| `reviewParts(q)` | Getrennte Prüfung mehrerer Teile, z. B. `[{ key: 'title', label: 'Titel' }, { key: 'artist', label: 'Interpret' }]`. Die Entscheidung kommt dann als Objekt `verdicts[playerId] = { title: true, artist: false }`. |
+| `stages(q)` | Stufen-Frage: `[{ duration, percent }]`. Der Moderator schaltet die Stufen weiter, die Antwort bekommt automatisch `answer.stage` (Beispiel: `song-reveal.js`). |
+| `lockOnSubmit: true` | Antwort kann nach dem Abschicken nicht mehr geändert werden (online von den Firebase-Regeln geprüft). |
+| `mediaClip(q, media)` / `revealMedia: true` | Was bei einem Abspiel-Befehl auf allen Geräten läuft: `{ url, offset, duration, fade }`; mit `revealMedia` automatisch beim Auflösen. |
+| `update(q, container, ctx)` | Anzeige aktualisieren ohne Neuzeichnen (z. B. neue Stufe), damit Eingabefelder den Fokus behalten. |
 | `interaction: 'buzzer'` | Sonderablauf „erster gewinnt“ (nur der Buzzer). |

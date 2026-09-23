@@ -33,6 +33,15 @@
     const index = Number(correct);
     return Number.isInteger(index) && index >= 0 && index < options.length ? options[index] : null;
   }
+  /** Immer gleich gemischt für denselben seed (z. B. Fragen-ID) – alle Geräte sehen dieselbe Reihenfolge */
+  function seededShuffle(list, seed) {
+    let h = 2166136261;
+    for (const ch of String(seed || 'seed')) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); }
+    const rand = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 100000) / 100000; };
+    const out = list.slice();
+    for (let i = out.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [out[i], out[j]] = [out[j], out[i]]; }
+    return out;
+  }
   function defaultOptions() { return [{ id: 'a', text: 'Antwort A' }, { id: 'b', text: 'Antwort B' }, { id: 'c', text: 'Antwort C' }, { id: 'd', text: 'Antwort D' }]; }
 
   // Gemeinsame Prüfung für Auswahl-Fragen
@@ -59,10 +68,11 @@
 
   function baseQuestion(question) {
     const wrap = el('div', `question-shell question-type-${question.type}`);
-    wrap.style.setProperty('--cat-hue', String(window.SchmobinQuiz.categoryHue(question.category)));
+    const topic = window.SchmobinQuiz.topic(question.category);
+    wrap.style.setProperty('--cat-hue', String(topic.hue));
     const meta = el('div', 'question-meta');
     const def = typeMeta(question.type);
-    meta.append(el('span', 'pill pill--category', question.category || 'Ohne Kategorie'));
+    meta.append(el('span', 'pill pill--category', `${topic.icon} ${question.category || 'Ohne Thema'}`));
     meta.append(el('span', 'pill pill--type', `${def.icon || '•'} ${def.label || question.type}`));
     meta.append(el('span', 'pill', `${question.points} Punkte`));
     if (question.timer > 0) meta.append(el('span', 'pill', `${question.timer}s`));
@@ -203,7 +213,7 @@
 
   window.SylasphereTypeKit = {
     clone, numberOr, clamp, normalizeTerm, escapeHTML,
-    normalizeOptions, optionById, correctOption, defaultOptions, validateOptions,
+    normalizeOptions, optionById, correctOption, defaultOptions, validateOptions, seededShuffle,
     el, baseQuestion, addImage, addAudio, renderChoice,
     choiceEditor, textField,
     choiceStats, statCards,

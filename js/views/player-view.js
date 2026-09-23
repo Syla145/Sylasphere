@@ -99,7 +99,8 @@
   function render(next) {
     if (els['game-question']?.querySelector('.is-sorting')) { deferredState = next; return; }
     deferredState = null;
-    state=next; const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
+    state=next; window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
+    const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
     if (els['game-mode']) { els['game-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['game-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['game-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
@@ -131,7 +132,7 @@
       App.setText(els['game-status'], 'Bereit');
       const lastSummary = state.roundSummaries?.[state.roundSummaries.length - 1];
       const previous = lastSummary && lastSummary.roundId !== current.round?.id ? lastSummary : null;
-      els['game-question'].innerHTML = `<div class="round-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte</p>${previous?.standings?.[0] ? `<div class="round-leader">Zwischenstand: <strong>${App.escapeHTML(previous.standings[0].name)}</strong> führt mit ${App.formatPoints(previous.standings[0].score)}</div>` : ''}</div>`;
+      els['game-question'].innerHTML = `<div class="round-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.topic(current.question.category).icon}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Thema')}</h2><p>${Quiz.TYPE_ICONS[current.question.type] || '•'} ${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte</p>${previous?.standings?.[0] ? `<div class="round-leader">Zwischenstand: <strong>${App.escapeHTML(previous.standings[0].name)}</strong> führt mit ${App.formatPoints(previous.standings[0].score)}</div>` : ''}</div>`;
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
 
@@ -144,15 +145,27 @@
 
     if (current.question.type === 'buzzer') return renderBuzzer(current, answerRecord, questionResult, resolved);
 
-    if (answerWindowOpen) {
+    window.SylasphereMedia?.sync(state.media, current.question); // Song-Ausschnitte auf diesem Gerät abspielen
+    const stages = Quiz.stagesOf(current.question);
+    const stage = Number(state.stage) || 0;
+    const locked = Quiz.locksOnSubmit(current.question) && Boolean(answerRecord);
+
+    if (answerWindowOpen && locked) {
+      // Antwort ist abgegeben und gesperrt (z. B. Song-Enthüllung)
+      App.setText(els['game-status'], 'Antwort gesperrt');
+      renderQuestion(current.question, { currentAnswer: answerRecord.answer, readOnly: true, reveal: false, result: questionResult, stage });
+      els['submit-answer'].hidden = true;
+      const at = stages ? stages[Math.min(stages.length - 1, Number(answerRecord.answer?.stage) || 0)] : null;
+      els['answer-feedback'].innerHTML = `<div class="notice notice--success">🔒 Antwort abgegeben${at ? ` in Stufe ${(Number(answerRecord.answer?.stage) || 0) + 1} (${at.percent} % der Punkte)` : ''}. Der Moderator prüft sie bei der Auflösung.</div>`;
+    } else if (answerWindowOpen) {
       App.setText(els['game-status'], 'Frage läuft');
-      renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
+      renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, stage, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
       els['submit-answer'].hidden = false; els['submit-answer'].disabled = draftAnswer == null;
-      els['submit-answer'].textContent = answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken';
-      els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : '';
+      els['submit-answer'].textContent = stages ? `Antwort abschicken · jetzt ${stages[Math.min(stages.length - 1, stage)].percent} %` : (answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken');
+      els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : (stages ? '<div class="notice">Du kannst nur einmal abschicken – danach ist deine Antwort gesperrt.</div>' : '');
     } else if (!resolved) {
       App.setText(els['game-status'], 'Antworten geschlossen');
-      renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: false, result: questionResult });
+      renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: false, result: questionResult, stage });
       els['submit-answer'].hidden = true;
       els['answer-feedback'].innerHTML = `<div class="notice notice--warning reveal-wait"><strong>⏱ Antworten sind geschlossen.</strong><span>${answerRecord ? 'Deine Antwort ist gespeichert. ' : ''}Der Moderator löst die Frage gleich auf.</span></div>`;
     } else {
@@ -161,7 +174,7 @@
       els['submit-answer'].hidden = true;
       const correct = Quiz.correctAnswerText(current.question, questionResult); const points = answerRecord?.awardedPoints;
       const label = Quiz.solutionLabel(current.question);
-      els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : '<div class="notice">Keine Antwort abgegeben.</div>'}`;
+      els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : '<div class="notice">Keine Antwort abgegeben.</div>'}${Renderers.answerEntriesHTML(questionResult?.entries, playerId)}`;
     }
   }
 
@@ -174,7 +187,11 @@
     const host = els['game-question'];
     const frozenAnswer = ctx.readOnly || ctx.reveal ? (ctx.currentAnswer ?? null) : null;
     const key = JSON.stringify([question.id, Boolean(ctx.readOnly), Boolean(ctx.reveal), ctx.result ?? null, frozenAnswer]);
-    if (host.dataset.renderKey === key && host.querySelector('.question-shell')) return;
+    if (host.dataset.renderKey === key && host.querySelector('.question-shell')) {
+      // Kleine Änderungen (z. B. neue Song-Stufe) ohne Neuzeichnen – Eingaben behalten den Fokus
+      Quiz.typeDef(question.type)?.update?.(question, host, ctx);
+      return;
+    }
     Renderers.renderPlayer(question, host, ctx);
     host.dataset.renderKey = key;
   }

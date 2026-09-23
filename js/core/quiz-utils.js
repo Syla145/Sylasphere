@@ -18,7 +18,13 @@
     return String(value || '').normalize('NFKC').trim().toLocaleLowerCase('de-DE');
   }
   function cleanCategory(value) { return String(value || '').normalize('NFKC').trim(); }
-  function categoryHue(value) {
+  const Topics = () => window.SylasphereTopics;
+  /** Thema (Icon, Farbe) zu einem Kategorienamen – siehe js/core/topics.js */
+  function topic(value, customList) {
+    return Topics()?.resolve(value, customList) || { name: cleanCategory(value) || 'Ohne Thema', icon: '🏷️', hue: categoryHueFallback(value), source: 'auto' };
+  }
+  function categoryHue(value) { return topic(value).hue; }
+  function categoryHueFallback(value) {
     const text = categoryKey(value) || 'kategorie'; let hash = 0;
     for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
     return Math.abs(hash) % 360;
@@ -67,7 +73,8 @@
       title: String(raw.title || 'Unbenanntes Quiz'),
       description: String(raw.description || ''),
       settings,
-      categories: Array.isArray(raw.categories) ? clone(raw.categories) : [],
+      // Eigene Themen des Quiz: [{ name, icon?, color? }]
+      categories: Topics() ? Topics().normalizeCustom(raw.categories) : (Array.isArray(raw.categories) ? clone(raw.categories) : []),
       rounds: rounds.map((round, index) => normalizeRound(round, index, settings))
     };
     Object.keys(raw).forEach(key => {
@@ -100,16 +107,33 @@
   function computeConsensusResult(question, submissions) { return typeDef('consensus')?.computeResult(question, submissions); }
 
   /** Ergebnis, das erst mit allen Antworten feststeht (z. B. Mehrheit bei „Gleich gedacht“). */
-  function resolveResult(question, submissions) {
+  function resolveResult(question, submissions, options = {}) {
     const def = typeDef(question?.type);
-    return def?.resolve ? def.resolve(question, submissions || {}) : null;
+    return def?.resolve ? def.resolve(question, submissions || {}, options || {}) : null;
+  }
+  /** Muss der Moderator die Antworten dieses Typs von Hand prüfen? */
+  function needsReview(question) { return typeDef(question?.type)?.review === 'manual'; }
+  /** Vorschlag für die Moderator-Prüfung (true/false/null = unklar) */
+  function autoCheck(question, answer, part = '') {
+    const fn = typeDef(question?.type)?.autoCheck;
+    return fn ? fn(question, answer, part) : null;
+  }
+  /** Nach der Auflösung sehen alle Spieler die Antworten der anderen */
+  function publishesAnswers(question) { return Boolean(typeDef(question?.type)?.publishAnswers); }
+  function answerEntries(question, answers, nameOf) {
+    return Object.entries(answers || {}).map(([playerId, record]) => ({
+      playerId, name: String(nameOf(playerId) || 'Spieler'),
+      answer: answerLabel(question, record?.answer),
+      points: Math.round(Number(record?.awardedPoints) || 0),
+      correct: Number(record?.awardedPoints) > 0
+    })).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'de'));
   }
   /** Punkte für eine Antwort. result = Ergebnis aus resolveResult (falls der Typ eins hat). */
-  function scoreAnswer(question, answer, multiplier = 1, result = null) {
+  function scoreAnswer(question, answer, multiplier = 1, result = null, playerId = '') {
     const def = typeDef(question?.type);
     const base = Math.max(0, numberOr(question?.points, 0));
     const mult = Math.max(0, numberOr(multiplier, 1));
-    const scored = def ? def.score(question, answer, { base, result, kit: window.SylasphereTypeKit }) : { points: 0, detail: '' };
+    const scored = def ? def.score(question, answer, { base, result, playerId, kit: window.SylasphereTypeKit }) : { points: 0, detail: '' };
     const raw = Number(scored?.points) || 0;
     return { points: Math.round(raw * mult), basePoints: raw, detail: String(scored?.detail ?? '') };
   }
@@ -142,14 +166,22 @@
     const def = typeDef(question?.type);
     return stats && def?.stats?.render ? def.stats.render(stats, question) : '';
   }
+  /** Stufen-Fragen (z. B. Song-Enthüllung): Liste der Stufen oder null */
+  function stagesOf(question) { return typeDef(question?.type)?.stages?.(question) || null; }
+  /** Antwort kann nach dem Abschicken nicht mehr geändert werden */
+  function locksOnSubmit(question) { return Boolean(typeDef(question?.type)?.lockOnSubmit); }
+  /** Beim Auflösen automatisch einen Ausschnitt auf allen Geräten abspielen */
+  function revealsMedia(question) { return Boolean(typeDef(question?.type)?.mediaClip) && Boolean(typeDef(question?.type)?.revealMedia); }
+  /** Teile, die der Moderator getrennt prüft (z. B. Titel/Interpret) – sonst eine einzige Prüfung */
+  function reviewParts(question) { return typeDef(question?.type)?.reviewParts?.(question) || null; }
   function hasTimer(question) { return !typeDef(question?.type)?.noTimer; }
   function isBuzzer(question) { return typeDef(question?.type)?.interaction === 'buzzer'; }
 
   const api = {
     clone, numberOr, categoryKey, cleanCategory, slug,
-    normalizeQuiz, extractCategories, allQuestions, categoryHue, scoreAnswer, correctAnswerText, answerLabel, normalizeTerm,
+    normalizeQuiz, extractCategories, allQuestions, categoryHue, topic, scoreAnswer, correctAnswerText, answerLabel, normalizeTerm,
     isChoiceType, optionById, correctOption, surveyWinnerIds, computeConsensusResult,
-    typeDef, resolveResult, solutionLabel, moderatorSolution, publicQuestion, aggregateStats, statsHTML, hasTimer, isBuzzer
+    typeDef, resolveResult, stagesOf, locksOnSubmit, revealsMedia, reviewParts, needsReview, autoCheck, publishesAnswers, answerEntries, solutionLabel, moderatorSolution, publicQuestion, aggregateStats, statsHTML, hasTimer, isBuzzer
   };
   // Live aus der Registry, damit neu registrierte Typen sofort überall auftauchen
   Object.defineProperties(api, {

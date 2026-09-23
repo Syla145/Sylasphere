@@ -17,10 +17,14 @@
    */
   const TYPE_FILES = [
     'multiple-choice',
+    'true-false',
     'image-quiz',
     'audio-quiz',
+    'song-reveal',
     'estimate',
     'sort',
+    'matching',
+    'gap-text',
     'fight-list',
     'higher-lower',
     'survey',
@@ -48,6 +52,15 @@
       moderatorSolution: null,
       moderatorAlwaysReveal: false,
       noTimer: false,
+      review: null,          // 'manual' = Moderator prüft jede Antwort (✓/✗)
+      autoCheck: null,       // Vorschlag für die Prüfung: (q, answer) => true | false | null
+      publishAnswers: false, // nach der Auflösung sehen alle die Antworten der anderen
+      reviewParts: null,     // (q) => [{ key, label }] – getrennte Prüfung, z. B. Titel/Interpret
+      stages: null,          // (q) => [{ duration, percent }] – Stufen-Fragen (Song-Enthüllung)
+      lockOnSubmit: false,   // Antwort nach Abgabe gesperrt
+      mediaClip: null,       // (q, media) => { url, offset, duration, fade } – was bei einem Abspiel-Befehl läuft
+      revealMedia: false,    // beim Auflösen automatisch mediaClip('reveal') abspielen
+      update: null,          // (q, container, ctx) – Anzeige aktualisieren ohne Neuzeichnen
       interaction: 'answer'
     }, definition);
     types.set(def.type, Object.freeze(def));

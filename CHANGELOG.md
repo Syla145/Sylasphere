@@ -1,5 +1,26 @@
 # Sylasphere – Changelog
 
+## v16 – Song-Enthüllung
+- **Neuer Fragetyp „Song-Enthüllung“:** Der Moderator spielt den Song in Stufen an (Standard 0,1 s → 1 s → 3 s → 10 s). Jede Stufe lässt sich beliebig oft abspielen, „Nächste Stufe“ schaltet weiter.
+- **Ton auf allen Geräten:** Die Ausschnitte laufen gleichzeitig beim Moderator, bei den Zuschauern und bei allen Spielern (sekundengenau über Web Audio). Pro Gerät stummschaltbar; wenn der Browser noch keinen Ton erlaubt, erscheint „🔊 Ton aktivieren“.
+- **Antworten:** Spieler tippen den Songtitel (optional auch den Interpreten) und schicken einmal ab. Die Antwort wird mit der aktuellen Stufe gesperrt. Punkte = Fragenpunkte × Prozent der Stufe; bei „Titel + Interpret“ zählt jeder Teil zur Hälfte.
+- **Moderator-Prüfung:** Titel und Interpret werden getrennt per ✓/✗ geprüft, exakte Treffer (inkl. erlaubter Schreibweisen) sind vorausgewählt.
+- **Auflösung:** Titel, Interpret und Albumbild erscheinen, dazu läuft die festgelegte Stelle (z. B. Refrain) auf allen Geräten. Alle sehen die Antworten der anderen samt Stufe.
+- **Editor:** Audiodatei, Startsekunde, Stufen (Länge + Prozent, 1–6 Stufen), Modus Titel / Titel + Interpret, Lösungen mit alternativen Schreibweisen, Albumbild, Auflösungs-Stelle. Jeder Ausschnitt lässt sich mit ▶ direkt testen. Warnung, wenn der Dateiname die Lösung verrät.
+- **Firebase-Regeln:** Sperre und Stufe werden serverseitig geprüft → Regeln einmal neu veröffentlichen (siehe `FIREBASE_SETUP.md`).
+- Demo: „Showtime“ enthält eine Beispielfrage mit eigens erzeugtem Demo-Song (`assets/demo-song.wav`) und Cover.
+- Allgemein nutzbar für künftige Typen: Stufen, gesperrte Antworten, Abspiel-Befehle für alle Geräte und getrennte Prüf-Teile.
+
+## v15 – Themenbibliothek & neue Fragetypen
+- **Themenbibliothek:** 29 Themen mit Icon und Farbe (z. B. 🏛️ Geschichte, ⚽ Sport, 🎵 Musik). Bekannte Namen und Varianten wie „Musik & Sounds“ oder „Wortwissen“ werden automatisch erkannt, bestehende Quizze bekommen ihre Icons also ohne Anpassung.
+- **Editor:** Das Thema wählst du jetzt aus einer durchsuchbaren Liste (Themen dieses Quiz + Bibliothek) oder legst direkt ein neues an. In der Seitenleiste „Themen im Quiz“ lassen sich Name, Icon (Emoji) und Farbe ändern, Umbenennen ändert alle betroffenen Fragen mit.
+- **Anzeige:** Themen erscheinen überall mit Icon und fester Farbe; Rundenintros zeigen das Themen-Icon groß.
+- **Neuer Fragetyp „Wahr oder falsch“.**
+- **Neuer Fragetyp „Lückentext“:** Lücke im Fragetext mit ___ markieren. Der Moderator prüft jede Antwort per ✓/✗ (exakte Treffer sind vorausgewählt), Rechtschreibung spielt also keine Rolle. Nach der Auflösung sehen alle, was die anderen geschrieben haben.
+- **Neuer Fragetyp „Zuordnen“:** Paare wie Land ↔ Hauptstadt; jede richtige Zuordnung zählt anteilig. Die rechte Seite ist gemischt, auf allen Geräten gleich.
+- **Moderator-Prüfung und „Alle Antworten“** sind allgemein gebaut und stehen künftigen Fragetypen (z. B. Song-Enthüllung) zur Verfügung.
+- Das Quiz „Showtime“ hat eine neue Runde „Neue Formate“ mit Beispielen der drei Typen.
+
 ## v14 – Fragetypen als Module
 - **Jeder Fragetyp ist jetzt ein eigenes Modul** in `js/question-types/types/` (11 Dateien). Ein Modul enthält alles zu seinem Typ: Anzeige, Editor-Felder, Prüfung, Punktewertung, Lösungstexte, Statistik und was online vor Spielern verborgen wird.
 - **Neuer Fragetyp = eine Datei + eine Zeile** in `js/question-types/registry.js`. Anleitung und Vorlage: `js/question-types/README.md`.

@@ -180,6 +180,39 @@
         state.questionEndsAt = duration > 0 ? Date.now() + duration * 1000 : null;
         state.answers[question.id] = state.answers[question.id] || {};
         if (question.type === 'buzzer') state.questionResults[question.id] = this.initialBuzzerState(question);
+        state.stage = 0;       // Stufen-Fragen beginnen bei Stufe 1 (Index 0)
+        state.media = null;    // letzter Abspiel-Befehl
+      });
+    }
+    // ---------- Stufen & Medien (Song-Enthüllung) ----------
+    mediaCommand(state, question, kind) {
+      return { nonce: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`, kind, stage: Number(state.stage) || 0, questionId: question.id, at: Date.now() };
+    }
+    /** Aktuelle Stufe (erneut) für alle abspielen */
+    playStage() {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        if (!question || !Quiz.stagesOf(question) || !state.questionStartedAt) throw new Error('Keine laufende Stufen-Frage.');
+        state.media = this.mediaCommand(state, question, 'snippet');
+      });
+    }
+    /** Nächste Stufe freigeben und abspielen */
+    advanceStage() {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        const stages = Quiz.stagesOf(question);
+        if (!question || !stages || !state.questionStartedAt) throw new Error('Keine laufende Stufen-Frage.');
+        if (!state.questionOpen) throw new Error('Die Antworten sind bereits geschlossen.');
+        state.stage = Math.min((Number(state.stage) || 0) + 1, stages.length - 1);
+        state.media = this.mediaCommand(state, question, 'snippet');
+      });
+    }
+    /** Auflösungs-Ausschnitt (z. B. Refrain) erneut abspielen */
+    playReveal() {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        if (!question || !Quiz.revealsMedia(question)) return;
+        state.media = this.mediaCommand(state, question, 'reveal');
       });
     }
     lockQuestion() {
@@ -193,7 +226,8 @@
     }
     // Backwards-compatible name: "close" now only closes the answer phase.
     closeQuestion() { return this.lockQuestion(); }
-    resolveQuestion() {
+    // options.verdicts: { playerId: true|false } – Moderator-Prüfung (z. B. Lückentext)
+    resolveQuestion(options = {}) {
       this.mutate(state => {
         const { question, round } = this.getCurrent(state);
         if (!question) return;
@@ -204,7 +238,7 @@
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
-        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers);
+        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, options);
         if (typeResult) state.questionResults[question.id] = typeResult;
         if (question.type === 'buzzer') {
           const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
@@ -230,13 +264,18 @@
           state.players.forEach(player => {
             const submission = answers[player.id];
             if (!submission) return;
-            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult);
+            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, player.id);
             submission.awardedPoints = result.points;
             submission.scoreDetail = result.detail;
             submission.scoredAt = Date.now();
             player.score = Math.round((Number(player.score) || 0) + result.points);
           });
+          if (Quiz.publishesAnswers(question)) {
+            const names = new Map(state.players.map(player => [player.id, player.name]));
+            state.questionResults[question.id] = Object.assign({}, typeResult || {}, { entries: Quiz.answerEntries(question, answers, id => names.get(id)) });
+          }
         }
+        if (Quiz.revealsMedia(question)) state.media = this.mediaCommand(state, question, 'reveal');
         state.scoredQuestionIds.push(question.id);
       });
     }
@@ -250,7 +289,10 @@
         if (state.questionEndsAt && Date.now() > state.questionEndsAt + 500) return;
         if (!state.players.some(p => p.id === playerId)) return;
         state.answers[question.id] = state.answers[question.id] || {};
-        state.answers[question.id][playerId] = { answer: Quiz.clone(answer), submittedAt: Date.now() };
+        if (Quiz.locksOnSubmit(question) && state.answers[question.id][playerId]) return; // Antwort ist gesperrt
+        let value = Quiz.clone(answer);
+        if (Quiz.stagesOf(question) && value && typeof value === 'object') value.stage = Number(state.stage) || 0; // Stufe zum Zeitpunkt der Abgabe
+        state.answers[question.id][playerId] = { answer: value, submittedAt: Date.now() };
         accepted = true;
       });
       return accepted;
@@ -328,7 +370,7 @@
         if (unresolved) throw new Error('Bitte die aktuelle Frage zuerst auflösen.');
         state.questionOpen = false;
         state.questionEndsAt = null;
-        state.questionStartedAt = null;
+        state.stage = 0; state.media = null; state.questionStartedAt = null;
         const quiz = state.quiz.quiz;
         let ri = state.currentRoundIndex;
         let qi = state.currentQuestionIndex + direction;

@@ -56,6 +56,12 @@ Wie oben: Inhalt von `firebase-database.rules.json` einfügen → **Veröffentli
 - Die lokale Sperre (Hash in `moderator-gate.js`) ist nur eine Bequemlichkeit für die Oberfläche und den lokalen Modus. Der echte Schutz liegt in Firebase.
 - Später wird das durch Login + Moderator-Rolle ersetzt. Der Aufbau (`moderatorGrants/<uid>`) passt dazu.
 
+## Neu in v16: Song-Enthüllung
+
+Bitte die Regeln aus `firebase-database.rules.json` **einmal neu veröffentlichen** (Realtime Database → Regeln → Inhalt ersetzen → Veröffentlichen). Dein Moderator-Code und `config/moderatorKeys` bleiben unverändert.
+
+Neu geprüft wird: Bei Song-Fragen darf eine Antwort nur **einmal** abgegeben werden, und die mitgeschickte Stufe muss der aktuellen Stufe entsprechen. So kann niemand eine Antwort nachträglich einer früheren (wertvolleren) Stufe zuordnen.
+
 ## Frühere Updates
 
 - **v12:** Moderator darf Buzzer-Sperren auf Fragenebene zurücksetzen.

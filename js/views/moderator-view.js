@@ -15,6 +15,8 @@
   let state = null;
   let timer = null;
   let transport = 'local';
+  // Moderator-Entscheidungen je Frage: { frageId: { spielerId: true|false } }
+  const reviews = {};
 
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
@@ -79,7 +81,28 @@
     els['btn-start-game']?.addEventListener('click', () => safe(() => engine.startGame()));
     els['btn-start-question']?.addEventListener('click', () => safe(() => engine.startQuestion()));
     els['btn-close-question']?.addEventListener('click', () => safe(() => engine.lockQuestion()));
-    els['btn-resolve-question']?.addEventListener('click', () => safe(() => engine.resolveQuestion()));
+    els['btn-resolve-question']?.addEventListener('click', () => safe(() => engine.resolveQuestion(resolveOptions())));
+    // Moderator-Prüfung (✓/✗) per Klick in der Antwortliste
+    els['answer-status']?.addEventListener('click', event => {
+      const btn = event.target.closest('[data-review-player]');
+      if (!btn || !engine) return;
+      const question = engine.getCurrent(state).question;
+      if (!question) return;
+      reviews[question.id] = reviews[question.id] || {};
+      reviews[question.id][btn.dataset.reviewPlayer] = Object.assign({}, reviews[question.id][btn.dataset.reviewPlayer], { [btn.dataset.reviewPart || '']: btn.dataset.verdict === 'true' });
+      renderQuestion(engine.getCurrent(state));
+    });
+    // Song-Steuerung: Stufe abspielen, nächste Stufe, Ton auf diesem Gerät, Auflösung erneut
+    els['answer-status']?.addEventListener('click', event => {
+      const btn = event.target.closest('[data-song-action]');
+      if (!btn || !engine) return;
+      const action = btn.dataset.songAction;
+      window.SylasphereMedia?.unlock();
+      if (action === 'play') safe(() => engine.playStage());
+      if (action === 'next') safe(() => engine.advanceStage());
+      if (action === 'reveal') safe(() => engine.playReveal());
+      if (action === 'mute') { const m = window.SylasphereMedia; m?.setEnabled(!m.status().enabled); renderQuestion(engine.getCurrent(state)); }
+    });
     els['btn-prev']?.addEventListener('click', () => safe(() => engine.move(-1)));
     els['btn-next']?.addEventListener('click', () => safe(() => engine.move(1)));
     els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden?')) safe(() => engine.finish()); });
@@ -104,7 +127,7 @@
         if (!state?.questionStartedAt && !resolved) safe(() => engine.startQuestion());
         else if (current.question?.type === 'buzzer') { if (!state?.questionOpen && !resolved) safe(() => engine.resolveQuestion()); }
         else if (state?.questionOpen) safe(() => engine.lockQuestion());
-        else if (!resolved) safe(() => engine.resolveQuestion());
+        else if (!resolved) safe(() => engine.resolveQuestion(resolveOptions()));
       }
       if (event.key === 'ArrowRight') safe(() => engine.move(1));
       if (event.key === 'ArrowLeft') safe(() => engine.move(-1));
@@ -176,7 +199,7 @@
     const categories = Quiz.extractCategories(activeQuiz);
     els['quiz-summary'].innerHTML = `
       <div class="quiz-summary-head"><div><span class="eyebrow">${App.escapeHTML(source || 'Quiz')}</span><h2>${App.escapeHTML(q.title)}</h2><p>${App.escapeHTML(q.description)}</p></div><div class="stat-badge"><strong>${questionCount}</strong><span>Fragen</span></div></div>
-      <div class="chip-row">${categories.map(c => `<span class="chip">${App.escapeHTML(c)}</span>`).join('')}</div>
+      <div class="chip-row">${categories.map(c => { const t = Quiz.topic(c, q.categories); return `<span class="chip topic-chip" style="--cat-hue:${t.hue}">${t.icon} ${App.escapeHTML(c)}</span>`; }).join('')}</div>
       <div class="microcopy">${q.rounds.length} Runde${q.rounds.length === 1 ? '' : 'n'} · ${validation.errors.length} Fehler · ${validation.warnings.length} Hinweise</div>`;
     showValidation(validation);
     els['create-session'].disabled = !validation.valid;
@@ -198,6 +221,7 @@
 
   function render(next) {
     state = next;
+    window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
     const current = engine.getCurrent(state);
     App.setText(els['session-code'], state.code);
     App.setText(els['session-status'], statusLabel(state));
@@ -270,14 +294,15 @@
     }
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
     if (!state.questionStartedAt) {
-      els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte${current.question.type === 'buzzer' ? ' · ohne Zeitlimit' : ` · ${current.question.timer || 0}s`}</p></div>`;
+      els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.topic(current.question.category).icon}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Thema')}</h2><p>${Quiz.TYPE_ICONS[current.question.type] || '•'} ${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte${current.question.type === 'buzzer' ? ' · ohne Zeitlimit' : ` · ${current.question.timer || 0}s`}</p></div>`;
       els['answer-status'].innerHTML = `<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>${moderatorSolution(current.question, null, true)}`; return;
     }
 
     const questionResult = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
-    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult });
+    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage });
+    window.SylasphereMedia?.sync(state.media, current.question); // Ton auch auf dem Moderator-Gerät (abschaltbar)
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length; const total = state.players.length;
     const correct = resolved ? Quiz.correctAnswerText(current.question, questionResult) : '';
@@ -305,7 +330,9 @@
     }
 
     const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist für die Spieler noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
-    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
+    const review = Quiz.needsReview(current.question) && !resolved ? reviewPanel(current.question, answers) : '';
+    const songControl = stagePanel(current.question, resolved);
+    els['answer-status'].innerHTML = `${songControl}<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${review}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
   }
 
   // Lösung dauerhaft für den Moderator – vor, während und nach der Frage (Spieler sehen sie erst bei der Auflösung).
@@ -317,6 +344,62 @@
     const extra = extraText ? `<small>${App.escapeHTML(extraText)}</small>` : '';
     const preview = withQuestion && question.text ? `<small class="moderator-solution-question">${App.escapeHTML(question.text)}</small>` : '';
     return `<div class="reveal-box moderator-solution"><span>🔒 ${label} · nur für dich sichtbar</span>${preview}<strong>${App.escapeHTML(text)}</strong>${extra}</div>`;
+  }
+
+  // Prüf-Teile: eine Prüfung (Lückentext) oder mehrere (Song: Titel + Interpret)
+  const partsOf = question => Quiz.reviewParts(question) || [{ key: '', label: '' }];
+  // Endgültige Entscheidung je Teil: explizit gesetzt → sonst Vorschlag (autoCheck) → sonst offen
+  function verdictFor(question, playerId, answer, part = '') {
+    const explicit = reviews[question.id]?.[playerId]?.[part];
+    if (typeof explicit === 'boolean') return { value: explicit, source: 'moderator' };
+    const suggestion = Quiz.autoCheck(question, answer, part);
+    return typeof suggestion === 'boolean' ? { value: suggestion, source: 'auto' } : { value: null, source: 'open' };
+  }
+  function resolveOptions() {
+    const question = engine?.getCurrent(state)?.question;
+    if (!question || !Quiz.needsReview(question)) return {};
+    const parts = Quiz.reviewParts(question);
+    const answers = state.answers[question.id] || {};
+    return { verdicts: Object.fromEntries(Object.entries(answers).map(([pid, record]) => [pid, parts
+      ? Object.fromEntries(parts.map(part => [part.key, verdictFor(question, pid, record.answer, part.key).value === true]))
+      : verdictFor(question, pid, record.answer).value === true])) };
+  }
+  function reviewPanel(question, answers) {
+    const entries = Object.entries(answers || {});
+    if (!entries.length) return '<div class="notice review-empty">Noch keine Antworten zum Prüfen.</div>';
+    const parts = partsOf(question);
+    const stages = Quiz.stagesOf(question);
+    let open = 0;
+    const rows = entries.map(([pid, a]) => {
+      const verdicts = parts.map(part => verdictFor(question, pid, a.answer, part.key));
+      open += verdicts.filter(v => v.value === null).length;
+      const cls = verdicts.every(v => v.value === true) ? 'is-right' : verdicts.some(v => v.value === null) ? 'is-open' : verdicts.some(v => v.value === true) ? 'is-partial' : 'is-wrong';
+      const auto = verdicts.some(v => v.source === 'auto') ? '<small>Vorschlag: exakter Treffer</small>' : '';
+      const stageNote = stages && a.answer && typeof a.answer === 'object' ? `<small>Stufe ${(Number(a.answer.stage) || 0) + 1} · ${stages[Math.min(stages.length - 1, Number(a.answer.stage) || 0)].percent} %</small>` : '';
+      const shown = parts.length > 1 && a.answer && typeof a.answer === 'object'
+        ? parts.map(part => `<span class="review-part-answer"><em>${App.escapeHTML(part.label)}:</em> ${App.escapeHTML(String(a.answer[part.key] || '–'))}</span>`).join('')
+        : `<span>${App.escapeHTML(Quiz.answerLabel(question, a.answer))}</span>`;
+      const buttons = parts.map((part, i) => `<div class="review-actions">${part.label ? `<span class="review-part-label">${App.escapeHTML(part.label)}</span>` : ''}<button type="button" class="review-btn review-btn--right${verdicts[i].value === true ? ' is-active' : ''}" data-review-player="${App.escapeHTML(pid)}" data-review-part="${part.key}" data-verdict="true" aria-label="${App.escapeHTML(part.label || 'Antwort')} richtig">✓</button><button type="button" class="review-btn review-btn--wrong${verdicts[i].value === false ? ' is-active' : ''}" data-review-player="${App.escapeHTML(pid)}" data-review-part="${part.key}" data-verdict="false" aria-label="${App.escapeHTML(part.label || 'Antwort')} falsch">✗</button></div>`).join('');
+      return `<div class="review-row ${cls}"><div class="review-who"><strong>${App.escapeHTML(findPlayerName(pid) || 'Spieler')}</strong>${shown}${stageNote}${auto}</div><div class="review-action-group">${buttons}</div></div>`;
+    }).join('');
+    return `<div class="review-panel"><div class="review-head"><strong>Antworten prüfen</strong><span>${open ? `${open} offen – ungeprüfte zählen als falsch` : 'Alle geprüft ✓'}</span></div>${rows}</div>`;
+  }
+
+  // Steuerung für Stufen-Fragen (Song-Enthüllung)
+  function stagePanel(question, resolved) {
+    const stages = Quiz.stagesOf(question);
+    if (!stages) return '';
+    const stage = Math.min(stages.length - 1, Number(state.stage) || 0);
+    const media = window.SylasphereMedia?.status() || { enabled: false };
+    const perStage = stages.map(() => 0);
+    Object.values(state.answers[question.id] || {}).forEach(record => { const i = Math.min(stages.length - 1, Number(record?.answer?.stage) || 0); perStage[i]++; });
+    const chips = stages.map((s, i) => `<div class="song-stage${!resolved && i === stage ? ' is-current' : ''}${!resolved && i < stage ? ' is-past' : ''}"><b>${i + 1}</b><span>${String(s.duration).replace('.', ',')} s</span><small>${s.percent} % · ${perStage[i]} Antw.</small></div>`).join('');
+    const last = stage >= stages.length - 1;
+    const sound = `<button type="button" class="btn btn--small${media.enabled ? '' : ' is-off'}" data-song-action="mute">${media.enabled ? '🔊 Ton hier an' : '🔇 Ton hier aus'}</button>`;
+    const controls = resolved
+      ? `<button type="button" class="btn" data-song-action="reveal">▶ Auflösung erneut abspielen</button>${sound}`
+      : `<button type="button" class="btn btn--success" data-song-action="play" ${state.questionStartedAt ? '' : 'disabled'}>▶ Stufe ${stage + 1} abspielen (${String(stages[stage].duration).replace('.', ',')} s)</button><button type="button" class="btn btn--primary" data-song-action="next" ${state.questionOpen && !last ? '' : 'disabled'}>⏭ Nächste Stufe${last ? '' : ` (${String(stages[stage + 1].duration).replace('.', ',')} s)`}</button>${sound}`;
+    return `<div class="song-control"><div class="song-stages">${chips}</div><div class="song-control-actions">${controls}</div><p class="microcopy">Jeder Klick auf ▶ spielt die aktuelle Stufe erneut für alle. Spieler können antworten, bis du zur nächsten Stufe wechselst oder die Antworten schließt.</p></div>`;
   }
 
   function findPlayerName(playerId) {

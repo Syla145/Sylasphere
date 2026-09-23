@@ -27,6 +27,10 @@ for(const {question:q} of Quiz.allQuestions(show)){
  else if(q.type==='survey') answer=Quiz.surveyWinnerIds(q)[0];
  else if(q.type==='hotspot') answer={x:q.targetX,y:q.targetY};
  else if(q.type==='buzzer') answer=q.solution;
+ else if(q.type==='true-false') answer=q.correctAnswer;
+ else if(q.type==='gap-text') answer=q.correctAnswers[0];
+ else if(q.type==='matching') answer=q.pairs.map(p=>p.right);
+ else if(q.type==='song-reveal') answer={title:q.songTitle,artist:q.artist,stage:0};
  if(q.type==='consensus'){
    const submissions={a:{answer:q.options[0].id},b:{answer:q.options[0].id},c:{answer:q.options[1].id}};
    const r=Quiz.computeConsensusResult(q,submissions);ok(r.winningOptionIds.includes(String(q.options[0].id)),'consensus: majority computed');
