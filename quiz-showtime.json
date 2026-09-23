@@ -1,0 +1,299 @@
+{
+  "quiz": {
+    "id": "quiz_jh_showtime_v5",
+    "title": "Sylasphere: Showtime",
+    "description": "Drei abwechslungsreiche Runden mit allen zehn Fragetypen – inklusive Audio, Publikums-Duell, Mehrheitsfrage und Hotspot.",
+    "settings": {
+      "defaultTimer": 25,
+      "defaultPoints": 100,
+      "buzzerEnabled": true
+    },
+    "categories": [
+      "Allgemeinwissen",
+      "Geografie",
+      "Musik & Sounds",
+      "Wissenschaft",
+      "Community & Popkultur",
+      "Dilemma",
+      "Bilderrätsel",
+      "Weltraum",
+      "Wortwissen",
+      "Rekorde"
+    ],
+    "rounds": [
+      {
+        "id": "show_round_1",
+        "title": "Runde 1 · Warm-up",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "show_mc_canberra",
+            "type": "multiple-choice",
+            "category": "Geografie",
+            "text": "Was ist die Hauptstadt von Australien?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Sydney"
+              },
+              {
+                "id": "b",
+                "text": "Melbourne"
+              },
+              {
+                "id": "c",
+                "text": "Canberra"
+              },
+              {
+                "id": "d",
+                "text": "Perth"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 100,
+            "timer": 20
+          },
+          {
+            "id": "show_image_eiffel",
+            "type": "image-quiz",
+            "category": "Bilderrätsel",
+            "text": "In welcher Stadt steht dieses Wahrzeichen?",
+            "image": "./assets/demo-landmark.svg",
+            "imageAlt": "Stilisierte Silhouette des Eiffelturms",
+            "options": [
+              {
+                "id": "a",
+                "text": "Paris"
+              },
+              {
+                "id": "b",
+                "text": "Brüssel"
+              },
+              {
+                "id": "c",
+                "text": "Madrid"
+              },
+              {
+                "id": "d",
+                "text": "Mailand"
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 18
+          },
+          {
+            "id": "show_audio_tones",
+            "type": "audio-quiz",
+            "category": "Musik & Sounds",
+            "text": "Wie bewegt sich die Tonfolge?",
+            "audio": "./assets/demo-tone.wav",
+            "audioLabel": "Kurzer Ton-Clip",
+            "options": [
+              {
+                "id": "a",
+                "text": "Sie steigt an"
+              },
+              {
+                "id": "b",
+                "text": "Sie fällt ab"
+              },
+              {
+                "id": "c",
+                "text": "Alle Töne sind gleich"
+              },
+              {
+                "id": "d",
+                "text": "Sie steigt und fällt"
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 120,
+            "timer": 20
+          },
+          {
+            "id": "show_estimate_bones",
+            "type": "estimate",
+            "category": "Wissenschaft",
+            "text": "Wie viele Knochen hat ein erwachsener Mensch normalerweise?",
+            "min": 150,
+            "max": 250,
+            "step": 1,
+            "correctAnswer": 206,
+            "tolerance": 3,
+            "unit": "Knochen",
+            "points": 120,
+            "timer": 25
+          }
+        ]
+      },
+      {
+        "id": "show_round_2",
+        "title": "Runde 2 · Showtime",
+        "pointsMultiplier": 1.25,
+        "questions": [
+          {
+            "id": "show_survey_movie",
+            "type": "survey",
+            "category": "Community & Popkultur",
+            "text": "In unserer Beispiel-Umfrage mit 100 Stimmen: Was gehört am häufigsten zu einem perfekten Filmabend?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Snacks",
+                "value": 42
+              },
+              {
+                "id": "b",
+                "text": "Bequeme Couch",
+                "value": 28
+              },
+              {
+                "id": "c",
+                "text": "Freunde",
+                "value": 19
+              },
+              {
+                "id": "d",
+                "text": "Kuscheldecke",
+                "value": 11
+              }
+            ],
+            "points": 120,
+            "timer": 22
+          },
+          {
+            "id": "show_consensus_week",
+            "type": "consensus",
+            "category": "Dilemma",
+            "text": "Was wäre für eine Woche am schwierigsten zu verzichten? Denk wie die Gruppe!",
+            "options": [
+              {
+                "id": "a",
+                "text": "Internet"
+              },
+              {
+                "id": "b",
+                "text": "Musik"
+              },
+              {
+                "id": "c",
+                "text": "Süßigkeiten"
+              },
+              {
+                "id": "d",
+                "text": "Gaming"
+              }
+            ],
+            "points": 140,
+            "timer": 20
+          },
+          {
+            "id": "show_hotspot_eiffel",
+            "type": "hotspot",
+            "category": "Bilderrätsel",
+            "text": "Treffe die Spitze des Eiffelturms so genau wie möglich.",
+            "image": "./assets/demo-landmark.svg",
+            "imageAlt": "Stilisierter Eiffelturm",
+            "targetX": 50,
+            "targetY": 13,
+            "radius": 9,
+            "points": 150,
+            "timer": 18
+          }
+        ]
+      },
+      {
+        "id": "show_round_3",
+        "title": "Runde 3 · Final Mix",
+        "pointsMultiplier": 1.5,
+        "questions": [
+          {
+            "id": "show_sort_planets",
+            "type": "sort",
+            "category": "Weltraum",
+            "text": "Sortiere diese Planeten nach ihrer Entfernung von der Sonne – nah nach fern.",
+            "items": [
+              "Merkur",
+              "Venus",
+              "Erde",
+              "Mars"
+            ],
+            "correctOrder": [
+              "Merkur",
+              "Venus",
+              "Erde",
+              "Mars"
+            ],
+            "points": 140,
+            "timer": 30
+          },
+          {
+            "id": "show_fight_continents",
+            "type": "fight-list",
+            "category": "Geografie",
+            "text": "Nenne bis zu fünf Kontinente.",
+            "correctAnswers": [
+              "Afrika",
+              "Antarktika",
+              "Asien",
+              "Europa",
+              "Nordamerika",
+              "Südamerika",
+              "Australien"
+            ],
+            "maxEntries": 5,
+            "pointsPerAnswer": 25,
+            "points": 125,
+            "timer": 28
+          },
+          {
+            "id": "show_hl_buildings",
+            "type": "higher-lower",
+            "category": "Rekorde",
+            "text": "Ist das nächste Bauwerk höher oder niedriger?",
+            "cards": [
+              {
+                "id": "tower_1",
+                "label": "Eiffelturm",
+                "value": 330,
+                "unit": "m"
+              },
+              {
+                "id": "tower_2",
+                "label": "Empire State Building (Spitze)",
+                "value": 443,
+                "unit": "m"
+              },
+              {
+                "id": "tower_3",
+                "label": "Burj Khalifa",
+                "value": 828,
+                "unit": "m"
+              },
+              {
+                "id": "tower_4",
+                "label": "One World Trade Center",
+                "value": 541,
+                "unit": "m"
+              }
+            ],
+            "points": 160,
+            "timer": 30
+          },
+          {
+            "id": "show_buzzer_capital",
+            "type": "buzzer",
+            "category": "Speed & Wissen",
+            "text": "Welche Hauptstadt liegt an der Themse?",
+            "points": 150,
+            "timer": 0,
+            "buzzerMode": "spoken",
+            "solution": "London",
+            "penalty": 0
+          }
+        ]
+      }
+    ]
+  }
+}

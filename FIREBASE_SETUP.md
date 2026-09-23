@@ -1,40 +1,16 @@
-# JH-Quiz v8 – Firebase einmalig aktivieren
+# Sylasphere v10 – Firebase Setup
 
-Die Web-Konfiguration und die Realtime-Database-URL sind bereits in v8 hinterlegt.
-Damit Online-Räume funktionieren, müssen in Firebase nur zwei Dinge aktiv sein.
+Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Projekt hinterlegt.
 
-## 1. Anonyme Anmeldung
+## Einmalig prüfen
 
-Firebase Console → **Authentication** → **Sign-in method** → **Anonymous** → aktivieren → speichern.
+1. Firebase Console → **Authentication** → **Sign-in method** → **Anonymous** aktivieren.
+2. Firebase Console → **Realtime Database** → **Rules**.
+3. Den kompletten Inhalt aus `firebase-database.rules.json` einfügen.
+4. **Publish / Veröffentlichen**.
 
-Spieler sehen davon nichts. JH-Quiz nutzt die anonyme ID nur technisch für Reconnect und Zugriffsrechte.
+## Wichtig beim Update auf v10
 
-## 2. Realtime-Database-Regeln veröffentlichen
+v10 enthält einen echten Online-Buzzer. Dafür wurden zusätzliche geschützte Pfade für atomare Buzzer-Claims und für gesperrte Spieler ergänzt. Deshalb müssen die mitgelieferten v10-Regeln erneut veröffentlicht werden.
 
-Firebase Console → **Realtime Database** → **Rules**.
-
-Den kompletten Inhalt der Datei `firebase-database.rules.json` aus diesem Projekt einfügen und auf **Publish / Veröffentlichen** klicken.
-
-Die Regeln sorgen u. a. dafür, dass:
-
-- niemand ohne Firebase-Authentifizierung Raumdaten lesen kann;
-- man Räume nicht ohne Kenntnis des 6-stelligen Codes auflisten kann;
-- nur der Moderator Spielstatus, Reveal und Punkte verändern kann;
-- Spieler nur ihr eigenes Profil und ihre eigenen Antworten schreiben können;
-- Antworten nur angenommen werden, solange die Frage geöffnet und der Timer nicht abgelaufen ist;
-- vollständige Quiz-/Lösungsdaten im Host-Bereich nur für den Moderator lesbar sind.
-
-## 3. GitHub Pages
-
-Danach einfach den kompletten v8-Projektinhalt in das bestehende GitHub-Pages-Repository hochladen.
-Keine Firebase CLI, kein npm und kein Build-Schritt nötig.
-
-## Schnelltest
-
-1. Moderator-Seite auf Gerät A öffnen.
-2. Quiz wählen → **Online-Sitzung erstellen**.
-3. Den Spieler-Link auf Gerät B über Mobilfunk oder ein anderes WLAN öffnen.
-4. Name + Avatar wählen → beitreten.
-5. Der Spieler muss in der Moderator-Lobby erscheinen.
-6. Eine Frage starten, beantworten, Timer ablaufen lassen, manuell auflösen und Rangliste prüfen.
-7. Spieler-Seite neu laden: derselbe Spieler sollte wieder verbunden werden.
+Die Spieler benötigen weiterhin kein sichtbares Konto, keine E-Mail und kein Passwort. Die anonyme Firebase-ID dient nur technisch für Reconnect und Zugriffsrechte.

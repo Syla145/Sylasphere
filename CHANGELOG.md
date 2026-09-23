@@ -1,4 +1,13 @@
-# JH-Quiz – Changelog
+# Sylasphere – Changelog
+
+## v10 – Editor Upgrade
+- Editor-Einstieg trennt **Quiz editieren** und **Neues Quiz erstellen**.
+- Bestehende Quizze aus `data/` können direkt im Editor geladen werden.
+- Fragen-IDs werden automatisch erzeugt und nur noch unter **Erweiterte Einstellungen** angezeigt.
+- Schätzfragen: Toleranz-Presets 5 %, 10 %, 20 % sowie benutzerdefinierte prozentuale oder feste Werte.
+- Alte `tolerance`-Werte bleiben als feste ±-Toleranz kompatibel.
+- Online-Buzzer auf atomare, regelkonforme Firebase-Claims gehärtet; v10-Regeln müssen neu veröffentlicht werden.
+
 
 ## v8 – Online Multiplayer Beta · 23.09.2026
 

@@ -36,7 +36,7 @@
           "$uid": {
             ".read": "auth != null && (auth.uid === $uid || root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid)",
             "$qid": {
-              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid || (auth.uid === $uid && root.child('rooms').child($code).child('public').child('questionOpen').val() === true && root.child('rooms').child($code).child('public').child('currentQuestionId').val() === $qid && (!root.child('rooms').child($code).child('public').child('questionEndsAt').exists() || root.child('rooms').child($code).child('public').child('questionEndsAt').val() === null || now <= root.child('rooms').child($code).child('public').child('questionEndsAt').val() + 1000)))",
+              ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid || (auth.uid === $uid && root.child('rooms').child($code).child('public').child('questionOpen').val() === true && root.child('rooms').child($code).child('public').child('currentQuestionId').val() === $qid && (!root.child('rooms').child($code).child('public').child('questionEndsAt').exists() || root.child('rooms').child($code).child('public').child('questionEndsAt').val() === null || now <= root.child('rooms').child($code).child('public').child('questionEndsAt').val() + 1000) && (root.child('rooms').child($code).child('public').child('currentQuestion').child('type').val() !== 'buzzer' || root.child('rooms').child($code).child('buzzerClaims').child($qid).child('contenderId').val() === auth.uid)))",
               ".validate": "!newData.exists() || root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid || (newData.hasChildren(['answer','submittedAt']) && newData.child('submittedAt').isNumber() && !newData.child('awardedPoints').exists() && !newData.child('scoreDetail').exists() && !newData.child('scoredAt').exists())"
             },
             ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid"
@@ -45,6 +45,22 @@
         "host": {
           ".read": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid",
           ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid"
+        },
+        "buzzerClaims": {
+          ".read": "auth != null",
+          "$qid": {
+            ".write": "auth != null && (root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid || (!data.exists() && newData.exists() && newData.child('contenderId').val() === auth.uid && newData.child('claimedAt').isNumber() && root.child('rooms').child($code).child('public').child('questionOpen').val() === true && root.child('rooms').child($code).child('public').child('currentQuestionId').val() === $qid && root.child('rooms').child($code).child('public').child('currentQuestion').child('type').val() === 'buzzer' && !root.child('rooms').child($code).child('buzzerBlocked').child($qid).child(auth.uid).exists()))",
+            ".validate": "!newData.exists() || (newData.hasChildren(['contenderId','claimedAt']) && newData.child('contenderId').isString() && newData.child('claimedAt').isNumber())"
+          }
+        },
+        "buzzerBlocked": {
+          ".read": "auth != null",
+          "$qid": {
+            "$uid": {
+              ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid",
+              ".validate": "!newData.exists() || newData.val() === true"
+            }
+          }
         }
       }
     }

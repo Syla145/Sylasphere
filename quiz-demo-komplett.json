@@ -1,0 +1,328 @@
+{
+  "quiz": {
+    "id": "quiz_demo_komplett_2026",
+    "title": "Die große Sylasphere Demo",
+    "description": "Drei Runden mit allen Fragetypen, vielen Kategorien, Umlauten, Sonderzeichen und unterschiedlichen Timern.",
+    "settings": {
+      "defaultTimer": 30,
+      "defaultPoints": 100,
+      "buzzerEnabled": true
+    },
+    "categories": [
+      "Allgemeinwissen",
+      "Sport",
+      "Filme & Serien",
+      "Musik",
+      "Geschichte",
+      "Geografie",
+      "Wissenschaft",
+      "Technik",
+      "Gaming",
+      "Internet & Popkultur",
+      "Schätzfragen",
+      "Bilderrätsel",
+      "Café & Kultur"
+    ],
+    "rounds": [
+      {
+        "id": "round_demo_1",
+        "title": "Warm-up",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "demo_q1",
+            "type": "multiple-choice",
+            "category": "Wissenschaft",
+            "text": "Welches chemische Symbol steht für Gold?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Ag"
+              },
+              {
+                "id": "b",
+                "text": "Au"
+              },
+              {
+                "id": "c",
+                "text": "Fe"
+              },
+              {
+                "id": "d",
+                "text": "Gd"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 80,
+            "timer": 15
+          },
+          {
+            "id": "demo_q2",
+            "type": "estimate",
+            "category": "Schätzfragen",
+            "text": "Wie viele Kilometer beträgt der Erdumfang am Äquator ungefähr?",
+            "min": 30000,
+            "max": 50000,
+            "step": 100,
+            "correctAnswer": 40075,
+            "unit": "km",
+            "tolerance": 500,
+            "points": 140,
+            "timer": 30
+          },
+          {
+            "id": "demo_q3",
+            "type": "image-quiz",
+            "category": "Bilderrätsel",
+            "text": "Welches Wahrzeichen ist hier stilisiert dargestellt?",
+            "image": "./assets/demo-landmark.svg",
+            "imageAlt": "Stilisierte Zeichnung des Eiffelturms",
+            "options": [
+              {
+                "id": "a",
+                "text": "Eiffelturm"
+              },
+              {
+                "id": "b",
+                "text": "Space Needle"
+              },
+              {
+                "id": "c",
+                "text": "Fernsehturm Berlin"
+              },
+              {
+                "id": "d",
+                "text": "Tokyo Tower"
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 100,
+            "timer": 20
+          },
+          {
+            "id": "demo_q4",
+            "type": "multiple-choice",
+            "category": "Café & Kultur",
+            "text": "Aus welchem Land stammt die Espresso-Kultur, wie wir sie heute kennen?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Italien"
+              },
+              {
+                "id": "b",
+                "text": "Brasilien"
+              },
+              {
+                "id": "c",
+                "text": "Äthiopien"
+              },
+              {
+                "id": "d",
+                "text": "Frankreich"
+              }
+            ],
+            "correctAnswer": "a",
+            "points": 90,
+            "timer": 18
+          }
+        ]
+      },
+      {
+        "id": "round_demo_2",
+        "title": "Sortieren & Sammeln",
+        "pointsMultiplier": 1.5,
+        "questions": [
+          {
+            "id": "demo_q5",
+            "type": "sort",
+            "category": "Geschichte",
+            "text": "Bringe diese Ereignisse in die richtige zeitliche Reihenfolge.",
+            "items": [
+              "Buchdruck mit beweglichen Lettern in Europa",
+              "Erste bemannte Mondlandung",
+              "Fall der Berliner Mauer",
+              "Gründung der Europäischen Union durch den Vertrag von Maastricht"
+            ],
+            "correctOrder": [
+              "Buchdruck mit beweglichen Lettern in Europa",
+              "Erste bemannte Mondlandung",
+              "Fall der Berliner Mauer",
+              "Gründung der Europäischen Union durch den Vertrag von Maastricht"
+            ],
+            "points": 160,
+            "timer": 40
+          },
+          {
+            "id": "demo_q6",
+            "type": "fight-list",
+            "category": "Geografie",
+            "text": "Nenne bis zu sechs Länder, die direkt an Deutschland grenzen.",
+            "correctAnswers": [
+              "Dänemark",
+              "Polen",
+              "Tschechien",
+              "Österreich",
+              "Schweiz",
+              "Frankreich",
+              "Luxemburg",
+              "Belgien",
+              "Niederlande"
+            ],
+            "maxEntries": 6,
+            "pointsPerAnswer": 30,
+            "points": 180,
+            "timer": 35
+          },
+          {
+            "id": "demo_q7",
+            "type": "multiple-choice",
+            "category": "Gaming",
+            "text": "Welche Firma veröffentlichte die erste PlayStation?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Nintendo"
+              },
+              {
+                "id": "b",
+                "text": "Sega"
+              },
+              {
+                "id": "c",
+                "text": "Sony"
+              },
+              {
+                "id": "d",
+                "text": "Atari"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 110,
+            "timer": 20
+          },
+          {
+            "id": "demo_q8",
+            "type": "multiple-choice",
+            "category": "Filme & Serien",
+            "text": "Wie nennt man eine Folge, die vor den Ereignissen des Hauptwerks spielt?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Sequel"
+              },
+              {
+                "id": "b",
+                "text": "Prequel"
+              },
+              {
+                "id": "c",
+                "text": "Spin-off"
+              },
+              {
+                "id": "d",
+                "text": "Reboot"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 100,
+            "timer": 20
+          }
+        ]
+      },
+      {
+        "id": "round_demo_3",
+        "title": "Finale",
+        "pointsMultiplier": 2,
+        "questions": [
+          {
+            "id": "demo_q9",
+            "type": "higher-lower",
+            "category": "Technik",
+            "text": "Ist die jeweils nächste Zahl höher oder niedriger?",
+            "cards": [
+              {
+                "id": "d9c1",
+                "label": "IPv4-Adressraum",
+                "value": 4295,
+                "unit": "Mio."
+              },
+              {
+                "id": "d9c2",
+                "label": "Sekunden pro Jahr",
+                "value": 31.5,
+                "unit": "Mio."
+              },
+              {
+                "id": "d9c3",
+                "label": "Meter pro Erdumfang",
+                "value": 40.1,
+                "unit": "Mio."
+              },
+              {
+                "id": "d9c4",
+                "label": "Bytes in 1 GiB",
+                "value": 1073.7,
+                "unit": "Mio."
+              }
+            ],
+            "points": 180,
+            "timer": 30
+          },
+          {
+            "id": "demo_q10",
+            "type": "estimate",
+            "category": "Sport",
+            "text": "Wie lang ist ein Marathon offiziell?",
+            "min": 35,
+            "max": 50,
+            "step": 0.1,
+            "correctAnswer": 42.195,
+            "unit": "km",
+            "tolerance": 0.2,
+            "points": 150,
+            "timer": 25
+          },
+          {
+            "id": "demo_q11",
+            "type": "fight-list",
+            "category": "Musik",
+            "text": "Nenne die drei Instrumententypen, die in einem klassischen Streichquartett vorkommen.",
+            "correctAnswers": [
+              "Violine",
+              "Geige",
+              "Viola",
+              "Bratsche",
+              "Violoncello",
+              "Cello"
+            ],
+            "maxEntries": 3,
+            "pointsPerAnswer": 45,
+            "points": 135,
+            "timer": 30
+          },
+          {
+            "id": "demo_q12",
+            "type": "sort",
+            "category": "Internet & Popkultur",
+            "text": "Sortiere diese Dienste nach ihrem Startjahr – vom ältesten zum jüngsten.",
+            "items": [
+              "Google",
+              "Wikipedia",
+              "YouTube",
+              "Instagram"
+            ],
+            "correctOrder": [
+              "Google",
+              "Wikipedia",
+              "YouTube",
+              "Instagram"
+            ],
+            "points": 200,
+            "timer": 35
+          }
+        ]
+      }
+    ]
+  }
+}
