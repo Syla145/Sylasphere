@@ -17,6 +17,7 @@
     if (!Array.isArray(quiz.rounds) || !quiz.rounds.length) errors.push({ path: 'quiz.rounds', message: 'Mindestens eine Runde ist erforderlich.' });
     if (Array.isArray(quiz.rounds) && quiz.rounds.length && Quiz.allQuestions(normalized).length === 0) errors.push({ path: 'quiz.rounds', message: 'Das Quiz enthält noch keine Frage.' });
     if (!Number.isFinite(Number(quiz.settings.defaultTimer)) || Number(quiz.settings.defaultTimer) < 0) errors.push({ path: 'quiz.settings.defaultTimer', message: 'Standard-Timer muss eine Zahl ≥ 0 sein.' });
+    if (window.SylasphereThemes && !window.SylasphereThemes.isValid(quiz.settings.theme)) warnings.push({ path: 'quiz.settings.theme', message: `Unbekanntes Design „${quiz.settings.theme}“ – es wird Neon Arena verwendet.` });
     if (!Number.isFinite(Number(quiz.settings.defaultPoints)) || Number(quiz.settings.defaultPoints) < 0) errors.push({ path: 'quiz.settings.defaultPoints', message: 'Standard-Punkte müssen eine Zahl ≥ 0 sein.' });
     addId(quiz.id, 'quiz.id');
 

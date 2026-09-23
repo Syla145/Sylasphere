@@ -64,6 +64,7 @@
     settings.defaultTimer = numberOr(settings.defaultTimer, 30);
     settings.defaultPoints = numberOr(settings.defaultPoints, 100);
     settings.buzzerEnabled = Boolean(settings.buzzerEnabled);
+    settings.theme = String(settings.theme || 'neon'); // Design (siehe js/core/themes.js)
     let rounds = Array.isArray(raw.rounds) ? raw.rounds : [];
     if (!rounds.length && Array.isArray(raw.questions)) {
       rounds = [{ id: 'round_001', title: raw.roundTitle || 'Runde 1', pointsMultiplier: 1, questions: raw.questions }];

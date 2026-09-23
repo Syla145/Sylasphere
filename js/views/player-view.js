@@ -100,6 +100,7 @@
     if (els['game-question']?.querySelector('.is-sorting')) { deferredState = next; return; }
     deferredState = null;
     state=next; window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
+    window.SylasphereThemes?.applyQuiz(state.quiz); // Design des Quiz
     const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
     if (els['game-mode']) { els['game-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['game-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['game-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }

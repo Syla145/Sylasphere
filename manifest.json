@@ -5,7 +5,7 @@
   "display": "standalone",
   "background_color": "#0a1020",
   "theme_color": "#0a1020",
-  "description": "Sylasphere – Quiz Arena v16 mit lokalem Modus und Firebase Realtime Online-Multiplayer.",
+  "description": "Sylasphere – Quiz Arena v17 mit lokalem Modus und Firebase Realtime Online-Multiplayer.",
   "icons": [
     {
       "src": "./assets/jh-quiz-icon.svg",

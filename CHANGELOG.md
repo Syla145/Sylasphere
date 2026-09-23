@@ -1,5 +1,13 @@
 # Sylasphere – Changelog
 
+## v17 – Designs (Templates)
+- **4 Designs:** Neon Arena (bisheriger Look), Retro-Show (70er-Spielshow mit Gold, Rot und Sonnenstrahlen), Clean Light (hell, gut für Beamer und Tageslicht) und Pub Quiz (Kreidetafel, Holz, Bernstein).
+- **Auswahl:** im Editor pro Quiz (mit Live-Vorschau) und beim Moderator in „Sitzung starten“ für die jeweilige Sitzung überschreibbar. Spieler und Zuschauer übernehmen das Design automatisch, auch online. Jedes Gerät merkt sich das zuletzt genutzte Design, damit beim Laden nichts aufblitzt.
+- **CSS umgebaut:** Alle Farben laufen jetzt über Design-Variablen (keine festen Farben mehr in den Bausteinen). Ein neues Design ist ein Variablen-Block in `css/main.css` plus ein Eintrag in `js/core/themes.js`. Neon Arena sieht unverändert aus (per Pixelvergleich geprüft).
+- **Schriften** selbst gehostet (keine Google-Server, datenschutzfreundlich): Bungee (Retro), Patrick Hand (Pub), Nunito (Clean Light) – alle unter SIL Open Font License, Lizenzen in `assets/fonts/`.
+- Zum Ausprobieren: `?theme=retro` / `light` / `pub` an eine Adresse anhängen.
+- Kleinigkeiten: Beim Moderator erscheint die Stufenleiste der Song-Frage nur noch einmal; veraltete Texte („elf Fragetypen“) aktualisiert.
+
 ## v16 – Song-Enthüllung
 - **Neuer Fragetyp „Song-Enthüllung“:** Der Moderator spielt den Song in Stufen an (Standard 0,1 s → 1 s → 3 s → 10 s). Jede Stufe lässt sich beliebig oft abspielen, „Nächste Stufe“ schaltet weiter.
 - **Ton auf allen Geräten:** Die Ausschnitte laufen gleichzeitig beim Moderator, bei den Zuschauern und bei allen Spielern (sekundengenau über Web Audio). Pro Gerät stummschaltbar; wenn der Browser noch keinen Ton erlaubt, erscheint „🔊 Ton aktivieren“.

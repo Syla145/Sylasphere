@@ -174,7 +174,19 @@
     els['edit-description'].value = state.quiz.description || '';
     els['edit-default-timer'].value = state.quiz.settings.defaultTimer;
     els['edit-default-points'].value = state.quiz.settings.defaultPoints;
+    renderTheme();
     renderCategories(); renderRounds(); showValidation(Validator.validate(state));
+  }
+  // Design des Quiz: wird im Editor sofort als Vorschau angewendet
+  function renderTheme() {
+    const box = document.getElementById('edit-theme');
+    if (!box || !window.SylasphereThemes) return;
+    window.SylasphereThemes.applyQuiz(state);
+    box.replaceChildren(window.SylasphereThemes.picker(state.quiz.settings.theme, id => {
+      state.quiz.settings.theme = id;
+      window.SylasphereThemes.apply(id);
+      queueSave();
+    }));
   }
   // ---------- Themen (v15) ----------
   const Topics = window.SylasphereTopics;

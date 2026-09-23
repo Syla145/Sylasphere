@@ -60,6 +60,7 @@
   function render(next) {
     state = next;
     window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
+    window.SylasphereThemes?.applyQuiz(state.quiz); // Design des Quiz
     const current = engine.getCurrent(state);
     App.setText(els['spectator-code'], state.code);
     if (els['spectator-mode']) { els['spectator-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['spectator-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['spectator-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }

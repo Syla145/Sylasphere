@@ -201,6 +201,13 @@
       <div class="quiz-summary-head"><div><span class="eyebrow">${App.escapeHTML(source || 'Quiz')}</span><h2>${App.escapeHTML(q.title)}</h2><p>${App.escapeHTML(q.description)}</p></div><div class="stat-badge"><strong>${questionCount}</strong><span>Fragen</span></div></div>
       <div class="chip-row">${categories.map(c => { const t = Quiz.topic(c, q.categories); return `<span class="chip topic-chip" style="--cat-hue:${t.hue}">${t.icon} ${App.escapeHTML(c)}</span>`; }).join('')}</div>
       <div class="microcopy">${q.rounds.length} Runde${q.rounds.length === 1 ? '' : 'n'} · ${validation.errors.length} Fehler · ${validation.warnings.length} Hinweise</div>`;
+    // Design: Vorgabe aus dem Quiz, für diese Sitzung änderbar (wird an alle Geräte übertragen)
+    window.SylasphereThemes?.applyQuiz(activeQuiz);
+    const themeBox = document.getElementById('session-theme');
+    if (themeBox && window.SylasphereThemes) themeBox.replaceChildren(window.SylasphereThemes.picker(activeQuiz.quiz.settings.theme, id => {
+      activeQuiz.quiz.settings.theme = id;
+      window.SylasphereThemes.apply(id);
+    }));
     showValidation(validation);
     els['create-session'].disabled = !validation.valid;
     els['create-online-session'].disabled = !validation.valid;
@@ -222,6 +229,7 @@
   function render(next) {
     state = next;
     window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
+    window.SylasphereThemes?.applyQuiz(state.quiz); // Design des Quiz
     const current = engine.getCurrent(state);
     App.setText(els['session-code'], state.code);
     App.setText(els['session-status'], statusLabel(state));

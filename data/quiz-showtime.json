@@ -2,7 +2,7 @@
   "quiz": {
     "id": "quiz_jh_showtime_v5",
     "title": "Sylasphere: Showtime",
-    "description": "Drei abwechslungsreiche Runden mit allen zehn Fragetypen – inklusive Audio, Publikums-Duell, Mehrheitsfrage und Hotspot.",
+    "description": "Vier abwechslungsreiche Runden mit allen Fragetypen – inklusive Audio, Publikums-Duell, Mehrheitsfrage und Hotspot.",
     "settings": {
       "defaultTimer": 25,
       "defaultPoints": 100,
