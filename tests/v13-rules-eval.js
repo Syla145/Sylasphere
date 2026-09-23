@@ -32,24 +32,22 @@ function canWrite(db,uid,writes){ // writes: {path:value} (multi-path update)
 
 const HOST='host_uid_1234567890',P1='p1_uid_1234567890',P2='p2_uid_1234567890';
 const base={config:{moderatorKeys:{'Geheim-2026':true}}};
-// --- Moderator-Grants
-ok(!canWrite(base,P1,{[`moderatorGrants/${P1}`]:'falsch'}),'grant with wrong code denied');
-ok(canWrite(base,HOST,{[`moderatorGrants/${HOST}`]:'Geheim-2026'}),'grant with correct code allowed');
-ok(!canWrite(base,P1,{[`moderatorGrants/${HOST}`]:'Geheim-2026'}),'cannot write grant for another uid');
-ok(!canWrite(base,null,{[`moderatorGrants/${HOST}`]:'Geheim-2026'}),'unauthenticated grant denied');
+// --- v21: Moderator-Code (moderatorGrants) entfernt – Räume nur noch mit Moderator-Rolle
+ok(!canWrite(base,HOST,{[`moderatorGrants/${HOST}`]:'Geheim-2026'}),'legacy code grants no longer writable');
+ok(RULES.moderatorGrants===undefined,'moderatorGrants rules removed');
 ok(!canWrite(base,HOST,{'config/moderatorKeys/neu':true}),'nobody can write config from client');
-ok(RULES.config['.read']===false,'config (codes) not readable');
-ok(String(RULES.moderatorGrants.$uid['.read']).includes('auth.uid === $uid'),'grant only readable by owner');
 // --- Raum anlegen
-const meta=uid=>({ownerUid:uid,createdAt:1,updatedAt:1,status:'lobby',quizTitle:'T',appVersion:'v13',schemaVersion:1});
-ok(!canWrite(base,P1,{'rooms/ABC123/meta':meta(P1)}),'room creation without grant denied');
-const granted=setIn(base,split(`moderatorGrants/${HOST}`),'Geheim-2026');
-ok(canWrite(granted,HOST,{'rooms/ABC123/meta':meta(HOST)}),'room creation with valid grant allowed');
-const revoked=setIn(granted,split('config/moderatorKeys/Geheim-2026'),null);
-ok(!canWrite(revoked,HOST,{'rooms/ABC123/meta':meta(HOST)}),'removing code in Firebase revokes grant');
+const meta=uid=>({ownerUid:uid,createdAt:1,updatedAt:1,status:'lobby',quizTitle:'T',appVersion:'v21',schemaVersion:1});
+ok(!canWrite(base,P1,{'rooms/ABC123/meta':meta(P1)}),'room creation without moderator role denied');
+const legacyGrant=setIn(base,split(`moderatorGrants/${P1}`),'Geheim-2026');
+ok(!canWrite(legacyGrant,P1,{'rooms/ABC123/meta':meta(P1)}),'old code grant no longer allows rooms');
+const granted=setIn(base,split(`moderators/${HOST}`),{grantedAt:1,grantedBy:'admin'});
+ok(canWrite(granted,HOST,{'rooms/ABC123/meta':meta(HOST)}),'room creation with moderator role allowed');
+const revoked=setIn(granted,split(`moderators/${HOST}`),null);
+ok(!canWrite(revoked,HOST,{'rooms/ABC123/meta':meta(HOST)}),'revoking moderator blocks new rooms');
 ok(!canWrite(granted,HOST,{'rooms/ABC123/meta':meta(P1)}),'cannot create room owned by someone else');
 const withRoom=setIn(granted,split('rooms/ABC123/meta'),meta(HOST));
-ok(canWrite(revoked===undefined?withRoom:setIn(withRoom,split('config/moderatorKeys/Geheim-2026'),null),HOST,{'rooms/ABC123/meta/status':'playing'}),'existing owner can still update own room after code change');
+ok(canWrite(setIn(withRoom,split(`moderators/${HOST}`),null),HOST,{'rooms/ABC123/meta/status':'playing'}),'existing owner can still update own room after revocation');
 ok(!canWrite(withRoom,P1,{'rooms/ABC123/meta/status':'playing'}),'player cannot update room meta');
 ok(!canWrite(withRoom,P1,{'rooms/ABC123/meta':meta(P1)}),'player cannot take over existing room');
 // --- Buzzer (Regressionen aus v12)

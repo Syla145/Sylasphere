@@ -1,5 +1,17 @@
 # Sylasphere – Changelog
 
+## v21 – Neue Startseite: Anmelden oder Gast
+- **Startseite fragt zuerst: „Anmelden“ oder „Als Gast fortfahren“.** Danach erscheinen nur die passenden Bereiche:
+  - Moderator/Admin: Moderieren, Mitspielen, Zuschauen, Quiz-Editor (Admins zusätzlich: Verwaltung)
+  - Angemeldet ohne Moderator-Rechte: Mitspielen, Zuschauen, dazu „Moderator-Zugang anfragen“ bzw. der Status der Anfrage
+  - Gast: Mitspielen, Zuschauen
+- Die Gast-Wahl wird gemerkt. Oben rechts gibt es jederzeit „Anmelden“. Nach dem Abmelden erscheint wieder die Auswahl.
+- **Einladungslinks** (`spieler.html?code=…`) funktionieren weiter direkt, ohne Auswahl.
+- **Editor nur noch für Moderatoren** (mit Anmeldung bzw. „Zugang anfragen“, wie beim Moderator).
+- **Moderator-Code abgeschafft:** Moderieren geht nur noch mit freigeschaltetem Konto. Die Firebase-Regeln akzeptieren den alten Code nicht mehr.
+- Angemeldete Spieler: Der Name wird beim Beitreten vorausgefüllt. Statistiken für Konten folgen im nächsten Schritt.
+- **Nach dem Hochladen:** Firebase-Regeln neu veröffentlichen und `tools/moderator-code.html` auf GitHub löschen. Optional in der Datenbank `config` und `moderatorGrants` löschen (siehe `FIREBASE_SETUP.md`).
+
 ## v20 – Medien-Auswahl, Datei-Prüfung und neue README
 - **📁 Dateiauswahl im Editor:** Neben jedem Bild- und Audiofeld (Bilderquiz, Hotspot, Audio-Quiz, Song-Enthüllung inkl. Albumbild).
   - Zeigt alle Dateien aus `assets/` im GitHub-Repo mit Vorschau, Größe und Ordner. Audio lässt sich dort probehören.

@@ -47,7 +47,7 @@ ok(canWrite(db,MOD,{'rooms/AAA111/meta':meta(MOD.uid)}),'moderator creates room'
 ok(canWrite(db,ADMIN,{'rooms/AAA112/meta':meta(ADMIN.uid)}),'admin creates room');
 ok(!canWrite(db,NEW,{'rooms/AAA113/meta':meta(NEW.uid)}),'unapproved account cannot create room');
 const guest=setIn(db,split(`moderatorGrants/${ANON.uid}`),'Geheim-2026');
-ok(canWrite(guest,ANON,{'rooms/AAA114/meta':meta(ANON.uid)}),'guest mode with code still works');
+ok(!canWrite(guest,ANON,{'rooms/AAA114/meta':meta(ANON.uid)}),'v21: old guest code no longer creates rooms');
 const revoked=setIn(db,split(`moderators/${MOD.uid}`),null);
 ok(!canWrite(revoked,MOD,{'rooms/AAA115/meta':meta(MOD.uid)}),'revoked moderator cannot create rooms');
 
@@ -83,8 +83,8 @@ ok(Acc.errorText({code:'auth/invalid-credential'}).includes('Passwort'),'german 
 
 // --- Einbindung
 const mod=code('moderator.html'),ed=code('editor.html'),adm=code('admin.html');
-ok(mod.includes('account.js')&&mod.includes('cloud-quizzes.js')&&mod.includes('id="account-gate"')&&mod.includes('id="moderator-code"'),'moderator page: account login + guest code');
+ok(mod.includes('account.js')&&mod.includes('cloud-quizzes.js')&&mod.includes('id="account-gate"')&&!mod.includes('id="moderator-code"'),'moderator page: account login only (v21: no guest code)');
 ok(ed.includes('account.js')&&ed.includes('cloud-quizzes.js')&&ed.includes('firebase-service.js')&&ed.includes('cloud-panel'),'editor has cloud storage');
 ok(adm.includes('admin-view.js')&&adm.includes('request-list'),'admin page exists');
-ok(code('js/core/moderator-gate.js').includes("MODERATOR_CODE_HASH = '3324cb69664921bc390d821b2c47f6c67e8c4e0937476fba9af69da58df53f17'"),'user moderator hash kept');
+ok(!code('js/core/moderator-gate.js').includes('MODERATOR_CODE_HASH'),'v21: moderator code removed (account only)');
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

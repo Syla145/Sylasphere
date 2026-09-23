@@ -31,11 +31,11 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 
 | Seite | Für wen | Wofür |
 |---|---|---|
-| `index.html` | alle | Startseite mit Auswahl der Rolle |
+| `index.html` | alle | Startseite: erst **Anmelden** oder **Als Gast fortfahren**, dann nur die passenden Bereiche |
 | `spieler.html` | Spieler | Mit Raumcode beitreten und antworten. Kein Konto nötig, man tritt als Gast bei |
 | `moderator.html` | Moderatoren | Quiz auswählen, Raum erstellen, Fragen öffnen, schließen, auflösen und Punkte vergeben |
 | `zuschauer.html` | Beamer/TV | Große Anzeige mit Frage, Timer, Statistik und Rangliste |
-| `editor.html` | Moderatoren | Quizze erstellen und bearbeiten, online in „Meine Quizze“ speichern |
+| `editor.html` | Moderatoren | Quizze erstellen und bearbeiten, online in „Meine Quizze“ speichern (nur mit Moderator-Konto) |
 | `admin.html` | Admin | Moderator-Anfragen freischalten und Rechte entziehen |
 
 ## So läuft ein Quizabend
@@ -46,7 +46,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 4. Der Moderator öffnet jede Frage, schließt die Antworten und löst auf. Die Punkte werden automatisch vergeben, er kann sie aber jederzeit korrigieren.
    - Kurzbefehle: **Leertaste** öffnet, schließt die Antworten und löst auf. **← / →** springt zur vorigen oder nächsten Frage.
 
-**Lokal testen** (ohne Internet): „💻 Lokal testen“ nutzen und die Spieleransicht in weiteren Tabs **desselben Browsers** öffnen.
+**Lokal testen:** „💻 Lokal testen“ nutzen und die Spieleransicht in weiteren Tabs **desselben Browsers** öffnen. Die Anmeldung als Moderator braucht dafür einmal Internet.
 
 ## Konten und Moderator-Freigabe
 
@@ -54,7 +54,19 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 - **Moderatoren** melden sich mit **Google** oder **E-Mail + Passwort** an. Eine Anmeldung allein gibt **keine** Moderator-Rechte. Neue Konten tippen auf „Moderator-Zugang anfragen“.
 - Der **Admin** schaltet Anfragen auf `admin.html` frei, lehnt sie ab oder entzieht Rechte später wieder. Beim Anfragenden geht es nach der Freigabe sofort weiter.
 - Admins trägst du einmalig von Hand in der Firebase-Konsole ein, unter `admins/<Konto-ID>: true`.
-- **Gastmodus:** Unter „Ohne Konto mit Moderator-Code fortfahren“ funktioniert der alte Moderator-Code weiter. Damit kannst du Räume erstellen, aber keine Quizze online speichern.
+- Der frühere Moderator-Code ist seit v21 abgeschafft. Moderieren geht nur noch mit einem freigeschalteten Konto.
+
+**Was sieht wer auf der Startseite?**
+
+| Wer | Bereiche |
+|---|---|
+| Moderator oder Admin (angemeldet) | Moderieren, Mitspielen, Zuschauen, Quiz-Editor (Admins zusätzlich: Verwaltung) |
+| Angemeldet ohne Moderator-Rechte | Mitspielen, Zuschauen, dazu der Hinweis „Moderator-Zugang anfragen“ |
+| Gast (nicht angemeldet) | Mitspielen, Zuschauen |
+
+- Die Wahl „Als Gast fortfahren“ merkt sich der Browser. Oben rechts gibt es jederzeit **Anmelden**.
+- **Einladungslinks** wie `spieler.html?code=ABC234` führen immer direkt zum Beitritt, ohne Auswahl.
+- Angemeldete Spieler bekommen ihren Namen beim Beitreten vorausgefüllt. **Geplant:** eigene Statistiken für angemeldete Konten.
 
 Die Einrichtung in Firebase steht Schritt für Schritt in **`FIREBASE_SETUP.md`**.
 
@@ -199,15 +211,14 @@ js/core/
   firebase-service.js           Verbindung zu Firebase
   account.js / account-ui.js    Konten, Rollen, Login-Oberfläche
   cloud-quizzes.js              „Meine Quizze“ (Online-Speicher)
-  moderator-gate.js             Zugang zur Moderatorseite (Konto oder Gast-Code)
+  moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)
   session-engine.js             lokaler Spielablauf (Testmodus)
   online-session-engine.js      Online-Spielablauf über Firebase
   quiz-utils.js · quiz-validator.js · timer-engine.js · topics.js · themes.js · media-player.js
 js/question-types/              ein Modul pro Fragetyp (+ README zum Erweitern)
 js/editor/                      Editor, Themenauswahl, Medien-Auswahl
-js/views/                       Moderator-, Spieler-, Zuschauer- und Verwaltungsansicht
+js/views/                       Startseite, Moderator-, Spieler-, Zuschauer- und Verwaltungsansicht
 firebase-database.rules.json    Sicherheitsregeln (in Firebase veröffentlichen)
-tools/moderator-code.html       Hash für den Gast-Moderator-Code erzeugen
 tests/                          automatische Tests
 ```
 

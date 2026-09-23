@@ -21,6 +21,11 @@
     renderAvatars();
     els['join-btn'].addEventListener('click', join);
     els['room-code'].addEventListener('input', () => els['room-code'].value = els['room-code'].value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6));
+    // v21: Angemeldete Spieler – Name aus dem Konto vorausfüllen (Verknüpfung mit Statistiken folgt später)
+    window.SylasphereAccount?.init().then(state => {
+      const user = state?.user;
+      if (user && !user.isAnonymous && !els['player-name'].value.trim()) els['player-name'].value = String(user.name || '').slice(0, 28);
+    }).catch(() => {});
     [els['room-code'], els['player-name']].forEach(input => input.addEventListener('keydown', e => { if (e.key === 'Enter') join(); }));
     els['submit-answer'].addEventListener('click', submit);
   }
