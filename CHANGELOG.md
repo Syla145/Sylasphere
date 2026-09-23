@@ -1,5 +1,19 @@
 # Sylasphere – Changelog
 
+## v20 – Medien-Auswahl, Datei-Prüfung und neue README
+- **📁 Dateiauswahl im Editor:** Neben jedem Bild- und Audiofeld (Bilderquiz, Hotspot, Audio-Quiz, Song-Enthüllung inkl. Albumbild).
+  - Zeigt alle Dateien aus `assets/` im GitHub-Repo mit Vorschau, Größe und Ordner. Audio lässt sich dort probehören.
+  - Suche und Ordnerfilter. Ein Klick trägt den Pfad ein.
+  - „⬆ Neue Datei auf GitHub hochladen“ führt direkt zur Upload-Seite.
+- **Live-Prüfung unter dem Feld:** ✓ gefunden (mit Größe), ⚠ Hinweise, ✗ Fehler.
+  - Erkennt: ungeeignete Formate (HEIC, WAV, OGG …), falschen Dateityp im Feld, zu große Dateien, Leerzeichen und Umlaute im Namen, Google-Drive-, Dropbox- und YouTube-Links, Pfade vom eigenen Computer, Dateien, die noch nicht online sind.
+  - Bei falscher **Groß- und Kleinschreibung**: „Meintest du …? Übernehmen“.
+- **„Quiz prüfen“** meldet Formatprobleme jetzt ebenfalls.
+- **Demo-Audio als MP3** statt WAV. Die Dateien sind viel kleiner und dienen als gutes Beispiel.
+- **README komplett neu:** Seiten und Rollen, Ablauf eines Quizabends, Konten, Speichern, **Anleitung für Bilder und Musik mit Formattabelle**, alle Fragetypen, Designs, Update, Kosten und Grenzen, Projektstruktur.
+- Beispiel-Quiz heißt jetzt „Showtime · alle 15 Fragetypen“. Am Handy ist das Audiofeld im Editor volle Breite.
+- **Aufräumen (optional):** `assets/demo-song.wav` und `assets/demo-tone.wav` werden nicht mehr gebraucht und können gelöscht werden.
+
 ## v19 – Konten, Moderator-Freigabe und „Meine Quizze“
 - **Anmeldung für Moderatoren** mit Google oder E-Mail + Passwort, inklusive „Passwort vergessen“. Spieler treten weiterhin ohne Konto als Gast bei.
 - **Moderator-Rechte vergibt der Admin:** Eine Anmeldung allein reicht nicht. Neue Konten fragen den Zugang an; auf der neuen Seite **`admin.html`** bestätigst du Anfragen, lehnst sie ab oder entziehst Rechte. Freigaben greifen sofort, ohne Neuladen. Die Firebase-Regeln setzen das serverseitig durch.

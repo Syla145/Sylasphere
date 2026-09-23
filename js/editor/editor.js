@@ -17,6 +17,7 @@
   let cloudTimer = null;
   let cloudStatus = { kind: 'idle', at: 0, message: '' };
   let cloudSaving = null;
+  let accountUnavailable = false;
   const els = {};
 
   document.addEventListener('DOMContentLoaded', init);
@@ -46,7 +47,7 @@
   async function initAccount() {
     if (!Account() || !AccountUI() || !window.JHQuizFirebase) return;
     try { await Account().init(); }
-    catch (error) { console.warn('Konto nicht verfügbar', error); renderCloudPanel(); renderCloudBox(); return; }
+    catch (error) { console.warn('Konto nicht verfügbar', error); accountUnavailable = true; renderCloudPanel(); renderCloudBox(); return; }
     document.getElementById('account-slot')?.replaceWith(AccountUI().headerButton({ onLogin: openLogin }));
     let lastKey = '';
     Account().onChange(stateNow => {
@@ -62,6 +63,7 @@
 
   function accountHint() {
     const s = Account()?.state();
+    if (accountUnavailable) return { text: 'Online-Speicher gerade nicht erreichbar (keine Verbindung zu Firebase). Dein Entwurf wird auf diesem Gerät gesichert.', action: null };
     if (!s?.ready) return { text: 'Anmeldung wird geladen …', action: null };
     if (!s.user || s.user.isAnonymous) return { text: 'Melde dich an, um Quizze online zu speichern und auf jedem Gerät weiterzubearbeiten.', action: 'Anmelden' };
     if (s.role === 'pending') return { text: 'Deine Moderator-Anfrage wartet noch auf Freigabe. Danach kannst du Quizze online speichern.', action: 'Status ansehen' };

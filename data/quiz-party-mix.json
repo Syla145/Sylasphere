@@ -114,7 +114,7 @@
             "type": "audio-quiz",
             "category": "Musik & Sounds",
             "text": "Was passiert mit der Tonhöhe in diesem kurzen Clip?",
-            "audio": "./assets/demo-tone.wav",
+            "audio": "./assets/demo-tone.mp3",
             "audioLabel": "Tonfolge abspielen",
             "options": [
               {

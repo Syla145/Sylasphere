@@ -23,6 +23,7 @@
 
     validate(q, report) {
       if (!String(q.image || '').trim()) report.error('image', 'Hotspot benötigt eine Bildquelle.');
+      else Kit.validateMedia(q, 'image', 'image', report);
       if (!Number.isFinite(Number(q.targetX)) || Number(q.targetX) < 0 || Number(q.targetX) > 100) report.error('targetX', 'Ziel-X muss zwischen 0 und 100 liegen.');
       if (!Number.isFinite(Number(q.targetY)) || Number(q.targetY) < 0 || Number(q.targetY) > 100) report.error('targetY', 'Ziel-Y muss zwischen 0 und 100 liegen.');
       if (!Number.isFinite(Number(q.radius)) || Number(q.radius) <= 0 || Number(q.radius) > 50) report.error('radius', 'Trefferradius muss > 0 und ≤ 50 sein.');
@@ -93,6 +94,7 @@
       const App = window.SchmobinApp;
       const image = input('text', q.image || '', 'input'); image.placeholder = './assets/bild.jpg oder https://…';
       box.append(labelField('Bildquelle', image));
+      window.SylasphereMediaLibrary?.enhance(image, 'image');
 
       const grid = div('dynamic-grid');
       const xInput = input('number', q.targetX ?? 50, 'input'); xInput.min = '0'; xInput.max = '100'; xInput.step = '0.1';

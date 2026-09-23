@@ -20,6 +20,7 @@
     validate(q, report) {
       Kit.validateOptions(q, report, { needsCorrect: true });
       if (!String(q.image || '').trim()) report.error('image', 'Bilderquiz benötigt eine Bildquelle.');
+      else Kit.validateMedia(q, 'image', 'image', report);
     },
 
     score(q, answer, { base }) {
@@ -37,7 +38,7 @@
     },
 
     editor(q, ui, box) {
-      box.append(Kit.textField(q, ui, 'image', 'Bildquelle', './assets/bild.jpg oder https://…'));
+      box.append(Kit.mediaField(q, ui, 'image', 'Bildquelle', 'image', './assets/bilder/bild.webp oder https://…'));
       Kit.choiceEditor(q, ui, box, 'correct');
     },
     stats: Kit.choiceStats

@@ -8,7 +8,7 @@
     icon: '♪',
     description: 'Audio-Clip plus Antwortoptionen – für Songs, Sounds und Stimmen.',
 
-    defaults: () => ({ options: Kit.defaultOptions(), correctAnswer: 'a', audio: './assets/demo-tone.wav', audioLabel: 'Audio-Hinweis' }),
+    defaults: () => ({ options: Kit.defaultOptions(), correctAnswer: 'a', audio: './assets/demo-tone.mp3', audioLabel: 'Audio-Hinweis' }),
 
     normalize(q) {
       q.options = Kit.normalizeOptions(q.options || q.answers);
@@ -20,6 +20,7 @@
     validate(q, report) {
       Kit.validateOptions(q, report, { needsCorrect: true });
       if (!String(q.audio || '').trim()) report.error('audio', 'Audio-Quiz benötigt eine Audioquelle.');
+      else Kit.validateMedia(q, 'audio', 'audio', report);
     },
 
     score(q, answer, { base }) {
@@ -39,7 +40,7 @@
     editor(q, ui, box) {
       const grid = ui.div('dynamic-grid');
       grid.append(
-        Kit.textField(q, ui, 'audio', 'Audioquelle', './assets/clip.mp3 oder https://…'),
+        Kit.mediaField(q, ui, 'audio', 'Audioquelle', 'audio', './assets/musik/clip.mp3'),
         Kit.textField(q, ui, 'audioLabel', 'Audio-Label', 'z. B. Song-Snippet')
       );
       box.append(grid);

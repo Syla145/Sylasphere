@@ -89,7 +89,7 @@
             "type": "audio-quiz",
             "category": "Musik & Sounds",
             "text": "Wie bewegt sich die Tonfolge?",
-            "audio": "./assets/demo-tone.wav",
+            "audio": "./assets/demo-tone.mp3",
             "audioLabel": "Kurzer Ton-Clip",
             "options": [
               {
@@ -353,7 +353,7 @@
             "type": "song-reveal",
             "category": "Musik",
             "text": "Welcher Song ist das? (Titel und Interpret)",
-            "audio": "./assets/demo-song.wav",
+            "audio": "./assets/demo-song.mp3",
             "clipStart": 0,
             "stages": [
               {

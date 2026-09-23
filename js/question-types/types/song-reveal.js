@@ -91,7 +91,7 @@
     revealMedia: true,
 
     defaults: () => ({
-      text: 'Welcher Song ist das?', audio: './assets/demo-song.wav', clipStart: 0,
+      text: 'Welcher Song ist das?', audio: './assets/demo-song.mp3', clipStart: 0,
       stages: DEFAULT_STAGES.map(s => Object.assign({}, s)),
       songTitle: 'Sylasphere Theme', artist: 'Demo-Band', titleAliases: [], artistAliases: [], guessArtist: false,
       cover: './assets/demo-cover.svg', revealStart: 8, revealDuration: 12, timer: 0
@@ -118,6 +118,8 @@
 
     validate(q, report) {
       if (!String(q.audio || '').trim()) report.error('audio', 'Song-Enthüllung benötigt eine Audiodatei.');
+      else Kit.validateMedia(q, 'audio', 'audio', report, { needsCors: true });
+      if (String(q.cover || '').trim()) Kit.validateMedia(q, 'cover', 'image', report);
       if (!q.songTitle) report.error('songTitle', 'Songtitel fehlt.');
       if (q.guessArtist && !q.artist) report.error('artist', 'Interpret fehlt (Modus „Titel + Interpret“).');
       if (!q.stages.length) report.error('stages', 'Mindestens eine Stufe ist erforderlich.');
@@ -220,6 +222,7 @@
       const clip = input('number', q.clipStart ?? 0, 'input'); clip.min = '0'; clip.step = '0.1';
       clip.addEventListener('input', e => { q.clipStart = Math.max(0, Number(e.target.value) || 0); ui.queueSave(); });
       const g1 = div('dynamic-grid'); g1.append(labelField('Audiodatei', audio), labelField('Ausschnitte starten bei (Sekunde)', clip));
+      window.SylasphereMediaLibrary?.enhance(audio, 'audio', { needsCors: true });
       box.append(g1);
 
       const stageBox = div('song-stage-editor');
@@ -261,6 +264,7 @@
       const syncCover = () => { const src = window.SchmobinApp.sanitizeURL(q.cover || ''); coverPreview.hidden = !src; if (src) coverPreview.src = src; };
       cover.addEventListener('input', e => { q.cover = e.target.value; syncCover(); ui.queueSave(); });
       const coverRow = div('song-cover-row'); coverRow.append(labelField('Albumbild (bei der Auflösung)', cover), coverPreview); syncCover();
+      window.SylasphereMediaLibrary?.enhance(cover, 'image');
       box.append(coverRow);
 
       const rs = input('number', q.revealStart ?? 0, 'input'); rs.min = '0'; rs.step = '0.5';

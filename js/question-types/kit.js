@@ -192,6 +192,87 @@
     return ui.labelField(label, control);
   }
 
+  // ---------- Mediendateien (v20) ----------
+  // Formate, die auf allen Geräten (auch älteren iPhones) zuverlässig laufen
+  const MEDIA_FORMATS = {
+    image: { good: ['webp', 'jpg', 'jpeg', 'png', 'svg', 'gif', 'avif'], label: 'Bild' },
+    audio: { good: ['mp3', 'm4a', 'aac'], label: 'Audio' },
+    video: { good: ['mp4', 'webm'], label: 'Video' }
+  };
+  const FORMAT_HINTS = {
+    heic: 'HEIC (iPhone-Fotoformat) läuft in vielen Browsern nicht – bitte als JPG oder WebP speichern.',
+    heif: 'HEIF läuft in vielen Browsern nicht – bitte als JPG oder WebP speichern.',
+    tif: 'TIFF zeigt kein Browser an – bitte als JPG oder WebP speichern.',
+    tiff: 'TIFF zeigt kein Browser an – bitte als JPG oder WebP speichern.',
+    bmp: 'BMP ist sehr groß – besser als JPG oder WebP speichern.',
+    wav: 'WAV ist etwa zehnmal so groß wie MP3 – für schnelles Laden besser als MP3 speichern.',
+    flac: 'FLAC ist sehr groß und läuft nicht überall – besser als MP3 speichern.',
+    ogg: 'OGG läuft auf älteren iPhones nicht – besser als MP3 speichern.',
+    oga: 'OGG läuft auf älteren iPhones nicht – besser als MP3 speichern.',
+    opus: 'Opus läuft auf älteren iPhones nicht – besser als MP3 speichern.',
+    wma: 'WMA läuft in Browsern nicht – bitte als MP3 speichern.',
+    mov: 'MOV läuft nicht in allen Browsern – besser als MP4 (H.264) speichern.',
+    avi: 'AVI läuft in Browsern nicht – bitte als MP4 (H.264) speichern.',
+    mkv: 'MKV läuft nicht in allen Browsern – besser als MP4 (H.264) speichern.'
+  };
+  function mediaKindOf(path) {
+    const ext = mediaExt(path);
+    return Object.keys(MEDIA_FORMATS).find(kind => MEDIA_FORMATS[kind].good.includes(ext))
+      || (['heic', 'heif', 'tif', 'tiff', 'bmp'].includes(ext) ? 'image' : ['wav', 'flac', 'ogg', 'oga', 'opus', 'wma'].includes(ext) ? 'audio' : ['mov', 'avi', 'mkv'].includes(ext) ? 'video' : '');
+  }
+  function mediaExt(path) {
+    const clean = String(path || '').split(/[?#]/)[0];
+    const match = /\.([a-z0-9]{2,5})$/i.exec(clean);
+    return match ? match[1].toLowerCase() : '';
+  }
+  /**
+   * Hinweise zu einer Medienangabe (ohne Netzwerk): Format, Dateiname, fremde Links.
+   * kind: 'image' | 'audio' | 'video'; options.needsCors: Datei wird per Web Audio geladen (Song-Enthüllung)
+   * Rückgabe: [{ level: 'error' | 'warn' | 'info', text }]
+   */
+  function mediaAdvice(path, kind, options = {}) {
+    const raw = String(path || '').trim();
+    const out = [];
+    if (!raw) return out;
+    if (/^data:/i.test(raw)) {
+      if (raw.length > 300000) out.push({ level: 'warn', text: 'Die Datei ist direkt ins Quiz eingebettet und sehr groß. Besser ins Repo (assets/) hochladen und den Pfad eintragen.' });
+      return out;
+    }
+    const external = /^https?:\/\//i.test(raw);
+    if (/^http:\/\//i.test(raw)) out.push({ level: 'warn', text: 'Unsichere Adresse (http://) – wird auf der https-Website oft blockiert. Mit https:// oder als Datei im Repo verwenden.' });
+    if (/drive\.google\.|docs\.google\.|dropbox\.com|1drv\.ms|onedrive\.live|icloud\.com/i.test(raw)) out.push({ level: 'warn', text: 'Links zu Google Drive, Dropbox, OneDrive oder iCloud funktionieren fast nie. Datei lieber ins Repo (assets/) hochladen.' });
+    else if (/youtube\.com|youtu\.be|spotify\.com|open\.spotify/i.test(raw)) out.push({ level: 'error', text: 'YouTube- und Spotify-Links sind keine Mediendateien und funktionieren hier nicht.' });
+    if (!external && /^[a-z]:\\|^\/(users|home)\//i.test(raw)) out.push({ level: 'error', text: 'Das ist ein Pfad auf deinem Computer. Datei ins Repo (assets/) hochladen und z. B. ./assets/bild.jpg eintragen.' });
+    const ext = mediaExt(raw);
+    const actual = mediaKindOf(raw);
+    if (ext && actual && actual !== kind) out.push({ level: 'error', text: `Das ist eine ${MEDIA_FORMATS[actual].label}-Datei (.${ext}), hier wird ${kind === 'image' ? 'ein Bild' : kind === 'audio' ? 'eine Audiodatei' : 'ein Video'} erwartet.` });
+    else if (FORMAT_HINTS[ext]) out.push({ level: ext === 'wav' || ext === 'bmp' ? 'warn' : 'error', text: FORMAT_HINTS[ext] });
+    else if (!ext && !external) out.push({ level: 'warn', text: 'Keine Dateiendung erkennbar (z. B. .jpg oder .mp3).' });
+    if (!external) {
+      const name = raw.split('/').pop();
+      if (/\s/.test(raw)) out.push({ level: 'warn', text: 'Leerzeichen im Dateinamen machen oft Ärger – besser Bindestriche verwenden (z. B. eiffel-turm.jpg).' });
+      else if (/[äöüßÄÖÜ]|[^\x00-\x7f]/.test(name)) out.push({ level: 'warn', text: 'Umlaute/Sonderzeichen im Dateinamen machen oft Ärger – besser nur a–z, 0–9 und Bindestriche.' });
+      if (!out.some(item => item.level === 'error') && !/^(\.\/|\.\.\/)?assets\//.test(raw) && !/^\.?\/?data\//.test(raw)) out.push({ level: 'info', text: 'Tipp: Mediendateien gehören in den Ordner assets/, z. B. ./assets/bilder/…' });
+    } else if (options.needsCors) {
+      out.push({ level: 'warn', text: 'Fremde Links funktionieren bei der Song-Enthüllung meist nicht (der sekundengenaue Ausschnitt braucht eine Freigabe der fremden Seite). Datei lieber ins Repo hochladen.' });
+    }
+    return out;
+  }
+  /** Für validate(): Hinweise als Fehler/Warnungen im Prüfbericht */
+  function validateMedia(q, key, kind, report, options) {
+    mediaAdvice(q[key], kind, options).forEach(item => {
+      if (item.level === 'error') report.error(key, item.text);
+      else if (item.level === 'warn') report.warn(key, item.text);
+    });
+  }
+  /** Textfeld für eine Mediendatei: im Editor mit Dateiauswahl (📁) und Live-Prüfung */
+  function mediaField(q, ui, key, label, kind, placeholder, onChange, options) {
+    const field = textField(q, ui, key, label, placeholder, onChange);
+    const control = field.querySelector('input');
+    window.SylasphereMediaLibrary?.enhance(control, kind, options);
+    return field;
+  }
+
   // ---------- Statistik ----------
   function choiceAggregate(question, records, result) {
     const counts = result?.counts ? clone(result.counts) : Object.fromEntries((question.options || []).map(option => [String(option.id), 0]));
@@ -213,6 +294,7 @@
 
   window.SylasphereTypeKit = {
     clone, numberOr, clamp, normalizeTerm, escapeHTML,
+    MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,
     normalizeOptions, optionById, correctOption, defaultOptions, validateOptions, seededShuffle,
     el, baseQuestion, addImage, addAudio, renderChoice,
     choiceEditor, textField,
