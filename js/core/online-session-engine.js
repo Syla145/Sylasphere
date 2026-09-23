@@ -581,18 +581,26 @@
         if (question.type === 'buzzer') {
           const winnerId = String(buzzerResult?.contenderId || '');
           const winnerProfile = winnerId ? profiles[winnerId] || {} : {};
+          // Fehlt der Antwort-Datensatz des Gewinners, wird er komplett (inkl. Wertung) geschrieben.
+          // Firebase verbietet in einem update() einen Pfad UND gleichzeitig dessen Unterpfade.
+          let createdWinnerRecord = false;
           if (winnerId && !answers[winnerId]) {
-            answers[winnerId] = { answer: clone(buzzerResult.contenderAnswer), submittedAt: now };
-            updates[`answers/${winnerId}/${question.id}`] = clean(answers[winnerId]);
+            answers[winnerId] = { answer: clone(buzzerResult.contenderAnswer ?? ''), submittedAt: now };
+            createdWinnerRecord = true;
           }
           Object.keys(profiles).forEach(uid => {
             const submission = answers[uid];
             if (!submission) return;
             const points = winnerId && uid === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+            const scoreDetail = uid === winnerId ? 'Schnellste richtige Antwort' : 'Nicht gewertet';
             deltas[uid] = points;
-            updates[`answers/${uid}/${question.id}/awardedPoints`] = points;
-            updates[`answers/${uid}/${question.id}/scoreDetail`] = uid === winnerId ? 'Schnellste richtige Antwort' : 'Nicht gewertet';
-            updates[`answers/${uid}/${question.id}/scoredAt`] = now;
+            if (createdWinnerRecord && uid === winnerId) {
+              updates[`answers/${uid}/${question.id}`] = clean(Object.assign({}, submission, { awardedPoints: points, scoreDetail, scoredAt: now }));
+            } else {
+              updates[`answers/${uid}/${question.id}/awardedPoints`] = points;
+              updates[`answers/${uid}/${question.id}/scoreDetail`] = scoreDetail;
+              updates[`answers/${uid}/${question.id}/scoredAt`] = now;
+            }
             updates[`scores/${uid}`] = Math.round((Number(scores[uid]) || 0) + points);
           });
           buzzerResult.status = 'resolved';
@@ -673,8 +681,10 @@
       if (!tx.committed) return false;
       const now = Firebase.serverNow(this.context);
       try {
+        // Mündlicher Buzzer hat keine Textantwort. `null` würde Firebase entfernen und die
+        // Regel (answer + submittedAt erforderlich) scheitern lassen – daher leerer String.
         await dbm.update(this.roomRef, {
-          [`answers/${this.userId}/${question.id}`]: clean({ answer: clone(answer), submittedAt: now }),
+          [`answers/${this.userId}/${question.id}`]: clean({ answer: answer == null ? '' : clone(answer), submittedAt: now }),
           [`profiles/${this.userId}/lastAnsweredQuestionId`]: question.id,
           [`profiles/${this.userId}/updatedAt`]: now
         });

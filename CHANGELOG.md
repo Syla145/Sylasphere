@@ -1,5 +1,10 @@
 # Sylasphere – Changelog
 
+## v12.1 – Online-Buzzer-Fix
+- Mündlicher Buzzer: Die Antwort des Spielers wurde als `null` gesendet, von Firebase verworfen und scheiterte an der Regelprüfung. Dadurch fehlte der Antwort-Datensatz („0/2 Buzzer-Versuche“). Wird jetzt korrekt gespeichert.
+- Auflösen einer Buzzer-Frage: Fehlerhafte Firebase-Meldung „values argument contains a path … ancestor of another path“ behoben. Der Datensatz des Gewinners wird nun in einem Schritt inklusive Wertung geschrieben.
+- Neuer Test `tests/v12-online-buzzer.js` spielt den Ablauf Buzzern → Falsch → Zweiter Spieler buzzert → Auflösen online durch.
+
 ## v12 – Feinschliff Editor, Spieler-UX & Buzzer-Fix
 - **Editor:** Fragetyp-Auswahl im Rundenkopf entfernt – der Typ wird direkt in der Frage gewählt. „+ Frage“ übernimmt den Typ der letzten Frage der Runde (sonst Multiple Choice). Titel und Multiplikator stehen jetzt bündig nebeneinander.
 - **Spieler:** Infotexte unter den Antworten („Antwort gespeichert …“, „Antworten sind geschlossen“, Auflösung, Buzzer-Hinweise) haben einheitlich mehr Abstand; ebenso in der Zuschaueransicht.
