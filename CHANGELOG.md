@@ -1,5 +1,10 @@
 # Sylasphere – Changelog
 
+## v12.2 – Lösung für den Moderator
+- Der Moderator sieht die Lösung jetzt dauerhaft in einer gelb gestrichelten Box „🔒 Lösung · nur für dich sichtbar“: schon vor dem Öffnen der Frage (inkl. Fragetext), während der Antwortphase und beim Buzzer während der Prüfung.
+- Schätzfragen zeigen zusätzlich die Toleranz, Hotspot-Fragen markieren den Zielbereich direkt auf dem Bild. Bei Konsens-Fragen gibt es naturgemäß keine feste Lösung.
+- Spieler und Zuschaueransicht sehen die Lösung weiterhin erst bei der Auflösung. Online liegt die Lösung ohnehin nur im Moderator-Bereich der Datenbank.
+
 ## v12.1 – Online-Buzzer-Fix
 - Mündlicher Buzzer: Die Antwort des Spielers wurde als `null` gesendet, von Firebase verworfen und scheiterte an der Regelprüfung. Dadurch fehlte der Antwort-Datensatz („0/2 Buzzer-Versuche“). Wird jetzt korrekt gespeichert.
 - Auflösen einer Buzzer-Frage: Fehlerhafte Firebase-Meldung „values argument contains a path … ancestor of another path“ behoben. Der Datensatz des Gewinners wird nun in einem Schritt inklusive Wertung geschrieben.

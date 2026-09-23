@@ -261,13 +261,14 @@
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
     if (!state.questionStartedAt) {
       els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.TYPE_ICONS[current.question.type] || '•'}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Kategorie')}</h2><p>${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte${current.question.type === 'buzzer' ? ' · ohne Zeitlimit' : ` · ${current.question.timer || 0}s`}</p></div>`;
-      els['answer-status'].innerHTML = '<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>'; return;
+      els['answer-status'].innerHTML = `<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>${moderatorSolution(current.question, null, true)}`; return;
     }
 
     const questionResult = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
-    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult });
+    // Hotspot: Zielbereich für den Moderator immer auf dem Bild markieren.
+    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved || current.question.type === 'hotspot', result: questionResult });
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length; const total = state.players.length;
     const correct = resolved ? Quiz.correctAnswerText(current.question, questionResult) : '';
@@ -284,6 +285,7 @@
         const blocked = (buzzer.eliminatedIds || []).map(findPlayerName).filter(Boolean).map(name => `<span class="chip">${App.escapeHTML(name)}</span>`).join('');
         if (blocked) html += `<div class="chip-row" style="margin-top:12px">${blocked}</div>`;
       }
+      if (!resolved) html += moderatorSolution(current.question, questionResult);
       if (!resolved) html += `<div class="buzzer-admin-actions"><button type="button" class="btn btn--reveal" data-buzzer-action="resolve" ${buzzer.contenderId || buzzer.status === 'exhausted' ? '' : 'disabled'}>${buzzer.contenderId ? '✅ Richtig werten & auflösen' : 'Ohne Gewinner auflösen'}</button><button type="button" class="btn" data-buzzer-action="wrong" ${buzzer.contenderId ? '' : 'disabled'}>❌ Falsch · Spieler sperren & neu freigeben</button></div>`;
       if (resolved && correct) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>`;
       if (resolved && submitted) html += answerRows(current.question, answers);
@@ -293,8 +295,21 @@
       return;
     }
 
-    const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
-    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : ''}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
+    const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist für die Spieler noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
+    els['answer-status'].innerHTML = `<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
+  }
+
+  // Lösung dauerhaft für den Moderator – vor, während und nach der Frage (Spieler sehen sie erst bei der Auflösung).
+  function moderatorSolution(question, result, withQuestion = false) {
+    if (!question) return '';
+    const label = question.type === 'survey' ? 'Top-Antwort' : question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+    const text = question.type === 'hotspot' ? 'Grün markiert auf dem Bild' : question.type === 'consensus'
+      ? 'Keine feste Lösung – die Mehrheit der Spielerantworten entscheidet.'
+      : Quiz.correctAnswerText(question, result) || '–';
+    const extra = question.type === 'estimate' && question.tolerance != null
+      ? `<small>Toleranz: ±${App.escapeHTML(String(question.tolerance))}${question.toleranceMode === 'percent' ? ' %' : (question.unit ? ` ${App.escapeHTML(question.unit)}` : '')}</small>` : '';
+    const preview = withQuestion && question.text ? `<small class="moderator-solution-question">${App.escapeHTML(question.text)}</small>` : '';
+    return `<div class="reveal-box moderator-solution"><span>🔒 ${label} · nur für dich sichtbar</span>${preview}<strong>${App.escapeHTML(text)}</strong>${extra}</div>`;
   }
 
   function findPlayerName(playerId) {
