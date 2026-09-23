@@ -1,7 +1,7 @@
 {
   "quiz": {
     "id": "quiz_demo_komplett_2026",
-    "title": "Die große JH-Quiz Demo",
+    "title": "Die große Sylasphere Demo",
     "description": "Drei Runden mit allen Fragetypen, vielen Kategorien, Umlauten, Sonderzeichen und unterschiedlichen Timern.",
     "settings": {
       "defaultTimer": 30,

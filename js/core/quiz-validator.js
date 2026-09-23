@@ -74,6 +74,7 @@
           if (!Number.isFinite(Number(q.correctAnswer))) errors.push({ path: `${p}.correctAnswer`, message: 'Zielwert fehlt oder ist ungültig.' });
           if (Number(q.correctAnswer) < Number(q.min) || Number(q.correctAnswer) > Number(q.max)) warnings.push({ path: `${p}.correctAnswer`, message: 'Zielwert liegt außerhalb des Reglerbereichs.' });
           if (q.tolerance != null && (!Number.isFinite(Number(q.tolerance)) || Number(q.tolerance) < 0)) errors.push({ path: `${p}.tolerance`, message: 'Toleranz muss leer oder eine Zahl ≥ 0 sein.' });
+          if (q.tolerance != null && !['absolute', 'percent'].includes(String(q.toleranceMode || 'absolute'))) errors.push({ path: `${p}.toleranceMode`, message: 'Toleranzmodus muss „absolute“ oder „percent“ sein.' });
         }
         if (q.type === 'sort') {
           if (!Array.isArray(q.correctOrder) || q.correctOrder.length < 2) errors.push({ path: `${p}.correctOrder`, message: 'Sortierquiz benötigt mindestens zwei Elemente.' });

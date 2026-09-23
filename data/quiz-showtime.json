@@ -1,7 +1,7 @@
 {
   "quiz": {
     "id": "quiz_jh_showtime_v5",
-    "title": "JH-Quiz: Showtime",
+    "title": "Sylasphere: Showtime",
     "description": "Drei abwechslungsreiche Runden mit allen zehn Fragetypen – inklusive Audio, Publikums-Duell, Mehrheitsfrage und Hotspot.",
     "settings": {
       "defaultTimer": 25,
@@ -280,6 +280,17 @@
             ],
             "points": 160,
             "timer": 30
+          },
+          {
+            "id": "show_buzzer_capital",
+            "type": "buzzer",
+            "category": "Speed & Wissen",
+            "text": "Welche Hauptstadt liegt an der Themse?",
+            "points": 150,
+            "timer": 0,
+            "buzzerMode": "spoken",
+            "solution": "London",
+            "penalty": 0
           }
         ]
       }

@@ -152,7 +152,7 @@
       this.listeners = new Set();
       this.unsubscribers = [];
       this.cachedState = null;
-      this.raw = { meta: null, public: null, outline: null, profiles: {}, scores: {}, answers: {}, hostQuiz: null };
+      this.raw = { meta: null, public: null, outline: null, profiles: {}, scores: {}, answers: {}, buzzerClaims: {}, buzzerBlocked: {}, hostQuiz: null };
       this.playerDisconnect = null;
       this.destroyed = false;
     }
@@ -286,6 +286,8 @@
       watch('outline', 'outline');
       watch('profiles', 'profiles');
       watch('scores', 'scores');
+      watch('buzzerClaims', 'buzzerClaims');
+      watch('buzzerBlocked', 'buzzerBlocked');
       try {
         const connectionRef = dbm.ref(this.db, '.info/connected');
         const offConnection = dbm.onValue(connectionRef, snapshot => {
@@ -348,6 +350,26 @@
       const resolved = pub.resolved && typeof pub.resolved === 'object' ? Object.keys(pub.resolved).filter(id => pub.resolved[id]) : [];
       const questionResults = {};
       if (currentQuestionId && pub.questionResult) questionResults[currentQuestionId] = clone(pub.questionResult);
+      const outlineQuestion = this.raw.outline?.rounds?.[Math.max(0, Number(pub.currentRoundIndex) || 0)]?.questions?.[Math.max(0, Number(pub.currentQuestionIndex) || 0)] || null;
+      const currentType = pub.currentQuestion?.type || outlineQuestion?.type || '';
+      if (currentQuestionId && currentType === 'buzzer' && !resolved.includes(currentQuestionId)) {
+        const claim = this.raw.buzzerClaims?.[currentQuestionId] || null;
+        const blockedRaw = this.raw.buzzerBlocked?.[currentQuestionId] || {};
+        const eliminatedIds = Object.entries(blockedRaw).filter(([, value]) => value === true).map(([uid]) => uid);
+        const contenderId = String(claim?.contenderId || '');
+        const remaining = players.filter(player => !eliminatedIds.includes(player.id));
+        const synthesized = {
+          kind: 'buzzer',
+          mode: String(pub.currentQuestion?.buzzerMode || 'spoken'),
+          status: contenderId ? 'locked' : (remaining.length ? 'open' : 'exhausted'),
+          contenderId,
+          contenderName: contenderId ? String(profiles[contenderId]?.name || 'Spieler') : '',
+          contenderAnswer: this.role === 'moderator' && contenderId ? clone(answers[currentQuestionId]?.[contenderId]?.answer ?? null) : null,
+          eliminatedIds,
+          reopenedCount: eliminatedIds.length
+        };
+        questionResults[currentQuestionId] = synthesized;
+      }
       const rawQuiz = this.role === 'moderator' ? this.raw.hostQuiz : { quiz: clone(this.raw.outline) };
       const state = {
         version: 4,
@@ -493,6 +515,12 @@
       const defaultTimer = Number(this.raw.hostQuiz.quiz.settings.defaultTimer);
       const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
       const now = Firebase.serverNow(this.context);
+      if (question.type === 'buzzer') {
+        await this.modules.database.update(this.roomRef, {
+          [`buzzerClaims/${question.id}`]: null,
+          [`buzzerBlocked/${question.id}`]: null
+        });
+      }
       await this.patchPublic({
         status: 'playing', questionOpen: true, questionStartedAt: now,
         questionEndsAt: duration > 0 ? now + duration * 1000 : null,
@@ -518,7 +546,11 @@
       const { question, round } = this.getCurrent(state);
       if (!question) throw new Error('Keine Frage verfügbar.');
       if (!state.questionStartedAt) throw new Error('Die Frage wurde noch nicht gestartet.');
-      if (state.questionOpen) throw new Error('Bitte zuerst die Antworten schließen.');
+      if (state.questionOpen && question.type !== 'buzzer') throw new Error('Bitte zuerst die Antworten schließen.');
+      if (question.type === 'buzzer') {
+        const buzzerState = state.questionResults?.[question.id] || {};
+        if (!buzzerState.contenderId && buzzerState.status !== 'exhausted') throw new Error('Noch kein Buzzer-Ergebnis vorhanden.');
+      }
       if (state.scoredQuestionIds.includes(question.id)) return;
 
       const dbm = this.modules.database;
@@ -539,7 +571,7 @@
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         let consensusResult = null;
         if (question.type === 'consensus') consensusResult = Quiz.computeConsensusResult(question, answers);
-        const buzzerResult = question.type === 'buzzer' ? clone(this.raw.public?.questionResult || initialBuzzerState(question)) : null;
+        const buzzerResult = question.type === 'buzzer' ? clone(state.questionResults?.[question.id] || initialBuzzerState(question)) : null;
         const deltas = {};
         const updates = {};
         const profiles = this.raw.profiles || {};
@@ -595,6 +627,7 @@
         updates[`public/publicStats`] = clean(stats);
         updates[`public/scoreDeltas`] = clean(deltas);
         updates[`public/resolved/${question.id}`] = true;
+        if (question.type === 'buzzer') updates[`buzzerClaims/${question.id}`] = null;
         updates[`public/updatedAt`] = now;
         await dbm.update(this.roomRef, updates);
       } catch (error) {
@@ -626,28 +659,28 @@
       const state = this.load();
       const { question } = this.getCurrent(state);
       if (!state?.questionOpen || !question || question.type !== 'buzzer') return false;
+      const currentResult = state.questionResults?.[question.id] || {};
+      if (currentResult.status !== 'open' || (currentResult.eliminatedIds || []).includes(this.userId)) return false;
       const dbm = this.modules.database;
-      const ref = dbm.ref(this.db, `rooms/${this.code}/public/questionResult`);
-      const tx = await dbm.runTransaction(ref, current => {
-        const result = current && typeof current === 'object' ? current : initialBuzzerState(question);
-        if (String(result.status || 'open') !== 'open') return;
-        if (Array.isArray(result.eliminatedIds) && result.eliminatedIds.includes(this.userId)) return;
-        result.status = 'locked';
-        result.contenderId = this.userId;
-        result.contenderName = String(this.raw.profiles?.[this.userId]?.name || 'Spieler');
-        result.contenderAnswer = clone(answer);
-        return result;
+      const claimRef = dbm.ref(this.db, `rooms/${this.code}/buzzerClaims/${question.id}`);
+      const claimedAt = Firebase.serverNow(this.context);
+      const tx = await dbm.runTransaction(claimRef, current => {
+        if (current != null) return;
+        return { contenderId: this.userId, claimedAt };
       }, { applyLocally: false });
       if (!tx.committed) return false;
       const now = Firebase.serverNow(this.context);
-      await dbm.update(this.roomRef, {
-        [`answers/${this.userId}/${question.id}`]: clean({ answer: clone(answer), submittedAt: now }),
-        [`profiles/${this.userId}/lastAnsweredQuestionId`]: question.id,
-        [`profiles/${this.userId}/updatedAt`]: now,
-        'public/questionOpen': false,
-        'public/questionEndsAt': null,
-        'public/updatedAt': now
-      });
+      try {
+        await dbm.update(this.roomRef, {
+          [`answers/${this.userId}/${question.id}`]: clean({ answer: clone(answer), submittedAt: now }),
+          [`profiles/${this.userId}/lastAnsweredQuestionId`]: question.id,
+          [`profiles/${this.userId}/updatedAt`]: now
+        });
+      } catch (error) {
+        // The moderator can always release a claimed buzzer. Keep the atomic claim intact
+        // rather than risking two simultaneous winners after a partial network failure.
+        throw error;
+      }
       return true;
     }
 
@@ -656,35 +689,24 @@
       const state = this.load();
       const { question } = this.getCurrent(state);
       if (!question || question.type !== 'buzzer' || !state.questionStartedAt) throw new Error('Keine aktive Buzzer-Frage.');
-      const result = clone(this.raw.public?.questionResult || initialBuzzerState(question));
-      if (!result.contenderId) throw new Error('Noch kein Spieler hat gebuzzert.');
-      if (!Array.isArray(result.eliminatedIds)) result.eliminatedIds = [];
-      if (!result.eliminatedIds.includes(result.contenderId)) result.eliminatedIds.push(result.contenderId);
-      result.lastIncorrectId = result.contenderId;
-      result.lastIncorrectAnswer = result.contenderAnswer;
-      result.contenderId = '';
-      result.contenderName = '';
-      result.contenderAnswer = null;
-      const remaining = state.players.filter(player => !result.eliminatedIds.includes(player.id));
+      const result = state.questionResults?.[question.id] || {};
+      const contenderId = String(result.contenderId || '');
+      if (!contenderId) throw new Error('Noch kein Spieler hat gebuzzert.');
+      const remaining = state.players.filter(player => player.id !== contenderId && !(result.eliminatedIds || []).includes(player.id));
       const now = Firebase.serverNow(this.context);
-      if (remaining.length) {
-        result.status = 'open';
-        result.reopenedCount = Number(result.reopenedCount || 0) + 1;
-        await this.modules.database.update(this.roomRef, {
-          'public/questionResult': clean(result),
-          'public/questionOpen': true,
-          'public/questionEndsAt': null,
-          'public/updatedAt': now
-        });
-      } else {
-        result.status = 'exhausted';
-        await this.modules.database.update(this.roomRef, {
-          'public/questionResult': clean(result),
-          'public/questionOpen': false,
-          'public/questionEndsAt': null,
-          'public/updatedAt': now
-        });
+      const updates = {
+        [`buzzerBlocked/${question.id}/${contenderId}`]: true,
+        [`buzzerClaims/${question.id}`]: null,
+        'public/questionOpen': remaining.length > 0,
+        'public/questionEndsAt': null,
+        'public/updatedAt': now
+      };
+      const penalty = Math.max(0, Number(question.penalty) || 0);
+      if (penalty > 0) {
+        const scoreRef = this.modules.database.ref(this.db, `rooms/${this.code}/scores/${contenderId}`);
+        await this.modules.database.runTransaction(scoreRef, current => Math.round((Number(current) || 0) - penalty), { applyLocally: true });
       }
+      await this.modules.database.update(this.roomRef, updates);
     }
 
     async setPlayerScore(playerId, score) {

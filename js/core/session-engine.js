@@ -295,6 +295,12 @@
         const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
         if (!result.contenderId) throw new Error('Noch kein Spieler hat gebuzzert.');
         if (!result.eliminatedIds.includes(result.contenderId)) result.eliminatedIds.push(result.contenderId);
+        const wrongPlayerId = result.contenderId;
+        const penalty = Math.max(0, Number(question.penalty) || 0);
+        if (penalty > 0) {
+          const wrongPlayer = state.players.find(player => player.id === wrongPlayerId);
+          if (wrongPlayer) wrongPlayer.score = Math.round((Number(wrongPlayer.score) || 0) - penalty);
+        }
         result.lastIncorrectId = result.contenderId;
         result.lastIncorrectAnswer = result.contenderAnswer;
         result.contenderId = '';

@@ -1,12 +1,22 @@
-<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a1020"><title>Quiz-Editor · Sylasphere</title><link rel="manifest" href="./manifest.json"><link rel="icon" href="./assets/jh-quiz-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./css/main.css?v=10"><script defer src="./js/core/app.js?v=10"></script><script defer src="./js/core/quiz-utils.js?v=10"></script><script defer src="./js/core/quiz-validator.js?v=10"></script><script defer src="./js/question-types/renderers.js?v=10"></script><script defer src="./js/editor/editor.js?v=10"></script></head><body>
-<header class="container app-header"><a class="brand" href="./"><span class="brand-mark">SY</span><span>Sylasphere<small>Quiz Arena <span class="version-tag" data-app-version>v10</span> · Editor</small></span></a><div class="top-actions"><span id="autosave-state" class="autosave-state">Editor bereit</span><a class="btn btn--ghost hide-mobile" href="./moderator.html">Moderator</a></div></header>
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a1020"><title>Quiz-Editor · Sylasphere</title><link rel="manifest" href="./manifest.json"><link rel="icon" href="./assets/jh-quiz-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./css/main.css?v=11"><script defer src="./js/core/app.js?v=11"></script><script defer src="./js/core/quiz-utils.js?v=11"></script><script defer src="./js/core/quiz-validator.js?v=11"></script><script defer src="./js/question-types/renderers.js?v=11"></script><script defer src="./js/editor/editor.js?v=11"></script></head><body>
+<header class="container app-header"><a class="brand" href="./"><span class="brand-mark">SY</span><span>Sylasphere<small>Quiz Arena <span class="version-tag">v11</span> · Editor</small></span></a><div class="top-actions"><span id="autosave-state" class="autosave-state">Editor bereit</span><a class="btn btn--ghost hide-mobile" href="./moderator.html">Moderator</a></div></header>
 
 <main class="container">
 <section id="editor-start" class="editor-start-shell">
   <div class="editor-start-head"><span class="eyebrow">Quiz-Editor</span><h1>Was möchtest du machen?</h1><p>Bestehendes Quiz weiterbearbeiten oder ein neues Quiz von Grund auf erstellen.</p></div>
-  <div class="editor-choice-grid">
-    <button id="choose-edit-quiz" class="editor-choice-card" type="button"><span class="editor-choice-icon">✎</span><strong>Quiz editieren</strong><span>Vorhandenes Sylasphere-Quiz laden oder eine JSON-Datei importieren.</span></button>
-    <button id="choose-new-quiz" class="editor-choice-card" type="button"><span class="editor-choice-icon">＋</span><strong>Neues Quiz erstellen</strong><span>Mit einem leeren Quiz und einer ersten Runde starten.</span></button>
+  <div class="editor-choice-grid role-grid editor-role-grid">
+    <button id="choose-edit-quiz" class="role-card editor-role-card" type="button">
+      <div class="role-icon">✎</div>
+      <h2>Quiz editieren</h2>
+      <p>Vorhandenes Sylasphere-Quiz laden, einen Entwurf fortsetzen oder eine JSON-Datei importieren.</p>
+      <span class="role-arrow">↗</span>
+    </button>
+    <button id="choose-new-quiz" class="role-card editor-role-card" type="button">
+      <div class="role-icon">＋</div>
+      <h2>Neues Quiz erstellen</h2>
+      <p>Mit einem komplett neuen Quiz und einer ersten leeren Runde starten.</p>
+      <span class="role-arrow">↗</span>
+    </button>
   </div>
   <div id="editor-load-panel" class="panel panel-pad editor-load-panel" hidden>
     <div class="section-title"><div><span class="eyebrow">Quiz editieren</span><h2>Quiz auswählen</h2><p>Du kannst ein mitgeliefertes Quiz, deinen letzten Entwurf oder eine JSON-Datei öffnen.</p></div></div>

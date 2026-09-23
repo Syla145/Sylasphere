@@ -65,3 +65,9 @@
   - erster Spieler sperrt den Buzzer
   - Moderator kann **richtig werten & auflösen** oder **falsch werten, Spieler sperren und Buzzer neu freigeben**
 - Spieleransicht für Buzzer-Fragen mit Live-Status, Sperrhinweis und schneller Button-/Text-Eingabe.
+
+## v11
+- Editor-Einstieg visuell an die Startseiten-Karten angepasst.
+- „Quiz editieren“ und „Neues Quiz erstellen“ verwenden jetzt dieselben hochwertigen Role-Cards wie die Landingpage.
+- Versionsanzeige robuster gemacht: sichtbare Versionsnummer steht statisch in jeder HTML-Seite und kann nicht mehr durch eine veraltete `app.js` zurückgesetzt werden.
+- Alle HTML-/CSS-/JS-Cache-Buster auf `v11` gesetzt.

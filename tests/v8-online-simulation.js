@@ -66,6 +66,7 @@ const Online=ctx.window.JHQuizOnlineSession; const quiz=JSON.parse(fs.readFileSy
    if(q.type==='survey') return winningSurveyId(q);
    if(q.type==='consensus') return q.options[0]?.id;
    if(q.type==='hotspot') return {x:q.targetX,y:q.targetY};
+   if(q.type==='buzzer') return q.solution || null;
    return null;
  }
  // Complete the remaining showcase so every online question type, round transition
@@ -76,15 +77,23 @@ const Online=ctx.window.JHQuizOnlineSession; const quiz=JSON.parse(fs.readFileSy
    ok(Boolean(current),'online showcase has current question');
    await host.startQuestion(); await new Promise(r=>setTimeout(r,2));
    const answer=correctFor(current);
-   ok(await p1.submitAnswer(p1.userId,answer),`${current.type}: p1 answer accepted online`);
-   ok(await p2.submitAnswer(p2.userId,answer),`${current.type}: p2 answer accepted online`);
-   await host.lockQuestion(); await host.resolveQuestion(); await new Promise(r=>setTimeout(r,4));
+   if(current.type==='buzzer'){
+     ok(await p1.submitAnswer(p1.userId,answer),`${current.type}: first buzzer accepted online`);
+     ok(!(await p2.submitAnswer(p2.userId,answer)),`${current.type}: second simultaneous buzzer rejected online`);
+     await host.markBuzzerIncorrect(); await new Promise(r=>setTimeout(r,3));
+     ok(await p2.submitAnswer(p2.userId,answer),`${current.type}: buzzer reopened for remaining player`);
+     await host.resolveQuestion(); await new Promise(r=>setTimeout(r,4));
+   }else{
+     ok(await p1.submitAnswer(p1.userId,answer),`${current.type}: p1 answer accepted online`);
+     ok(await p2.submitAnswer(p2.userId,answer),`${current.type}: p2 answer accepted online`);
+     await host.lockQuestion(); await host.resolveQuestion(); await new Promise(r=>setTimeout(r,4));
+   }
    ok(host.load().scoredQuestionIds.includes(current.id),`${current.type}: resolved online`);
    await host.move(1); await new Promise(r=>setTimeout(r,3));
  }
  ok(host.load().status==='finished','full online showcase reaches finished state');
  ok(host.load().roundSummaries.length===3,'all three online round summaries created');
- ok(host.load().scoredQuestionIds.length===10,'all ten online showcase questions resolved');
+ ok(host.load().scoredQuestionIds.length===11,'all eleven online showcase questions resolved');
 
  const annaFinal=host.load().players.find(p=>p.name==='Anna');
  await host.setPlayerScore(annaFinal.id,137); await new Promise(r=>setTimeout(r,4));

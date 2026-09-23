@@ -114,6 +114,9 @@
       if (q.correctAnswer == null && q.answer != null) q.correctAnswer = q.answer;
       q.correctAnswer = numberOr(q.correctAnswer, q.min);
       if (q.unit == null) q.unit = '';
+      if (q.tolerance != null && q.tolerance !== '') q.tolerance = Math.max(0, numberOr(q.tolerance, 0));
+      else q.tolerance = null;
+      q.toleranceMode = String(q.toleranceMode || 'absolute') === 'percent' ? 'percent' : 'absolute';
     }
     if (q.type === 'sort') {
       const items = q.items || q.correctOrder || q.options || [];
@@ -168,7 +171,7 @@
       rounds = [{ id: 'round_001', title: raw.roundTitle || 'Runde 1', pointsMultiplier: 1, questions: raw.questions }];
     }
     const quiz = {
-      id: String(raw.id || `quiz_${slug(raw.title || 'jh-quiz')}`),
+      id: String(raw.id || `quiz_${slug(raw.title || 'sylasphere')}`),
       title: String(raw.title || 'Unbenanntes Quiz'),
       description: String(raw.description || ''),
       settings,
@@ -260,7 +263,11 @@
         const distance = Math.abs(value - target);
         const ratio = Math.max(0, 1 - distance / range);
         raw = Math.round(base * ratio);
-        if (q.tolerance != null && distance <= Number(q.tolerance)) raw = base;
+        if (q.tolerance != null) {
+        const tolerance = Math.max(0, Number(q.tolerance) || 0);
+        const threshold = q.toleranceMode === 'percent' ? Math.abs(target) * tolerance / 100 : tolerance;
+        if (distance <= threshold) raw = base;
+      }
         detail = `Abweichung: ${Number(distance.toFixed(3))}${q.unit ? ` ${q.unit}` : ''}`;
       }
     } else if (q.type === 'sort') {
@@ -295,6 +302,11 @@
         raw = distance <= Number(q.radius) ? base : 0;
         detail = `${raw ? 'Treffer' : 'Daneben'} · Abstand ${Number(distance.toFixed(1))}%`;
       }
+    } else if (q.type === 'buzzer') {
+      const solution = normalizeTerm(q.solution || '');
+      const submitted = normalizeTerm(answer || '');
+      raw = solution && submitted === solution ? base : 0;
+      detail = raw ? 'Musterlösung getroffen' : 'Moderatorentscheidung';
     }
     return { points: Math.round(raw * mult), basePoints: raw, detail };
   }

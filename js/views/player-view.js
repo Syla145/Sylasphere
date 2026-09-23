@@ -162,7 +162,7 @@
     const result = questionResult && questionResult.kind === 'buzzer' ? questionResult : { mode: current.question.buzzerMode || 'spoken', status: state.questionOpen ? 'open' : 'idle', eliminatedIds: [] };
     const myTurn = result.contenderId && String(result.contenderId) === String(playerId);
     const eliminated = Array.isArray(result.eliminatedIds) && result.eliminatedIds.includes(playerId);
-    const answerWindowOpen = state.questionOpen;
+    const answerWindowOpen = state.questionOpen && result.status === 'open';
 
     if (resolved) {
       App.setText(els['game-status'], 'Auflösung');

@@ -13,21 +13,111 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
-    ['edit-title','edit-description','edit-default-timer','edit-default-points','add-round','new-quiz','editor-import','validate-quiz','export-quiz','editor-validation','editor-categories','rounds-container','category-list','autosave-state','preview-backdrop','preview-content','preview-close'].forEach(id => els[id] = document.getElementById(id));
+    ['editor-start','editor-workspace','choose-edit-quiz','choose-new-quiz','editor-load-panel','editor-quiz-select','load-selected-quiz','continue-autosave','editor-import-start','editor-start-message','back-to-editor-start','edit-title','edit-description','edit-default-timer','edit-default-points','add-round','new-quiz','editor-import','validate-quiz','export-quiz','editor-validation','editor-categories','rounds-container','category-list','autosave-state','preview-backdrop','preview-content','preview-close'].forEach(id => els[id] = document.getElementById(id));
     bindGlobal();
-    const saved = localStorage.getItem(AUTOSAVE_KEY);
-    if (saved) {
-      try { state = Quiz.normalizeQuiz(JSON.parse(saved)); }
-      catch (_) { localStorage.removeItem(AUTOSAVE_KEY); }
-    }
-    if (!state) {
+    bindStartScreen();
+    await loadEditorQuizList();
+    updateAutosaveChoice();
+    showStart();
+  }
+
+  function bindStartScreen() {
+    els['choose-edit-quiz'].addEventListener('click', () => {
+      els['editor-load-panel'].hidden = false;
+      els['editor-load-panel'].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    els['choose-new-quiz'].addEventListener('click', () => {
+      state = createBlankQuiz();
+      openWorkspace('Neues Quiz erstellt.');
+    });
+    els['load-selected-quiz'].addEventListener('click', () => loadSelectedEditorQuiz());
+    els['continue-autosave'].addEventListener('click', () => {
+      const saved = localStorage.getItem(AUTOSAVE_KEY);
+      if (!saved) return App.toast('Es gibt noch keinen gespeicherten Entwurf.', 'error');
       try {
-        const response = await fetch(`./data/quiz-sample.json?cb=${Date.now()}`, { cache: 'no-store' });
-        if (response.ok) state = Quiz.normalizeQuiz(await response.json());
-      } catch (_) {}
+        state = Quiz.normalizeQuiz(JSON.parse(saved));
+        openWorkspace('Letzten Entwurf geladen.');
+      } catch (_) {
+        localStorage.removeItem(AUTOSAVE_KEY);
+        updateAutosaveChoice();
+        App.toast('Der gespeicherte Entwurf war beschädigt und wurde verworfen.', 'error');
+      }
+    });
+    els['editor-import-start'].addEventListener('change', async event => {
+      const file = event.target.files?.[0]; if (!file) return;
+      await importIntoEditor(file, true);
+      event.target.value = '';
+    });
+    els['back-to-editor-start'].addEventListener('click', () => showStart());
+  }
+
+  async function loadEditorQuizList() {
+    try {
+      const response = await fetch(`./data/quiz-list.json?cb=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const list = await response.json();
+      const entries = Array.isArray(list) ? list : list.quizzes || [];
+      els['editor-quiz-select'].replaceChildren();
+      entries.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.file || item.filename || '';
+        option.textContent = item.title || option.value;
+        els['editor-quiz-select'].append(option);
+      });
+      if (!entries.length) throw new Error('Keine Quiz-Dateien gefunden.');
+      els['editor-start-message'].textContent = `${entries.length} Quiz-Datei${entries.length === 1 ? '' : 'en'} aus data/ gefunden.`;
+    } catch (error) {
+      els['editor-start-message'].textContent = `Quiz-Liste konnte nicht geladen werden: ${error.message}. JSON-Import funktioniert weiterhin.`;
+      els['load-selected-quiz'].disabled = true;
     }
-    if (!state) state = createBlankQuiz();
+  }
+
+  async function loadSelectedEditorQuiz() {
+    const file = els['editor-quiz-select'].value;
+    if (!file) return App.toast('Bitte ein Quiz auswählen.', 'error');
+    try {
+      const safeFile = file.replace(/^\.\//, '');
+      const response = await fetch(`./data/${safeFile}?cb=${Date.now()}`, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const validation = Validator.validate(data);
+      if (!validation.valid) { App.toast('Das Quiz enthält Fehler. Bitte zuerst korrigieren oder als JSON importieren.', 'error'); return; }
+      state = validation.normalized;
+      openWorkspace(`„${state.quiz.title}“ geladen.`);
+    } catch (error) { App.toast(`Quiz konnte nicht geladen werden: ${error.message}`, 'error'); }
+  }
+
+  async function importIntoEditor(file, openAfter = false) {
+    try {
+      const data = await App.readJSONFile(file);
+      const validation = Validator.validate(data);
+      if (!validation.valid) { showValidation(validation); App.toast('Import enthält Fehler und wurde nicht übernommen.', 'error'); return false; }
+      state = validation.normalized;
+      if (openAfter) openWorkspace(`„${state.quiz.title}“ importiert.`); else { structuralChange(); App.toast('Quiz importiert.', 'success'); }
+      return true;
+    } catch (error) { App.toast(error.message, 'error'); return false; }
+  }
+
+  function updateAutosaveChoice() {
+    const hasAutosave = Boolean(localStorage.getItem(AUTOSAVE_KEY));
+    els['continue-autosave'].disabled = !hasAutosave;
+    els['continue-autosave'].textContent = hasAutosave ? 'Letzten Entwurf fortsetzen' : 'Kein Entwurf gespeichert';
+  }
+
+  function showStart() {
+    els['editor-start'].hidden = false;
+    els['editor-workspace'].hidden = true;
+    els['editor-load-panel'].hidden = true;
+    updateAutosaveChoice();
+    App.setText(els['autosave-state'], state ? 'Entwurf gespeichert' : 'Editor bereit');
+  }
+
+  function openWorkspace(message = '') {
+    els['editor-start'].hidden = true;
+    els['editor-workspace'].hidden = false;
     renderAll();
+    queueSave();
+    if (message) App.toast(message, 'success');
   }
 
   function createBlankQuiz() {
@@ -35,7 +125,10 @@
       id: `quiz_${Date.now().toString(36)}`,
       title: 'Mein Sylasphere Quiz', description: '',
       settings: { defaultTimer: 30, defaultPoints: 100, buzzerEnabled: true },
-      rounds: [{ id: App.uid('round'), title: 'Runde 1', pointsMultiplier: 1, questions: [newQuestion('multiple-choice')] }]
+      rounds: [{ id: App.uid('round'), title: 'Runde 1', pointsMultiplier: 1, questions: [{
+        id: App.uid('q'), type: 'multiple-choice', category: 'Allgemeinwissen', text: 'Neue Frage', points: 100, timer: 30,
+        options: [{id:'a',text:'Antwort A'},{id:'b',text:'Antwort B'},{id:'c',text:'Antwort C'},{id:'d',text:'Antwort D'}], correctAnswer: 'a'
+      }] }]
     }});
   }
   function newQuestion(type = 'multiple-choice') {
@@ -61,20 +154,16 @@
     els['edit-default-timer'].addEventListener('input', e => { state.quiz.settings.defaultTimer = nonNegative(e.target.value, 30); queueSave(); });
     els['edit-default-points'].addEventListener('input', e => { state.quiz.settings.defaultPoints = nonNegative(e.target.value, 100); queueSave(); });
     els['add-round'].addEventListener('click', () => { state.quiz.rounds.push({ id: App.uid('round'), title: `Runde ${state.quiz.rounds.length + 1}`, pointsMultiplier: 1, questions: [] }); structuralChange(); });
-    els['new-quiz'].addEventListener('click', () => { if (confirm('Neues Quiz anlegen? Der aktuelle Autosave wird ersetzt.')) { state = createBlankQuiz(); structuralChange(); } });
+    els['new-quiz'].addEventListener('click', () => { if (confirm('Neues Quiz anlegen? Der aktuelle Entwurf wird durch ein neues Quiz ersetzt.')) { state = createBlankQuiz(); structuralChange(); App.toast('Neues Quiz erstellt.', 'success'); } });
     els['editor-import'].addEventListener('change', async e => {
       const file = e.target.files?.[0]; if (!file) return;
-      try {
-        const data = await App.readJSONFile(file); const validation = Validator.validate(data);
-        if (!validation.valid) { showValidation(validation); App.toast('Import enthält Fehler und wurde nicht übernommen.', 'error'); return; }
-        state = validation.normalized; structuralChange(); App.toast('Quiz importiert.', 'success');
-      } catch (error) { App.toast(error.message, 'error'); }
+      await importIntoEditor(file, false);
       e.target.value = '';
     });
     els['validate-quiz'].addEventListener('click', () => { const v = Validator.validate(state); showValidation(v); App.toast(v.valid ? 'Quiz ist spielbereit.' : 'Bitte Fehler vor dem Export korrigieren.', v.valid ? 'success' : 'error'); });
     els['export-quiz'].addEventListener('click', () => {
       const v = Validator.validate(state); showValidation(v); if (!v.valid) return App.toast('Export gestoppt: Das Quiz enthält noch Fehler.', 'error');
-      const filename = `${Quiz.slug(state.quiz.title, 'jh-quiz')}.json`; App.downloadJSON(v.normalized, filename); App.toast('Quiz exportiert.', 'success');
+      const filename = `${Quiz.slug(state.quiz.title, 'sylasphere-quiz')}.json`; App.downloadJSON(v.normalized, filename); App.toast('Quiz exportiert.', 'success');
     });
     els['preview-close'].addEventListener('click', closePreview);
     els['preview-backdrop'].addEventListener('click', e => { if (e.target === els['preview-backdrop']) closePreview(); });
@@ -189,12 +278,29 @@
     const timer = input('number', q.timer, 'input'); timer.min = '0';
     timer.addEventListener('input', e => { q.timer = nonNegative(e.target.value, 0); queueSave(); });
     fields.append(spanField('Timer (s)', timer, ''));
-    const id = input('text', q.id, 'input');
-    id.addEventListener('input', e => { q.id = e.target.value.trim(); queueSave(); });
-    fields.append(spanField('ID', id, 'span-2'));
     fields.append(renderDynamic(q));
-    wrap.append(fields);
+    wrap.append(fields, renderAdvancedQuestionSettings(q));
     return wrap;
+  }
+
+  function renderAdvancedQuestionSettings(q) {
+    const details = document.createElement('details');
+    details.className = 'advanced-settings';
+    const summary = document.createElement('summary');
+    summary.textContent = 'Erweiterte Einstellungen';
+    const body = div('advanced-settings-body');
+    const id = input('text', q.id || App.uid('q'), 'input');
+    if (!q.id) q.id = id.value;
+    id.addEventListener('change', e => {
+      const value = e.target.value.trim();
+      q.id = value || App.uid('q');
+      id.value = q.id;
+      queueSave();
+    });
+    const help = div('editor-help', 'Die Fragen-ID wird automatisch erzeugt. Du musst hier normalerweise nichts ändern. Sie bleibt beim Bearbeiten stabil; Duplikate erhalten automatisch eine neue ID.');
+    body.append(labelField('Technische Fragen-ID', id), help);
+    details.append(summary, body);
+    return details;
   }
 
   function renderChoiceEditor(q, box, mode) {
@@ -314,11 +420,54 @@
       box.append(div('editor-help', 'Zielpunkt direkt im Bild setzen: Klicke oder tippe auf die gesuchte Position. Den Radius kannst du darunter feinjustieren.'), stage);
     } else if (q.type === 'estimate') {
       const grid = div('dynamic-grid');
-      [['Min','min'],['Max','max'],['Schritt','step'],['Zielwert','correctAnswer'],['Einheit','unit'],['Toleranz (optional)','tolerance']].forEach(([label,key]) => {
+      [['Min','min'],['Max','max'],['Schritt','step'],['Zielwert','correctAnswer'],['Einheit','unit']].forEach(([label,key]) => {
         const inp = input(key === 'unit' ? 'text' : 'number', q[key] ?? '', 'input'); if (key !== 'unit') inp.step = 'any';
-        inp.addEventListener('input', e => { q[key] = key === 'unit' ? e.target.value : (e.target.value === '' && key === 'tolerance' ? null : Number(e.target.value)); queueSave(); });
+        inp.addEventListener('input', e => { q[key] = key === 'unit' ? e.target.value : Number(e.target.value); updateTolerancePreview(); queueSave(); });
         grid.append(labelField(label, inp));
-      }); box.append(grid);
+      });
+      box.append(grid);
+
+      const toleranceBox = div('tolerance-editor');
+      const preset = document.createElement('select'); preset.className = 'select';
+      const currentMode = q.toleranceMode || 'absolute';
+      const currentTol = q.tolerance == null ? null : Number(q.tolerance);
+      const presetValue = currentTol == null ? 'none' : (currentMode === 'percent' && [5,10,20].includes(currentTol) ? `pct-${currentTol}` : 'custom');
+      [['none','Keine Toleranz'],['pct-5','5 %'],['pct-10','10 %'],['pct-20','20 %'],['custom','Benutzerdefiniert']].forEach(([value,label]) => {
+        const o=document.createElement('option');o.value=value;o.textContent=label;o.selected=value===presetValue;preset.append(o);
+      });
+      const customRow = div('tolerance-custom-row');
+      const modeSelect = document.createElement('select'); modeSelect.className='select';
+      [['percent','Prozentual (%)'],['absolute','Fester Wert (±)']].forEach(([value,label])=>{const o=document.createElement('option');o.value=value;o.textContent=label;o.selected=currentMode===value;modeSelect.append(o);});
+      const valueInput = input('number', currentTol ?? 5, 'input'); valueInput.min='0'; valueInput.step='any';
+      customRow.append(labelField('Art',modeSelect),labelField('Wert',valueInput));
+      const preview = div('tolerance-preview');
+      const syncToleranceControls = () => {
+        const selected = preset.value;
+        if (selected === 'none') { q.tolerance = null; q.toleranceMode = 'absolute'; customRow.hidden = true; }
+        else if (selected.startsWith('pct-')) { q.tolerance = Number(selected.split('-')[1]); q.toleranceMode = 'percent'; customRow.hidden = true; }
+        else { customRow.hidden = false; q.toleranceMode = modeSelect.value; q.tolerance = Math.max(0, Number(valueInput.value) || 0); }
+        updateTolerancePreview(); queueSave();
+      };
+      function updateTolerancePreview() {
+        const target = Number(q.correctAnswer);
+        const tolerance = q.tolerance == null ? null : Number(q.tolerance);
+        if (!Number.isFinite(target) || tolerance == null || !Number.isFinite(tolerance)) {
+          preview.textContent = 'Keine Volltreffer-Toleranz: Die Punkte richten sich nur nach der Entfernung zum Zielwert.';
+          return;
+        }
+        const absolute = (q.toleranceMode || 'absolute') === 'percent' ? Math.abs(target) * tolerance / 100 : tolerance;
+        const low = target - absolute; const high = target + absolute;
+        const unit = q.unit ? ` ${q.unit}` : '';
+        const fmt = n => Number(Number(n).toFixed(4)).toLocaleString('de-DE');
+        preview.innerHTML = `<strong>Volle Punkte:</strong> ${fmt(low)}${App.escapeHTML(unit)} bis ${fmt(high)}${App.escapeHTML(unit)} <span>(${q.toleranceMode === 'percent' ? `${tolerance} %` : `±${tolerance}${unit}`})</span>`;
+      }
+      preset.addEventListener('change', syncToleranceControls);
+      modeSelect.addEventListener('change', syncToleranceControls);
+      valueInput.addEventListener('input', syncToleranceControls);
+      customRow.hidden = preset.value !== 'custom';
+      toleranceBox.append(labelField('Toleranz', preset), customRow, preview);
+      box.append(toleranceBox);
+      updateTolerancePreview();
     } else if (q.type === 'sort') {
       const area = document.createElement('textarea'); area.className = 'input textarea'; area.rows = 6; area.value = (q.correctOrder || q.items || []).join('\n');
       area.addEventListener('input', e => { const values = e.target.value.split('\n').map(v => v.trim()).filter(Boolean); q.correctOrder = values; q.items = values.slice(); queueSave(); });

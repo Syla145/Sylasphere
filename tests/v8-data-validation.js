@@ -26,6 +26,7 @@ for(const {question:q} of Quiz.allQuestions(show)){
  else if(q.type==='higher-lower') answer=q.cards.slice(0,-1).map((c,i)=>q.cards[i+1].value>=c.value?'higher':'lower');
  else if(q.type==='survey') answer=Quiz.surveyWinnerIds(q)[0];
  else if(q.type==='hotspot') answer={x:q.targetX,y:q.targetY};
+ else if(q.type==='buzzer') answer=q.solution;
  if(q.type==='consensus'){
    const submissions={a:{answer:q.options[0].id},b:{answer:q.options[0].id},c:{answer:q.options[1].id}};
    const r=Quiz.computeConsensusResult(q,submissions);ok(r.winningOptionIds.includes(String(q.options[0].id)),'consensus: majority computed');

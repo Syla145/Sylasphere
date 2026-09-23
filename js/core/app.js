@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 'v9';
+  const APP_VERSION = 'v11';
 
   const App = {
     version: APP_VERSION,
@@ -78,7 +78,7 @@
   };
 
   function applyVersion() {
-    document.querySelectorAll('[data-app-version]').forEach(el => { el.textContent = APP_VERSION; });
+    document.querySelectorAll('[data-app-version]').forEach(el => { if (!String(el.textContent || '').trim()) el.textContent = APP_VERSION; });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyVersion);
   else applyVersion();
