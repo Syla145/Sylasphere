@@ -8,7 +8,7 @@ ok(String(rules.buzzerBlocked['$qid']['.write']||'').includes('ownerUid'),'moder
 ok(!String(rules.buzzerBlocked['$qid']['.write']||'').includes('auth.uid === $uid'),'players still cannot write buzzerBlocked');
 const editor=fs.readFileSync(path.join(root,'js/editor/editor.js'),'utf8');
 ok(!editor.includes('typeSelect'),'round header has no question type select');
-const renderers=fs.readFileSync(path.join(root,'js/question-types/renderers.js'),'utf8');
+const renderers=fs.readFileSync(path.join(root,'js/question-types/types/sort.js'),'utf8'); // v14: Sortier-Logik im Modul
 ok(renderers.includes('enableSortDrag')&&renderers.includes('pointerdown'),'sort quiz uses pointer-based drag and drop');
 ok(!renderers.includes('setPointerCapture('),'sort drag does not rely on pointer capture');
 const player=fs.readFileSync(path.join(root,'js/views/player-view.js'),'utf8');

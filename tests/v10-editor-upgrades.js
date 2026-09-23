@@ -3,7 +3,7 @@ const root=path.resolve(__dirname,'..');let pass=0,fail=0;
 const ok=(c,m)=>{if(c)pass++;else{fail++;console.error('FAIL',m)}};
 const base={console,JSON,Math,Date,Number,String,Array,Object,Map,Set,Promise,Intl,crypto,window:null,document:{addEventListener(){},querySelectorAll(){return[]}},location:{search:''},URLSearchParams,localStorage:{getItem(){return null},setItem(){}},sessionStorage:{getItem(){return null},setItem(){}}};base.window=base;
 const ctx=vm.createContext(base);const load=f=>vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
-load('js/core/app.js');load('js/core/quiz-utils.js');load('js/core/quiz-validator.js');
+load('js/core/app.js');load('js/question-types/registry.js');load('js/question-types/kit.js');ctx.window.SylasphereTypes.files.forEach(f=>load(`js/question-types/types/${f}.js`));load('js/core/quiz-utils.js');load('js/core/quiz-validator.js');
 const Quiz=ctx.window.SchmobinQuiz,Validator=ctx.window.SchmobinValidator;
 const missingId=Quiz.normalizeQuiz({quiz:{title:'ID Test',settings:{defaultTimer:30,defaultPoints:100},rounds:[{title:'R1',questions:[{type:'multiple-choice',category:'Test',text:'Frage?',options:[{id:'a',text:'A'},{id:'b',text:'B'}],correctAnswer:'a'}]}]}});
 ok(Boolean(missingId.quiz.rounds[0].questions[0].id),'missing question ID is generated automatically');
@@ -23,7 +23,7 @@ ok(q.tolerance===null,'no tolerance remains disabled');
 const editorHtml=fs.readFileSync(path.join(root,'editor.html'),'utf8');
 ok(editorHtml.includes('Quiz editieren')&&editorHtml.includes('Neues Quiz erstellen'),'editor has explicit edit/new start choices');
 ok(editorHtml.includes('Quiz aus data/'),'editor can load bundled quizzes');
-const editorJs=fs.readFileSync(path.join(root,'js/editor/editor.js'),'utf8');
+const editorJs=fs.readFileSync(path.join(root,'js/editor/editor.js'),'utf8')+fs.readFileSync(path.join(root,'js/question-types/types/estimate.js'),'utf8'); // v14: Typ-Editoren liegen in den Modulen
 ok(editorJs.includes('Erweiterte Einstellungen')&&editorJs.includes('Technische Fragen-ID'),'question ID moved to advanced settings');
 ok(editorJs.includes('5 %')&&editorJs.includes('10 %')&&editorJs.includes('20 %'),'tolerance presets are present');
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

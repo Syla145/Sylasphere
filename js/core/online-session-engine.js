@@ -46,23 +46,8 @@
     };
   }
 
-  function publicQuestion(question, reveal = false) {
-    const q = clone(question);
-    if (reveal) return q;
-    delete q.correctAnswer;
-    delete q.correctAnswers;
-    delete q.correctOrder;
-    delete q.tolerance;
-    delete q.targetX;
-    delete q.targetY;
-    delete q.radius;
-    if (q.type === 'sort' && Array.isArray(q.items)) q.items = q.items.slice().sort(() => Math.random() - 0.5);
-    if (q.type === 'survey' && Array.isArray(q.options)) {
-      q.options = q.options.map(option => ({ id: option.id, text: option.text }));
-    }
-    if (q.type === 'buzzer') delete q.solution;
-    return q;
-  }
+  // Lösungsfelder vor Spielern verstecken – Details regelt jedes Fragetyp-Modul (hideSolution)
+  function publicQuestion(question, reveal = false) { return Quiz.publicQuestion(question, reveal); }
 
   function initialBuzzerState(question) {
     return {
@@ -94,51 +79,7 @@
     return result;
   }
 
-  function aggregateStats(question, answers, questionResult) {
-    const records = Object.values(answers || {});
-    const values = records.map(record => record?.answer);
-    if (['multiple-choice', 'image-quiz', 'audio-quiz', 'survey', 'consensus'].includes(question.type)) {
-      const counts = questionResult?.counts ? clone(questionResult.counts) : Object.fromEntries((question.options || []).map(option => [String(option.id), 0]));
-      if (!questionResult?.counts) values.forEach(value => {
-        const key = String(value ?? '');
-        if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1;
-      });
-      return { kind: 'choice', counts };
-    }
-    if (question.type === 'estimate') {
-      const nums = values.map(Number).filter(Number.isFinite);
-      if (!nums.length) return { kind: 'estimate', count: 0 };
-      return {
-        kind: 'estimate', count: nums.length,
-        average: nums.reduce((sum, n) => sum + n, 0) / nums.length,
-        min: Math.min(...nums), max: Math.max(...nums)
-      };
-    }
-    if (question.type === 'fight-list') {
-      const terms = new Map();
-      values.flatMap(value => Array.isArray(value) ? value : []).forEach(value => {
-        const key = Quiz.normalizeTerm(value);
-        if (key) terms.set(key, (terms.get(key) || 0) + 1);
-      });
-      return { kind: 'fight-list', top: [...terms.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([term, count]) => ({ term, count })) };
-    }
-    if (question.type === 'hotspot') {
-      const hits = records.filter(record => Number(record?.awardedPoints) > 0).length;
-      return { kind: 'hotspot', hits, total: records.length };
-    }
-    if (question.type === 'buzzer') {
-      return {
-        kind: 'buzzer',
-        total: records.length,
-        winnerId: String(questionResult?.winnerId || ''),
-        winnerName: String(questionResult?.winnerName || ''),
-        contenderId: String(questionResult?.contenderId || ''),
-        contenderName: String(questionResult?.contenderName || ''),
-        status: String(questionResult?.status || 'open')
-      };
-    }
-    return { kind: question.type, count: records.length };
-  }
+  function aggregateStats(question, answers, questionResult) { return Quiz.aggregateStats(question, answers, questionResult); }
 
   class OnlineSessionEngine {
     constructor(code, role, context) {
@@ -511,7 +452,7 @@
       if (!question) throw new Error('Keine Frage verfügbar.');
       if (state.scoredQuestionIds.includes(question.id)) throw new Error('Diese Frage wurde bereits ausgewertet. Bitte zur nächsten Frage wechseln.');
       if (state.questionStartedAt) throw new Error('Diese Frage wurde bereits gestartet. Bitte erst auflösen oder zur nächsten Frage wechseln.');
-      const questionTimer = question.type === 'buzzer' ? 0 : Number(question.timer);
+      const questionTimer = Quiz.hasTimer(question) ? Number(question.timer) : 0;
       const defaultTimer = Number(this.raw.hostQuiz.quiz.settings.defaultTimer);
       const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
       const now = Firebase.serverNow(this.context);
@@ -571,8 +512,8 @@
         const scores = scoresSnap.val() || {};
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
-        let consensusResult = null;
-        if (question.type === 'consensus') consensusResult = Quiz.computeConsensusResult(question, answers);
+        // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
+        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers);
         const buzzerResult = question.type === 'buzzer' ? clone(state.questionResults?.[question.id] || initialBuzzerState(question)) : null;
         const deltas = {};
         const updates = {};
@@ -591,7 +532,7 @@
           Object.keys(profiles).forEach(uid => {
             const submission = answers[uid];
             if (!submission) return;
-            const points = winnerId && uid === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+            const points = winnerId && uid === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 0)) : 0;
             const scoreDetail = uid === winnerId ? 'Schnellste richtige Antwort' : 'Nicht gewertet';
             deltas[uid] = points;
             if (createdWinnerRecord && uid === winnerId) {
@@ -612,13 +553,7 @@
           Object.keys(profiles).forEach(uid => {
             const submission = answers[uid];
             if (!submission) return;
-            let result;
-            if (question.type === 'consensus') {
-              const won = consensusResult.winningOptionIds.includes(String(submission.answer));
-              const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
-              const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
-              result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
-            } else result = Quiz.scoreAnswer(question, submission.answer, multiplier);
+            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult);
             deltas[uid] = Math.round(Number(result.points) || 0);
             updates[`answers/${uid}/${question.id}/awardedPoints`] = deltas[uid];
             updates[`answers/${uid}/${question.id}/scoreDetail`] = String(result.detail || '');
@@ -627,13 +562,13 @@
           });
         }
 
-        const statsSource = question.type === 'buzzer' ? buzzerResult : consensusResult;
+        const statsSource = question.type === 'buzzer' ? buzzerResult : typeResult;
         const statsAnswers = Object.fromEntries(Object.entries(answers).map(([uid, record]) => [uid, Object.assign({}, record, { awardedPoints: deltas[uid] || 0 })]));
         const stats = aggregateStats(question, statsAnswers, statsSource);
         updates[`public/questionOpen`] = false;
         updates[`public/questionEndsAt`] = null;
         updates[`public/currentQuestion`] = clean(publicQuestion(question, true));
-        updates[`public/questionResult`] = question.type === 'buzzer' ? clean(buzzerResult) : (consensusResult ? clean(consensusResult) : null);
+        updates[`public/questionResult`] = question.type === 'buzzer' ? clean(buzzerResult) : (typeResult ? clean(typeResult) : null);
         updates[`public/publicStats`] = clean(stats);
         updates[`public/scoreDeltas`] = clean(deltas);
         updates[`public/resolved/${question.id}`] = true;

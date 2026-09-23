@@ -15,7 +15,7 @@ const base = {
 };
 base.window = base; base.window.addEventListener=()=>{}; base.window.removeEventListener=()=>{}; base.BroadcastChannel = class { postMessage(){} close(){} };
 const ctx=vm.createContext(base);
-load(ctx,'js/core/app.js'); load(ctx,'js/core/quiz-utils.js'); load(ctx,'js/core/session-engine.js');
+load(ctx,'js/core/app.js'); load(ctx,'js/question-types/registry.js'); load(ctx,'js/question-types/kit.js'); ctx.window.SylasphereTypes.files.forEach(f=>load(ctx,`js/question-types/types/${f}.js`)); load(ctx,'js/core/quiz-utils.js'); load(ctx,'js/core/session-engine.js');
 ctx.window.JHQuizFirebase = { serverNow:()=>Date.now(), toLocalTime:(_,v)=>v };
 load(ctx,'js/core/online-session-engine.js');
 

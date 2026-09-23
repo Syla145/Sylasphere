@@ -1,5 +1,15 @@
 # Sylasphere – Changelog
 
+## v14 – Fragetypen als Module
+- **Jeder Fragetyp ist jetzt ein eigenes Modul** in `js/question-types/types/` (11 Dateien). Ein Modul enthält alles zu seinem Typ: Anzeige, Editor-Felder, Prüfung, Punktewertung, Lösungstexte, Statistik und was online vor Spielern verborgen wird.
+- **Neuer Fragetyp = eine Datei + eine Zeile** in `js/question-types/registry.js`. Anleitung und Vorlage: `js/question-types/README.md`.
+- Gemeinsame Bausteine (Antwort-Kacheln, Options-Editor, Statistik) liegen in `js/question-types/kit.js`.
+- „Gleich gedacht“ nutzt einen allgemeinen Auswertungsschritt (`resolve`) statt Sonderlogik in den Spiel-Engines.
+- Verhalten unverändert: Normalisierung, Prüfung, Punkte, Lösungstexte, Online-Filter und Statistik wurden für alle Beispiel-Quizze gegen v13 verglichen und sind identisch.
+- Kleine Korrektur: Bei „Gleich gedacht“ und Buzzer führte ein Runden-Multiplikator von 0 bisher trotzdem zu vollen Punkten. Jetzt gilt 0 wie bei allen anderen Typen.
+- Fix: „🔒 Sperren“ funktioniert jetzt auch, wenn die Moderatorseite mit gespeichertem Code automatisch freigeschaltet wurde.
+- Neuer Test `tests/v14-type-modules.js`: prüft alle Module und spielt einen neuen Test-Fragetyp komplett durch.
+
 ## v13 – Moderator-Code & flüssigere Spieleransicht
 - **Moderator-Code:** Die Moderatorseite ist jetzt mit einem Code geschützt. Online prüft Firebase den Code selbst (`config/moderatorKeys`, für niemanden lesbar). Nur freigeschaltete Moderatoren können Online-Räume anlegen. Einrichtung siehe `FIREBASE_SETUP.md`, Code erzeugen mit `tools/moderator-code.html`. Der Code bleibt auf dem Gerät gespeichert, „🔒 Sperren“ in der Kopfzeile meldet ab.
 - **Spieleransicht:** Die Frage wird nur noch neu gezeichnet, wenn sich für den Spieler etwas ändert (neue Frage, Phase, Buzzer-Status). Antworten anderer Spieler unterbrechen das Tippen in Textfeldern (Aufzählfrage, Text-Buzzer) und das Ziehen am Schätz-Regler nicht mehr.

@@ -171,7 +171,7 @@
         if (!question) throw new Error('Keine Frage verfügbar.');
         if (state.scoredQuestionIds?.includes(question.id)) throw new Error('Diese Frage wurde bereits ausgewertet. Bitte zur nächsten Frage wechseln.');
         if (state.questionStartedAt) throw new Error('Diese Frage wurde bereits gestartet. Bitte erst auflösen oder zur nächsten Frage wechseln.');
-        const questionTimer = question.type === 'buzzer' ? 0 : Number(question.timer);
+        const questionTimer = Quiz.hasTimer(question) ? Number(question.timer) : 0;
         const defaultTimer = Number(state.quiz.quiz.settings.defaultTimer);
         const duration = Math.max(0, Number.isFinite(questionTimer) ? questionTimer : (Number.isFinite(defaultTimer) ? defaultTimer : 0));
         state.status = 'playing';
@@ -203,11 +203,9 @@
         const answers = state.answers[question.id] || {};
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
-        let consensusResult = null;
-        if (question.type === 'consensus') {
-          consensusResult = Quiz.computeConsensusResult(question, answers);
-          state.questionResults[question.id] = consensusResult;
-        }
+        // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
+        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers);
+        if (typeResult) state.questionResults[question.id] = typeResult;
         if (question.type === 'buzzer') {
           const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
           const winnerId = String(result.contenderId || '');
@@ -216,7 +214,7 @@
           state.players.forEach(player => {
             const submission = answers[player.id];
             if (!submission) return;
-            const points = winnerId && player.id === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
+            const points = winnerId && player.id === winnerId ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 0)) : 0;
             submission.awardedPoints = points;
             submission.scoreDetail = player.id === winnerId ? 'Schnellste richtige Antwort' : 'Nicht gewertet';
             submission.scoredAt = Date.now();
@@ -232,15 +230,7 @@
           state.players.forEach(player => {
             const submission = answers[player.id];
             if (!submission) return;
-            let result;
-            if (question.type === 'consensus') {
-              const won = consensusResult.winningOptionIds.includes(String(submission.answer));
-              const points = won ? Math.round(Math.max(0, Number(question.points) || 0) * Math.max(0, Number(multiplier) || 1)) : 0;
-              const tie = consensusResult.winningOptionIds.length > 1 ? ' · Gleichstand' : '';
-              result = { points, detail: won ? `Mehrheit getroffen · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` : `Nicht in der Mehrheit · ${consensusResult.maxVotes}/${consensusResult.totalVotes} Stimmen${tie}` };
-            } else {
-              result = Quiz.scoreAnswer(question, submission.answer, multiplier);
-            }
+            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult);
             submission.awardedPoints = result.points;
             submission.scoreDetail = result.detail;
             submission.scoredAt = Date.now();

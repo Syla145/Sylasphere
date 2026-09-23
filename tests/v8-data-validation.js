@@ -4,7 +4,7 @@ const ok=(c,m)=>{if(c)pass++;else{fail++;console.error('FAIL',m)}};
 class Store{constructor(){this.m=new Map()}getItem(k){return this.m.get(k)||null}setItem(k,v){this.m.set(k,String(v))}removeItem(k){this.m.delete(k)}}
 const base={console,JSON,Math,Date,Number,String,Array,Object,Map,Set,Promise,Intl,crypto,localStorage:new Store(),sessionStorage:new Store(),setInterval:()=>0,clearInterval(){},setTimeout,clearTimeout,window:null,document:{addEventListener(){},querySelectorAll(){return[]}},location:{search:''},URLSearchParams};base.window=base;base.window.addEventListener=()=>{};base.window.removeEventListener=()=>{};
 const ctx=vm.createContext(base);const load=f=>vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
-load('js/core/app.js');load('js/core/quiz-utils.js');load('js/core/quiz-validator.js');
+load('js/core/app.js');load('js/question-types/registry.js');load('js/question-types/kit.js');ctx.window.SylasphereTypes.files.forEach(f=>load(`js/question-types/types/${f}.js`));load('js/core/quiz-utils.js');load('js/core/quiz-validator.js');
 const Quiz=ctx.window.SchmobinQuiz,Validator=ctx.window.SchmobinValidator;
 const list=JSON.parse(fs.readFileSync(path.join(root,'data/quiz-list.json'),'utf8'));const entries=Array.isArray(list)?list:list.quizzes||[];
 ok(entries.length>=4,'quiz list contains reference quizzes');

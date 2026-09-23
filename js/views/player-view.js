@@ -13,7 +13,8 @@
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
 
-  function init() {
+  async function init() {
+    await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
     ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar'].forEach(id => els[id] = document.getElementById(id));
     els['game-question'].addEventListener('quiz:interaction-end', () => { if (deferredState) render(deferredState); });
     const code = (App.getParam('code') || Session.lastCode() || Online?.lastCode?.() || '').toUpperCase(); if (code) els['room-code'].value = code;
@@ -159,7 +160,7 @@
       renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: true, result: questionResult });
       els['submit-answer'].hidden = true;
       const correct = Quiz.correctAnswerText(current.question, questionResult); const points = answerRecord?.awardedPoints;
-      const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+      const label = Quiz.solutionLabel(current.question);
       els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : '<div class="notice">Keine Antwort abgegeben.</div>'}`;
     }
   }

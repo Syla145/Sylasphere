@@ -123,7 +123,6 @@
     const input = document.getElementById('moderator-code');
     const error = document.getElementById('moderator-gate-error');
     const submit = form.querySelector('button[type="submit"]');
-    document.getElementById('btn-lock-moderator')?.addEventListener('click', lock);
     form.addEventListener('submit', async event => {
       event.preventDefault();
       error.textContent = '';
@@ -140,6 +139,8 @@
   }
 
   async function init() {
+    // Sperren-Knopf immer verbinden – auch wenn automatisch mit gespeichertem Code freigeschaltet wird
+    document.getElementById('btn-lock-moderator')?.addEventListener('click', lock);
     const saved = storedCode();
     if (saved && await matchesLocal(saved)) { setUnlocked(saved); return; }
     if (saved) {

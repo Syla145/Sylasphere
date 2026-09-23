@@ -20,6 +20,7 @@
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
+    await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
     ['quiz-select','quiz-summary','quiz-import','create-session','create-online-session','firebase-status','setup-panel','session-panel','session-code','session-status','session-mode','transport-hint','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-resolve-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
     bind();
     if (Gate) await Gate.whenUnlocked();
@@ -276,12 +277,11 @@
     const questionResult = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
-    // Hotspot: Zielbereich für den Moderator immer auf dem Bild markieren.
-    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved || current.question.type === 'hotspot', result: questionResult });
+    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult });
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length; const total = state.players.length;
     const correct = resolved ? Quiz.correctAnswerText(current.question, questionResult) : '';
-    const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+    const label = Quiz.solutionLabel(current.question);
 
     if (current.question.type === 'buzzer') {
       const buzzer = questionResult && questionResult.kind === 'buzzer' ? questionResult : { status: state.questionOpen ? 'open' : 'idle', eliminatedIds: [] };
@@ -311,12 +311,10 @@
   // Lösung dauerhaft für den Moderator – vor, während und nach der Frage (Spieler sehen sie erst bei der Auflösung).
   function moderatorSolution(question, result, withQuestion = false) {
     if (!question) return '';
-    const label = question.type === 'survey' ? 'Top-Antwort' : question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
-    const text = question.type === 'hotspot' ? 'Grün markiert auf dem Bild' : question.type === 'consensus'
-      ? 'Keine feste Lösung – die Mehrheit der Spielerantworten entscheidet.'
-      : Quiz.correctAnswerText(question, result) || '–';
-    const extra = question.type === 'estimate' && question.tolerance != null
-      ? `<small>Toleranz: ±${App.escapeHTML(String(question.tolerance))}${question.toleranceMode === 'percent' ? ' %' : (question.unit ? ` ${App.escapeHTML(question.unit)}` : '')}</small>` : '';
+    // Text und Zusatzinfo (z. B. Toleranz) liefert das Fragetyp-Modul
+    const label = Quiz.solutionLabel(question);
+    const { text, extra: extraText } = Quiz.moderatorSolution(question, result);
+    const extra = extraText ? `<small>${App.escapeHTML(extraText)}</small>` : '';
     const preview = withQuestion && question.text ? `<small class="moderator-solution-question">${App.escapeHTML(question.text)}</small>` : '';
     return `<div class="reveal-box moderator-solution"><span>🔒 ${label} · nur für dich sichtbar</span>${preview}<strong>${App.escapeHTML(text)}</strong>${extra}</div>`;
   }

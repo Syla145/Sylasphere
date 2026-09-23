@@ -12,7 +12,8 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  function init() {
+  async function init() {
+    await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
     ['spectator-connect','spectator-code-input','spectator-connect-btn','spectator-error','spectator-live','spectator-code','spectator-status','spectator-mode','spectator-progress','spectator-timer','spectator-question','spectator-stats','spectator-leaderboard'].forEach(id => els[id] = document.getElementById(id));
     els['spectator-connect-btn'].addEventListener('click', () => connect(els['spectator-code-input'].value));
     els['spectator-code-input'].addEventListener('keydown', e => { if (e.key === 'Enter') connect(e.currentTarget.value); });
@@ -100,50 +101,18 @@
     if (pendingReveal) html += '<div class="notice notice--warning reveal-wait"><strong>Antworten geschlossen</strong><span>Die Auflösung folgt durch den Moderator.</span></div>';
     if (resolved) {
       const solution = Quiz.correctAnswerText(current.question, result) || '–';
-      const label = current.question.type === 'consensus' ? 'Mehrheit' : current.question.type === 'survey' ? 'Top-Antwort' : current.question.type === 'hotspot' ? 'Zielbereich' : 'Lösung';
+      const label = Quiz.solutionLabel(current.question);
       html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(solution)}</strong></div>`;
       html += stats(current.question, answers, result);
     }
     els['spectator-stats'].innerHTML = html;
   }
 
+  // Statistik kommt aus dem Fragetyp-Modul (online bereits vom Moderator berechnet)
   function stats(q, answers, result) {
-    const remote = state.online ? state.publicStats : null;
-    if (remote) {
-      if (remote.kind === 'choice') {
-        const counts = remote.counts || {}; const max = Math.max(1, ...Object.values(counts).map(Number));
-        return `<div class="stat-bars">${(q.options || []).map(o => `<div><span>${App.escapeHTML(o.text)}</span><div class="bar"><i style="width:${Math.round((Number(counts[o.id]) || 0) / max * 100)}%"></i></div><b>${Number(counts[o.id]) || 0}</b></div>`).join('')}</div>`;
-      }
-      if (remote.kind === 'estimate' && Number(remote.count) > 0) return `<div class="stat-cards"><div><span>Ø Schätzung</span><strong>${Number(Number(remote.average).toFixed(1))}${q.unit ? ` ${App.escapeHTML(q.unit)}` : ''}</strong></div><div><span>Spanne</span><strong>${remote.min}–${remote.max}</strong></div></div>`;
-      if (remote.kind === 'fight-list') return `<div class="chip-row large">${(remote.top || []).map(item => `<span class="chip">${App.escapeHTML(item.term)} <b>${item.count}×</b></span>`).join('')}</div>`;
-      if (remote.kind === 'hotspot') return `<div class="stat-cards"><div><span>Treffer</span><strong>${remote.hits || 0}/${remote.total || 0}</strong></div><div><span>Trefferquote</span><strong>${remote.total ? Math.round((remote.hits || 0) / remote.total * 100) : 0}%</strong></div></div>`;
-      return '';
-    }
-
-    const values = Object.values(answers).map(a => a.answer);
-    if (!values.length) return '';
-    if (['multiple-choice', 'image-quiz', 'audio-quiz', 'survey', 'consensus'].includes(q.type)) {
-      const counts = result?.counts || Object.fromEntries((q.options || []).map(o => [o.id, 0]));
-      if (!result?.counts) values.forEach(v => { const key = String(v); if (Object.prototype.hasOwnProperty.call(counts, key)) counts[key] += 1; });
-      const max = Math.max(1, ...Object.values(counts));
-      return `<div class="stat-bars">${(q.options || []).map(o => `<div><span>${App.escapeHTML(o.text)}</span><div class="bar"><i style="width:${Math.round((counts[o.id] || 0) / max * 100)}%"></i></div><b>${counts[o.id] || 0}</b></div>`).join('')}</div>`;
-    }
-    if (q.type === 'estimate') {
-      const nums = values.map(Number).filter(Number.isFinite); if (!nums.length) return '';
-      const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-      return `<div class="stat-cards"><div><span>Ø Schätzung</span><strong>${Number(avg.toFixed(1))}${q.unit ? ` ${App.escapeHTML(q.unit)}` : ''}</strong></div><div><span>Spanne</span><strong>${Math.min(...nums)}–${Math.max(...nums)}</strong></div></div>`;
-    }
-    if (q.type === 'fight-list') {
-      const map = new Map();
-      values.flatMap(v => Array.isArray(v) ? v : []).forEach(x => { const k = Quiz.normalizeTerm(x); if (k) map.set(k, (map.get(k) || 0) + 1); });
-      const top = [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-      return `<div class="chip-row large">${top.map(([t, n]) => `<span class="chip">${App.escapeHTML(t)} <b>${n}×</b></span>`).join('')}</div>`;
-    }
-    if (q.type === 'hotspot') {
-      const records = Object.values(answers); const hits = records.filter(record => Number(record.awardedPoints) > 0).length;
-      return `<div class="stat-cards"><div><span>Treffer</span><strong>${hits}/${records.length}</strong></div><div><span>Trefferquote</span><strong>${records.length ? Math.round(hits / records.length * 100) : 0}%</strong></div></div>`;
-    }
-    return '';
+    if (state.online) return Quiz.statsHTML(q, state.publicStats);
+    if (!Object.keys(answers || {}).length) return '';
+    return Quiz.statsHTML(q, Quiz.aggregateStats(q, answers, result));
   }
 
   function finalPodium(ranked) {
