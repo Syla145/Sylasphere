@@ -32,7 +32,9 @@
     score(q, answer, { base }) {
       const x = Number(answer?.x); const y = Number(answer?.y);
       if (!Number.isFinite(x) || !Number.isFinite(y)) return { points: 0, detail: '' };
-      const distance = Math.hypot(x - Number(q.targetX), y - Number(q.targetY));
+      // v24: Radius in % der Bildbreite; Höhe über das Seitenverhältnis umrechnen → echter Kreis, auf jedem Gerät gleich
+      const ratio = Number(q.imageRatio) > 0 ? Number(q.imageRatio) : (Number(answer?.r) > 0 ? Number(answer.r) : 1);
+      const distance = Math.hypot(x - Number(q.targetX), (y - Number(q.targetY)) * ratio);
       const hit = distance <= Number(q.radius);
       return { points: hit ? base : 0, detail: `${hit ? 'Treffer' : 'Daneben'} · Abstand ${Number(distance.toFixed(1))}%` };
     },
@@ -57,7 +59,11 @@
       }
       const stage = el('div', `hotspot-stage${ctx.readOnly ? ' is-readonly' : ''}`);
       const img = document.createElement('img'); img.src = src; img.alt = q.imageAlt || 'Hotspot-Bild'; img.draggable = false;
+      const ratioOf = () => (img.naturalWidth && img.naturalHeight ? img.naturalHeight / img.naturalWidth : (Number(q.imageRatio) || 1));
       stage.append(img);
+      const fit = () => stage.style.setProperty('--hs-ratio', String(ratioOf()));
+      if (Number(q.imageRatio) > 0) fit();
+      img.addEventListener('load', fit);
       let answer = ctx.currentAnswer && typeof ctx.currentAnswer === 'object' ? { x: Number(ctx.currentAnswer.x), y: Number(ctx.currentAnswer.y) } : null;
       const answerMarker = el('span', 'hotspot-marker hotspot-marker--answer');
       const placeAnswer = point => {
@@ -69,7 +75,7 @@
       if (ctx.reveal) {
         const zone = el('span', 'hotspot-zone');
         zone.style.left = `${q.targetX}%`; zone.style.top = `${q.targetY}%`;
-        zone.style.width = `${q.radius * 2}%`; zone.style.height = `${q.radius * 2}%`;
+        zone.style.width = `${q.radius * 2}%`; // Höhe folgt über aspect-ratio → Kreis
         const target = el('span', 'hotspot-marker hotspot-marker--target');
         target.style.left = `${q.targetX}%`; target.style.top = `${q.targetY}%`;
         stage.append(zone, target);
@@ -80,7 +86,8 @@
           const rect = stage.getBoundingClientRect();
           const point = {
             x: Number(Kit.clamp((event.clientX - rect.left) / rect.width * 100, 0, 100).toFixed(2)),
-            y: Number(Kit.clamp((event.clientY - rect.top) / rect.height * 100, 0, 100).toFixed(2))
+            y: Number(Kit.clamp((event.clientY - rect.top) / rect.height * 100, 0, 100).toFixed(2)),
+            r: Number(ratioOf().toFixed(4))
           };
           placeAnswer(point); ctx.onAnswer?.(point);
         });
@@ -109,12 +116,19 @@
       const zone = div('hotspot-zone');
       const target = div('hotspot-marker hotspot-marker--target');
       stage.append(previewImage, zone, target);
+      // Seitenverhältnis merken, damit der Treffer-Kreis auf allen Geräten gleich groß ist
+      previewImage.addEventListener('load', () => {
+        if (!previewImage.naturalWidth) return;
+        const ratio = Number((previewImage.naturalHeight / previewImage.naturalWidth).toFixed(4));
+        stage.style.setProperty('--hs-ratio', String(ratio));
+        if (ratio !== Number(q.imageRatio)) { q.imageRatio = ratio; ui.queueSave(); }
+      });
 
       const syncPreview = () => {
         const x = Kit.clamp(Number(q.targetX) || 0, 0, 100);
         const y = Kit.clamp(Number(q.targetY) || 0, 0, 100);
         const radius = Kit.clamp(Number(q.radius) || 1, 1, 50);
-        zone.style.left = `${x}%`; zone.style.top = `${y}%`; zone.style.width = `${radius * 2}%`; zone.style.height = `${radius * 2}%`;
+        zone.style.left = `${x}%`; zone.style.top = `${y}%`; zone.style.width = `${radius * 2}%`;
         target.style.left = `${x}%`; target.style.top = `${y}%`;
         const src = App.sanitizeURL(q.image || '');
         zone.hidden = target.hidden = !src;

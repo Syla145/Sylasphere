@@ -31,7 +31,7 @@
   }
 
   function renderAvatars() {
-    const avatars = ['🦊','🐼','🦁','🐸','🐙','🦄','🤖','👾','🐧','🦖'];
+    const avatars = ['🦊','🐼','🦁','🐸','🐙','🦄','🤖','👾','🐧','🦖','🐐','🐻','🐯','🐵','🦉','🐢'];
     els['avatar-options'].innerHTML = avatars.map((a,i)=>`<button type="button" class="avatar-choice ${i===0?'is-selected':''}" data-avatar="${a}">${a}</button>`).join('');
     els['avatar-options'].addEventListener('click', e => {
       const b=e.target.closest('.avatar-choice'); if(!b)return; els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x=>x.classList.toggle('is-selected',x===b));
@@ -137,8 +137,9 @@
     if (!current.question) { els['game-question'].innerHTML = '<div class="empty-state">Warte auf die nächste Frage.</div>'; return; }
     if (!state.questionStartedAt) {
       App.setText(els['game-status'], 'Bereit');
-      const lastSummary = state.roundSummaries?.[state.roundSummaries.length - 1];
-      const previous = lastSummary && lastSummary.roundId !== current.round?.id ? lastSummary : null;
+      // v24: Zwischenstand immer live aus der aktuellen Rangliste (gespeicherte Runden-Stände konnten veraltet sein)
+      const leader = state.players.slice().sort((a, b) => (b.score || 0) - (a.score || 0))[0];
+      const previous = leader && leader.score > 0 ? { standings: [{ name: leader.name, score: leader.score }] } : null;
       els['game-question'].innerHTML = `<div class="round-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.topic(current.question.category).icon}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Thema')}</h2><p>${Quiz.TYPE_ICONS[current.question.type] || '•'} ${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte</p>${previous?.standings?.[0] ? `<div class="round-leader">Zwischenstand: <strong>${App.escapeHTML(previous.standings[0].name)}</strong> führt mit ${App.formatPoints(previous.standings[0].score)}</div>` : ''}</div>`;
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
@@ -167,10 +168,15 @@
       els['answer-feedback'].innerHTML = `<div class="notice notice--success">🔒 Antwort abgegeben${at ? ` in Stufe ${(Number(answerRecord.answer?.stage) || 0) + 1} (${at.percent} % der Punkte)` : ''}. Der Moderator prüft sie bei der Auflösung.</div>`;
     } else if (answerWindowOpen) {
       App.setText(els['game-status'], 'Frage läuft');
-      renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, stage, onAnswer: value => { draftAnswer = value; updateSubmit(); } });
-      els['submit-answer'].hidden = false; els['submit-answer'].disabled = draftAnswer == null;
-      els['submit-answer'].textContent = stages ? `Abschicken · ${stages[Math.min(stages.length - 1, stage)].percent} %` : (answerRecord ? 'Antwort aktualisieren' : 'Antwort abschicken');
-      els['answer-feedback'].innerHTML = answerRecord ? '<div class="notice notice--success">✓ Antwort gespeichert. Du kannst sie bis zum Ablauf des Timers noch ändern.</div>' : (stages ? '<div class="notice">Du kannst nur einmal abschicken – danach ist deine Antwort gesperrt.</div>' : '');
+      // v24: Ohne „Abschicken“ – jede Änderung wird automatisch gespeichert; was beim Zeitablauf drinsteht, zählt.
+      // Ausnahme: Fragen, deren Antwort nach dem Abschicken gesperrt wird (Song-Enthüllung mit Stufen).
+      const manual = Quiz.locksOnSubmit(current.question);
+      renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, stage, onAnswer: value => { draftAnswer = value; updateSubmit(); if (!manual) scheduleAutoSave(current.question.id); } });
+      els['submit-answer'].hidden = !manual; els['submit-answer'].disabled = draftAnswer == null;
+      els['submit-answer'].textContent = stages ? `Abschicken · ${stages[Math.min(stages.length - 1, stage)].percent} %` : 'Antwort abschicken';
+      els['answer-feedback'].innerHTML = manual
+        ? '<div class="notice">Du kannst nur einmal abschicken – danach ist deine Antwort gesperrt.</div>'
+        : `<div class="notice autosave-note${answerRecord ? ' is-saved' : ''}">${answerRecord ? '✓ Gespeichert – du kannst bis zum Ende noch ändern.' : '✎ Deine Antwort wird automatisch gespeichert. Was beim Zeitablauf drinsteht, zählt.'}</div>`;
     } else if (!resolved) {
       App.setText(els['game-status'], 'Antworten geschlossen');
       renderQuestion(current.question, { currentAnswer: answerRecord?.answer ?? draftAnswer, readOnly: true, reveal: false, result: questionResult, stage });
@@ -213,7 +219,9 @@
     host.dataset.renderKey = `duel:${q.id}`;
     Renderers.renderPlayer(q, host, {
       readOnly: resolved, reveal: resolved, result: questionResult, game, players: state.players, playerId, role: 'player',
-      onGuess: text => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { text, pos: Number(state.game.pos) || 0 })).catch(error => App.toast(error.message, 'error')); }
+      onGuess: text => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { text, pos: Number(state.game.pos) || 0 })).catch(error => App.toast(error.message, 'error')); },
+      // v24: Spieler kann selbst passen (beide Modi) – der Moderator-Rechner verarbeitet es
+      onPass: () => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { pass: true, pos: Number(state.game.pos) || 0, at: Date.now() })).catch(error => App.toast(error.message, 'error')); }
     });
     els['submit-answer'].hidden = true;
     if (!resolved) {
@@ -281,6 +289,31 @@
     const me = ranked.find(p => p.id === playerId);
     return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}</div>`;
   }
+
+  // Automatisches Speichern (kurz verzögert, damit Tippen/Regler nicht jede Millisekunde senden)
+  let autoSaveTimer = null, autoSaveQuestion = '', lastSaved = '';
+  function scheduleAutoSave(questionId) {
+    autoSaveQuestion = questionId;
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(autoSave, 450);
+  }
+  async function autoSave() {
+    if (!engine || !state) return;
+    const current = engine.getCurrent(state);
+    if (!current.question || current.question.id !== autoSaveQuestion || draftAnswer == null) return;
+    if (!state.questionOpen || (state.questionEndsAt && Date.now() > Number(state.questionEndsAt) + 400)) return;
+    const serialized = JSON.stringify([current.question.id, draftAnswer]);
+    if (serialized === lastSaved) return;
+    try {
+      const ok = await engine.submitAnswer(playerId, draftAnswer);
+      if (ok) lastSaved = serialized;
+    } catch (error) { console.warn('Automatisches Speichern fehlgeschlagen', error); }
+  }
+  // Kurz vor Zeitablauf den letzten Stand sicher senden
+  setInterval(() => {
+    if (!autoSaveTimer || !state?.questionEndsAt || !state.questionOpen) return;
+    if (Number(state.questionEndsAt) - Date.now() < 700) { clearTimeout(autoSaveTimer); autoSave(); }
+  }, 250);
 
   function updateSubmit(){
     const current = engine?.getCurrent(state);

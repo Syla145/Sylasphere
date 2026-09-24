@@ -9,6 +9,10 @@
    * - Browser erlauben Ton erst nach einer Berührung/einem Klick auf der Seite.
    *   Jede Interaktion entsperrt automatisch; sonst zeigt die Oberfläche „🔊 Ton aktivieren“.
    * - Pro Gerät stummschaltbar (z. B. Moderator, der über Discord streamt).
+   * - v24: Lautstärke wird pro Datei angeglichen (RMS → Ziel-Pegel), dazu ein
+   *   Lautstärke-Regler pro Frage (clip.volume, Standard 70 %) und ein Limiter.
+   *   Ausschnitte können Stille am Anfang überspringen (clip.skipSilence), damit
+   *   auch 0,1-s-Stufen hörbar sind.
    * - sync(media, question): Der Moderator schreibt einen Abspiel-Befehl mit eindeutiger
    *   Nummer (nonce) in den Spielstand; jedes Gerät spielt ihn genau einmal ab.
    */
@@ -28,7 +32,11 @@
     if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain();
-    master.connect(ctx.destination);
+    // Limiter gegen Übersteuern (sehr laute Songs)
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -10; limiter.knee.value = 6; limiter.ratio.value = 12;
+    limiter.attack.value = 0.003; limiter.release.value = 0.2;
+    master.connect(limiter).connect(ctx.destination);
     ctx.onstatechange = notify;
     return ctx;
   }
@@ -73,6 +81,33 @@
     return buffers.get(href);
   }
 
+  /* ---------- Pegel-Analyse (einmal pro Datei) ---------- */
+  const TARGET_RMS = 0.12;     // ca. -18 dBFS
+  const SILENCE = 0.02;        // alles darunter gilt als Stille
+  const analysis = new WeakMap();
+  function analyse(buffer) {
+    if (analysis.has(buffer)) return analysis.get(buffer);
+    let sum = 0, count = 0;
+    const channels = Math.min(buffer.numberOfChannels, 2);
+    for (let c = 0; c < channels; c += 1) {
+      const data = buffer.getChannelData(c);
+      for (let i = 0; i < data.length; i += 16) { const v = data[i]; if (Math.abs(v) > 0.003) { sum += v * v; count += 1; } }
+    }
+    const rms = count ? Math.sqrt(sum / count) : TARGET_RMS;
+    const result = { rms, gain: Math.max(0.2, Math.min(2, TARGET_RMS / (rms || TARGET_RMS))) };
+    analysis.set(buffer, result);
+    return result;
+  }
+  /** Erste hörbare Stelle ab offset (max. 6 s weiter), sonst offset selbst. */
+  function firstSound(buffer, offset) {
+    const data = buffer.getChannelData(0);
+    const rate = buffer.sampleRate;
+    const from = Math.floor(offset * rate);
+    const to = Math.min(data.length, from + Math.floor(6 * rate));
+    for (let i = from; i < to; i += 1) if (Math.abs(data[i]) > SILENCE) return Math.max(offset, i / rate - 0.01);
+    return offset;
+  }
+
   function stop() {
     if (!current) return;
     try { current.source.stop(); } catch (_) {}
@@ -83,7 +118,7 @@
    * Spielt einen Ausschnitt: offset (s ab Songanfang), duration (s), fade (s Ausblenden am Ende).
    * Liefert true, wenn abgespielt wurde.
    */
-  async function play(url, { offset = 0, duration = 1, fade = 0 } = {}) {
+  async function play(url, { offset = 0, duration = 1, fade = 0, volume = 0.7, skipSilence = false } = {}) {
     if (!enabled()) return false;
     const context = audioContext();
     if (!context) return false;
@@ -91,7 +126,9 @@
     if (!buffer) return false;
     if (context.state !== 'running') { await unlock(); if (context.state !== 'running') { notify(); return false; } }
     stop();
-    const start = Math.max(0, Math.min(Number(offset) || 0, Math.max(0, buffer.duration - 0.05)));
+    let start = Math.max(0, Math.min(Number(offset) || 0, Math.max(0, buffer.duration - 0.05)));
+    if (skipSilence) start = firstSound(buffer, start);
+    const level = analyse(buffer).gain * Math.max(0, Math.min(1, Number(volume ?? 0.7)));
     const length = Math.max(0.02, Math.min(Number(duration) || 0.1, buffer.duration - start));
     const source = context.createBufferSource();
     source.buffer = buffer;
@@ -100,8 +137,8 @@
     const edge = Math.min(0.006, length / 4); // winzige Rampen verhindern Knacken
     const fadeOut = Math.max(edge, Math.min(Number(fade) || 0, length / 2));
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(1, now + edge);
-    gain.gain.setValueAtTime(1, now + length - fadeOut);
+    gain.gain.linearRampToValueAtTime(level, now + edge);
+    gain.gain.setValueAtTime(level, now + length - fadeOut);
     gain.gain.linearRampToValueAtTime(0, now + length);
     source.connect(gain).connect(master);
     source.start(now, start, length);

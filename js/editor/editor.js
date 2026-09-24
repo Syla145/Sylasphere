@@ -448,7 +448,7 @@
     // den Typ der letzten Frage dieser Runde (sonst Multiple Choice) und lassen sich dort umstellen.
     const addButton = button('+ Frage', 'btn btn--small btn--primary', () => {
       const lastType = round.questions[round.questions.length - 1]?.type;
-      round.questions.push(newQuestion(Quiz.SUPPORTED_TYPES.includes(lastType) ? lastType : Quiz.SUPPORTED_TYPES[0]));
+      round.questions.push(newQuestion(usableType(lastType)));
       structuralChange();
     });
     addButton.title = 'Neue Frage zu dieser Runde hinzufügen';
@@ -466,13 +466,18 @@
     return card;
   }
 
+  // v24: ausgeblendete Typen (z. B. Higher/Lower) nicht für neue Fragen übernehmen
+  function usableType(type) {
+    return Quiz.SUPPORTED_TYPES.includes(type) && !Quiz.typeDef(type)?.hidden ? type : Quiz.SUPPORTED_TYPES[0];
+  }
+
   // v23: Neue Frage direkt unter einer Frage einfügen (gleicher Typ + Thema) – kein Hochscrollen mehr nötig
   let scrollToQuestion = '';
   function insertBar(ri, index, previous) {
     const bar = div('insert-bar');
     const round = state.quiz.rounds[ri];
     const addQuestion = button('+ Frage hier einfügen', 'btn btn--small', () => {
-      const type = Quiz.SUPPORTED_TYPES.includes(previous?.type) ? previous.type : Quiz.SUPPORTED_TYPES[0];
+      const type = usableType(previous?.type);
       const q = newQuestion(type);
       if (previous?.category) q.category = previous.category;
       round.questions.splice(index, 0, q);
@@ -516,6 +521,7 @@
 
     const type = document.createElement('select'); type.className = 'select';
     Quiz.SUPPORTED_TYPES.forEach(t => {
+      if (Quiz.typeDef(t)?.hidden && t !== q.type) return; // ausgeblendete Typen nur zeigen, wenn schon gewählt
       const o = document.createElement('option'); o.value = t; o.textContent = `${Quiz.TYPE_ICONS[t] || '•'} ${Quiz.TYPE_LABELS[t]}`; o.selected = t === q.type; type.append(o);
     });
     type.addEventListener('change', e => changeQuestionType(ri, qi, e.target.value));

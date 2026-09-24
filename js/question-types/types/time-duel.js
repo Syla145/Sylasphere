@@ -173,7 +173,7 @@
    * Idempotent: wird bei jeder Zustandsänderung erneut aufgerufen und aktualisiert nur,
    * was sich geändert hat (Eingabefeld behält den Fokus). Eine eigene Schleife lässt
    * die Uhr des aktiven Spielers flüssig laufen.
-   * ctx: { game, players, playerId, role, reveal, result, onGuess(text) }
+   * ctx: { game, players, playerId, role, reveal, result, onGuess(text), onPass() }
    */
   function render(q, container, ctx) {
     let root = container.querySelector(`.duel[data-qid="${CSS.escape(String(q.id))}"]`);
@@ -185,6 +185,7 @@
         <div class="duel-stage"><div class="duel-image"></div><div class="duel-overlay" hidden></div></div>
         <div class="duel-turn"></div>
         <form class="duel-guess" hidden autocomplete="off"><input class="input" maxlength="80" placeholder="Was ist auf dem Bild?" enterkeyhint="send" autocapitalize="off" autocorrect="off" spellcheck="false"><button class="btn btn--primary" type="submit">Raten</button></form>
+        <button type="button" class="btn duel-pass duel-self-pass" hidden>⏭ Passen</button>
         <div class="duel-clocks"></div>`;
       wrap.append(root);
       container.replaceChildren(wrap);
@@ -196,6 +197,12 @@
         if (!text) return;
         root._ctx?.onGuess?.(text);
         input.value = '';
+      });
+      const passButton = root.querySelector('.duel-self-pass');
+      passButton.addEventListener('click', () => {
+        if (passButton.disabled) return;
+        passButton.disabled = true; // Doppeltipp verhindern – wird beim nächsten Bild wieder aktiv
+        root._ctx?.onPass?.();
       });
     }
     root._ctx = ctx;
@@ -256,6 +263,12 @@
         : `<span class="duel-now"><b>${esc(name(game.active))}</b> ist dran</span>${guessNote}`;
     } else turn.innerHTML = '';
     const showForm = Boolean(myTurn && typed && ctx.onGuess && !ctx.readOnlyGuess);
+    const passButton = root.querySelector('.duel-self-pass');
+    const showPass = Boolean(myTurn && ctx.onPass && !ctx.readOnlyGuess);
+    passButton.hidden = !showPass;
+    const passKey = `${game?.pos}|${game?.active}`;
+    if (passButton.dataset.key !== passKey) { passButton.dataset.key = passKey; passButton.disabled = false; }
+    passButton.innerHTML = `⏭ Passen <small>−${fmt(penaltyMs(q))} s</small>`;
     if (form.hidden === showForm) {
       form.hidden = !showForm;
       if (showForm) setTimeout(() => { const field = form.querySelector('input'); field?.focus(); field?.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 30);

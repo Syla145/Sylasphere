@@ -114,6 +114,8 @@
       q.cover = String(q.cover ?? q.coverImage ?? '');
       q.revealStart = Math.max(0, Kit.numberOr(q.revealStart, q.clipStart));
       q.revealDuration = Math.max(1, Math.min(60, Kit.numberOr(q.revealDuration, 12)));
+      q.volume = Math.max(5, Math.min(100, Kit.numberOr(q.volume, 70)));        // v24: Lautstärke in %
+      q.skipSilence = q.skipSilence !== false && q.skipSilence !== 'false';      // v24: Stille am Anfang überspringen
     },
 
     validate(q, report) {
@@ -134,9 +136,10 @@
     stages: q => stagesOf(q).map(s => Object.assign({}, s)),
 
     mediaClip(q, media) {
-      if (media.kind === 'reveal') return { url: q.audio, offset: q.revealStart, duration: q.revealDuration, fade: 1.5 };
+      const volume = Kit.numberOr(q.volume, 70) / 100;
+      if (media.kind === 'reveal') return { url: q.audio, offset: q.revealStart, duration: q.revealDuration, fade: 1.5, volume };
       const stage = stageInfo(q, media.stage);
-      return { url: q.audio, offset: q.clipStart, duration: stage.duration, fade: 0 };
+      return { url: q.audio, offset: q.clipStart, duration: stage.duration, fade: 0, volume, skipSilence: q.skipSilence !== false };
     },
 
     reviewParts: q => (q.guessArtist ? [{ key: 'title', label: 'Titel' }, { key: 'artist', label: 'Interpret' }] : null),
@@ -215,7 +218,7 @@
 
     editor(q, ui, box) {
       const { div, input, button, labelField } = ui;
-      const test = (offset, duration, fade = 0) => { Media()?.unlock(); Media()?.play(q.audio, { offset, duration, fade }); };
+      const test = (offset, duration, fade = 0, snippet = true) => { Media()?.unlock(); Media()?.play(q.audio, { offset, duration, fade, volume: (q.volume ?? 70) / 100, skipSilence: snippet && q.skipSilence !== false }); };
       box.append(div('editor-help', 'Die Audiodatei liegt im Repo, z. B. ./assets/songs/song-01.mp3. Benenne sie neutral – Spielergeräte sehen den Dateinamen. Mit ▶ kannst du jeden Ausschnitt hier direkt testen.'));
       const audio = input('text', q.audio || '', 'input'); audio.placeholder = './assets/songs/song-01.mp3';
       audio.addEventListener('input', e => { q.audio = e.target.value; ui.queueSave(); });
@@ -224,6 +227,17 @@
       const g1 = div('dynamic-grid'); g1.append(labelField('Audiodatei', audio), labelField('Ausschnitte starten bei (Sekunde)', clip));
       window.SylasphereMediaLibrary?.enhance(audio, 'audio', { needsCors: true });
       box.append(g1);
+
+      // v24: Lautstärke + Stille überspringen
+      const vol = input('range', q.volume ?? 70, 'range'); vol.min = '5'; vol.max = '100'; vol.step = '5';
+      const volText = div('field-hint', `${q.volume ?? 70} %`);
+      vol.addEventListener('input', e => { q.volume = Number(e.target.value) || 70; volText.textContent = `${q.volume} %`; ui.queueSave(); });
+      const volWrap = div('song-volume'); volWrap.append(vol, volText);
+      const skip = document.createElement('select'); skip.className = 'select';
+      [['true', 'Ja – Ausschnitt beginnt beim ersten Ton'], ['false', 'Nein – genau ab der Startsekunde']].forEach(([value, label]) => { const o = document.createElement('option'); o.value = value; o.textContent = label; o.selected = String(q.skipSilence !== false) === value; skip.append(o); });
+      skip.addEventListener('change', e => { q.skipSilence = e.target.value === 'true'; ui.queueSave(); });
+      const gv = div('dynamic-grid'); gv.append(labelField('Lautstärke (wird zusätzlich automatisch angeglichen)', volWrap), labelField('Stille am Anfang überspringen?', skip));
+      box.append(gv);
 
       const stageBox = div('song-stage-editor');
       stageBox.append(div('field-label', 'Stufen – Länge und Punkte'));
@@ -272,7 +286,7 @@
       const rd = input('number', q.revealDuration ?? 12, 'input'); rd.min = '1'; rd.max = '60'; rd.step = '1';
       rd.addEventListener('input', e => { q.revealDuration = Math.max(1, Math.min(60, Number(e.target.value) || 12)); ui.queueSave(); });
       const g4 = div('dynamic-grid song-reveal-grid');
-      g4.append(labelField('Auflösung spielt ab (Sekunde, z. B. Refrain)', rs), labelField('Länge der Auflösung (s)', rd), button('▶ Auflösung testen', 'btn btn--small', () => test(q.revealStart, q.revealDuration, 1.5)));
+      g4.append(labelField('Auflösung spielt ab (Sekunde, z. B. Refrain)', rs), labelField('Länge der Auflösung (s)', rd), button('▶ Auflösung testen', 'btn btn--small', () => test(q.revealStart, q.revealDuration, 1.5, false)));
       box.append(g4);
     }
   });

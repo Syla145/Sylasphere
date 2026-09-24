@@ -129,40 +129,6 @@
             "pointsPerAnswer": 30,
             "points": 150,
             "timer": 30
-          },
-          {
-            "id": "q_sample_hl",
-            "type": "higher-lower",
-            "category": "Technik",
-            "text": "Hat das jeweils nächste Speichermedium eine höhere oder niedrigere typische Kapazität?",
-            "cards": [
-              {
-                "id": "hl1",
-                "label": "Diskette 3,5 Zoll",
-                "value": 1.44,
-                "unit": "MB"
-              },
-              {
-                "id": "hl2",
-                "label": "CD-ROM",
-                "value": 700,
-                "unit": "MB"
-              },
-              {
-                "id": "hl3",
-                "label": "DVD (Single Layer)",
-                "value": 4812.8,
-                "unit": "MB"
-              },
-              {
-                "id": "hl4",
-                "label": "Blu-ray (Single Layer)",
-                "value": 25600,
-                "unit": "MB"
-              }
-            ],
-            "points": 180,
-            "timer": 30
           }
         ]
       }

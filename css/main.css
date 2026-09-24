@@ -270,6 +270,7 @@ html.moderator-locked #setup-panel,html.moderator-locked #session-panel,html.mod
 .song-control .microcopy{margin:0}
 .song-stage-editor{display:grid;gap:7px;margin:4px 0 10px}
 .song-stage-row{display:grid;grid-template-columns:30px 1fr 1fr auto auto;gap:8px;align-items:end}
+.song-volume{display:flex;align-items:center;gap:10px}.song-volume input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}.song-volume .field-hint{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
 .song-stage-no{height:44px;display:grid;place-items:center;border-radius:10px;background:rgba(var(--accent-rgb),.16);font-weight:850}
 .song-cover-row{display:grid;grid-template-columns:1fr 72px;gap:10px;align-items:end}
 .song-cover-preview{width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
@@ -585,6 +586,7 @@ html[data-theme="pub"] .brand-mark{background:linear-gradient(135deg,#e8a33a,#c7
 .duel-big{min-height:64px;font-size:1.15rem}
 .duel-pass{background:rgba(var(--warning-rgb),.16);border-color:rgba(var(--warning-rgb),.5)}
 .duel-pass small{font-weight:700;opacity:.8}
+.duel-self-pass{display:flex;width:100%;justify-content:center;gap:8px;min-height:52px;font-size:1.05rem;margin-top:8px}.duel-self-pass[hidden]{display:none}
 .duel-secondary{display:flex;flex-wrap:wrap;gap:8px}
 .duel-last-guess{padding:10px 12px;border-radius:12px;background:rgba(var(--danger-rgb),.08);border:1px solid rgba(var(--danger-rgb),.3)}
 .duel-control .microcopy{margin:0}
@@ -649,3 +651,12 @@ html[data-theme="pub"] .brand-mark{background:linear-gradient(135deg,#e8a33a,#c7
 .presenter .lobby-join .join-qr--large .join-qr-code{width:min(360px,40vh);height:min(360px,40vh)}
 @media(max-width:560px){.join-qr--large{flex-direction:column;text-align:center}}
 .join-qr--small .join-qr-text small{display:none}
+
+/* v24 – Hotspot: Bühne exakt so groß wie das Bild (keine Ränder), Treffer-Kreis bleibt rund */
+/* v24: Bühne hat exakt das Seitenverhältnis des Bildes (kein Rand durch object-fit) → Klick-% und Kreis stimmen auf jedem Gerät.
+   --hs-ratio setzt hotspot.js nach dem Laden (Höhe/Breite); die Höhe bleibt über --hs-max begrenzt. */
+.hotspot-stage{--hs-max:430px;width:min(100%, calc(var(--hs-max) / var(--hs-ratio, .0001)));margin-inline:auto}
+.hotspot-stage img{width:100%;max-height:none;height:auto;object-fit:initial}
+.hotspot-editor-stage img{min-height:0;max-height:none}
+@media(max-width:760px){.hotspot-stage{--hs-max:330px}}
+.hotspot-zone{aspect-ratio:1/1;height:auto}

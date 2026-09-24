@@ -236,40 +236,6 @@
         "pointsMultiplier": 2,
         "questions": [
           {
-            "id": "demo_q9",
-            "type": "higher-lower",
-            "category": "Technik",
-            "text": "Ist die jeweils nächste Zahl höher oder niedriger?",
-            "cards": [
-              {
-                "id": "d9c1",
-                "label": "IPv4-Adressraum",
-                "value": 4295,
-                "unit": "Mio."
-              },
-              {
-                "id": "d9c2",
-                "label": "Sekunden pro Jahr",
-                "value": 31.5,
-                "unit": "Mio."
-              },
-              {
-                "id": "d9c3",
-                "label": "Meter pro Erdumfang",
-                "value": 40.1,
-                "unit": "Mio."
-              },
-              {
-                "id": "d9c4",
-                "label": "Bytes in 1 GiB",
-                "value": 1073.7,
-                "unit": "Mio."
-              }
-            ],
-            "points": 180,
-            "timer": 30
-          },
-          {
             "id": "demo_q10",
             "type": "estimate",
             "category": "Sport",

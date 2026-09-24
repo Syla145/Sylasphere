@@ -158,20 +158,21 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ⚖ | Wahr oder falsch | Eine Aussage ist wahr oder falsch |
 | ▣ | Bilderquiz | Bild plus Antwortoptionen |
 | ♪ | Audio-Quiz | Audio-Clip plus Antwortoptionen |
-| 🎧 | Song-Enthüllung | Song in Stufen anspielen (0,1 s → 10 s). Wer früher richtig liegt, bekommt mehr Punkte, der Moderator prüft |
-| ≈ | Schätzfrage | Wert per Regler schätzen, wer nah dran ist, bekommt Punkte (Toleranz einstellbar) |
+| 🎧 | Song-Enthüllung | Song in Stufen anspielen (0,1 s → 10 s). Wer früher richtig liegt, bekommt mehr Punkte, der Moderator prüft. Lautstärke pro Song einstellbar, Stille am Anfang wird übersprungen |
+| ≈ | Schätzfrage | Wert per Regler schätzen. Wertung wählbar: **Nächste/r gewinnt** (Standard), **nur innerhalb der Toleranz** oder **je näher, desto mehr** |
 | ↕ | Sortierquiz | Elemente per Drag & Drop in die richtige Reihenfolge bringen |
 | ⇄ | Zuordnen | Paare bilden, zum Beispiel Land ↔ Hauptstadt |
 | ✍ | Lückentext | Wort eintippen, der Moderator bestätigt (Rechtschreibung ist egal) |
 | ✎ | Fight List | Möglichst viele passende Begriffe sammeln. Das System zählt die Treffer, auch mit kleinen Tippfehlern, und du kannst die Zahl pro Spieler anpassen |
-| ↗ | Higher / Lower | Werte paarweise als höher oder niedriger einschätzen |
 | ⌖ | Hotspot | Auf einem Bild die gesuchte Stelle treffen |
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
 | ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
 | ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
+Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 15 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
+
+**Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung gibt es weiter „Abschicken“, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
 
 ### Zeitduell im Detail
 
@@ -179,6 +180,7 @@ Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. **„Ze
 2. **Einstellen:** Zeit pro Spieler (Standard 30 s), Strafzeit fürs Passen (3 s), Modus **mündlich** oder **tippen**, Punkte nach Platz (zum Beispiel `100, 60, 30`).
 3. **Spielen:** Frage öffnen, dann **🎲 Duell starten**. Der Zufall bestimmt, wer anfängt.
    - **Mündlich:** Du siehst die Lösung und drückst **✓ Richtig** (Enter) oder **⏭ Passen** (P).
+   - **Passen** kann der Spieler, der dran ist, auch selbst auf seinem Handy (in beiden Modi).
    - **Tippen:** Der Spieler, der dran ist, tippt auf dem Handy. Richtige Antworten erkennt das System, Groß- und Kleinschreibung ist egal. Du kannst trotzdem jederzeit ✓ oder Passen drücken.
    - **Pause** mit der Leertaste, **🏁 Duell beenden** jederzeit. Dann zählt die aktuelle Restzeit.
 4. **Ende:** Wenn nur noch einer übrig ist oder die Bilder ausgehen, tippst du auf **✨ Frage auflösen**. Die Punkte werden nach Platzierung vergeben.

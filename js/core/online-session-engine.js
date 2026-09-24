@@ -545,7 +545,7 @@
       if (state.questionOpen && question.type !== 'buzzer') throw new Error('Bitte zuerst die Antworten schließen.');
       if (question.type === 'buzzer') {
         const buzzerState = state.questionResults?.[question.id] || {};
-        if (!buzzerState.contenderId && buzzerState.status !== 'exhausted') throw new Error('Noch kein Buzzer-Ergebnis vorhanden.');
+        // v24: „Ohne Gewinner auflösen“ ist jederzeit erlaubt (z. B. niemand wusste es)
       }
       if (state.scoredQuestionIds.includes(question.id)) return;
 
@@ -752,7 +752,7 @@
         while (ri < quiz.rounds.length) {
           if (qi < quiz.rounds[ri].questions.length) break;
           const standings = state.players.slice().sort(playerSort).map(player => ({ id: player.id, name: player.name, score: player.score }));
-          if (!summaries.some(summary => summary.roundId === quiz.rounds[ri].id)) summaries.push({ roundId: quiz.rounds[ri].id, title: quiz.rounds[ri].title, standings, at: Firebase.serverNow(this.context) });
+          { const entry = { roundId: quiz.rounds[ri].id, title: quiz.rounds[ri].title, standings, at: Firebase.serverNow(this.context) }; const i = summaries.findIndex(summary => summary.roundId === entry.roundId); if (i >= 0) summaries[i] = entry; else summaries.push(entry); } // immer aktuellen Stand speichern
           ri += 1; qi = 0;
         }
         if (ri >= quiz.rounds.length) {

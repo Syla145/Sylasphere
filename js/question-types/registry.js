@@ -55,7 +55,7 @@
       noTimer: false,
       review: null,          // 'manual' = Moderator prüft jede Antwort (✓/✗)
       autoCheck: null,       // Vorschlag für die Prüfung: (q, answer) => true | false | null
-      publishAnswers: false, // nach der Auflösung sehen alle die Antworten der anderen
+      publishAnswers: true,  // nach der Auflösung sehen alle die Antworten der anderen (v24: Standard; false = aus)
       reviewParts: null,     // (q) => [{ key, label }] – getrennte Prüfung, z. B. Titel/Interpret
       stages: null,          // (q) => [{ duration, percent }] – Stufen-Fragen (Song-Enthüllung)
       lockOnSubmit: false,   // Antwort nach Abgabe gesperrt
@@ -63,6 +63,7 @@
       revealMedia: false,    // beim Auflösen automatisch mediaClip('reveal') abspielen
       update: null,          // (q, container, ctx) – Anzeige aktualisieren ohne Neuzeichnen
       game: null,            // Mini-Spiel mit eigenem Spielstand (state.game), z. B. Zeitduell – vom Moderator-Gerät gesteuert
+      hidden: false,         // v24: im Editor nicht mehr neu auswählbar (alte Quizze funktionieren weiter)
       scoresAllPlayers: false, // Punkte für alle Spieler vergeben, auch ohne eigene Antwort (z. B. Platzierung im Zeitduell)
       interaction: 'answer'
     }, definition);

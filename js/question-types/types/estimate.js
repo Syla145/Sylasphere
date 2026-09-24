@@ -22,6 +22,8 @@
       if (q.tolerance != null && q.tolerance !== '') q.tolerance = Math.max(0, Kit.numberOr(q.tolerance, 0));
       else q.tolerance = null;
       q.toleranceMode = String(q.toleranceMode || 'absolute') === 'percent' ? 'percent' : 'absolute';
+      // v24: Wertung – 'closest' (Nächste/r gewinnt), 'tolerance' (nur innerhalb der Toleranz), 'proportional' (je näher, desto mehr)
+      if (!['closest', 'tolerance', 'proportional'].includes(q.scoring)) q.scoring = q.tolerance != null ? 'tolerance' : 'closest';
     },
 
     validate(q, report) {
@@ -33,10 +35,26 @@
     },
 
     // Punkte sinken linear mit dem Abstand zum Zielwert; innerhalb der Toleranz gibt es volle Punkte.
-    score(q, answer, { base }) {
-      const value = Number(answer);
-      if (!Number.isFinite(value)) return { points: 0, detail: '' };
+    // Für „Nächste/r gewinnt“: kleinste Abweichung aller Antworten ermitteln
+    resolve(q, answers) {
+      if (q.scoring !== 'closest') return null;
       const target = Number(q.correctAnswer);
+      const distances = Object.values(answers || {}).map(r => Math.abs(Number(r?.answer) - target)).filter(Number.isFinite);
+      return { kind: 'closest', best: distances.length ? Math.min(...distances) : null };
+    },
+    score(q, answer, { base, result }) {
+      const value = Number(answer);
+      if (answer == null || answer === '' || !Number.isFinite(value)) return { points: 0, detail: '' };
+      const target = Number(q.correctAnswer);
+      const off = Math.abs(value - target);
+      const threshold = q.tolerance == null ? 0 : (q.toleranceMode === 'percent' ? Math.abs(target) * Math.max(0, Number(q.tolerance) || 0) / 100 : Math.max(0, Number(q.tolerance) || 0));
+      const detail = `Abweichung: ${withUnit(Number(off.toFixed(3)), q.unit)}`;
+      if (q.scoring === 'closest') {
+        const best = result?.kind === 'closest' ? result.best : off;
+        const hit = best != null && off <= best + 1e-9;
+        return { points: hit || off <= threshold ? base : 0, detail: hit ? `Am nächsten dran · ${detail}` : detail };
+      }
+      if (q.scoring === 'tolerance') return { points: off <= threshold ? base : 0, detail: off <= threshold ? `Innerhalb der Toleranz · ${detail}` : detail };
       const range = Math.max(Math.abs(q.max - q.min), q.step || 1);
       const distance = Math.abs(value - target);
       let points = Math.round(base * Math.max(0, 1 - distance / range));
@@ -132,6 +150,11 @@
       customRow.hidden = preset.value !== 'custom';
       toleranceBox.append(labelField('Toleranz', preset), customRow, preview);
       box.append(toleranceBox);
+      const scoring = document.createElement('select'); scoring.className = 'select';
+      scoring.innerHTML = '<option value="closest">Nächste/r gewinnt – wer am nächsten dran ist (und alle innerhalb der Toleranz) bekommt volle Punkte</option><option value="tolerance">Nur innerhalb der Toleranz – alle anderen 0 Punkte</option><option value="proportional">Je näher, desto mehr – Punkte sinken mit dem Abstand</option>';
+      scoring.value = q.scoring || 'closest';
+      scoring.addEventListener('change', e => { q.scoring = e.target.value; ui.queueSave(); });
+      box.append(labelField('Wertung', scoring));
       updateTolerancePreview();
     },
 

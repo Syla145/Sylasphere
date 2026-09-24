@@ -250,40 +250,6 @@
             "timer": 28
           },
           {
-            "id": "show_hl_buildings",
-            "type": "higher-lower",
-            "category": "Rekorde",
-            "text": "Ist das nächste Bauwerk höher oder niedriger?",
-            "cards": [
-              {
-                "id": "tower_1",
-                "label": "Eiffelturm",
-                "value": 330,
-                "unit": "m"
-              },
-              {
-                "id": "tower_2",
-                "label": "Empire State Building (Spitze)",
-                "value": 443,
-                "unit": "m"
-              },
-              {
-                "id": "tower_3",
-                "label": "Burj Khalifa",
-                "value": 828,
-                "unit": "m"
-              },
-              {
-                "id": "tower_4",
-                "label": "One World Trade Center",
-                "value": 541,
-                "unit": "m"
-              }
-            ],
-            "points": 160,
-            "timer": 30
-          },
-          {
             "id": "show_buzzer_capital",
             "type": "buzzer",
             "category": "Speed & Wissen",

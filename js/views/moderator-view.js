@@ -406,7 +406,7 @@
         if (blocked) html += `<div class="chip-row" style="margin-top:12px">${blocked}</div>`;
       }
       if (!resolved) html += moderatorSolution(current.question, questionResult);
-      if (!resolved) html += `<div class="buzzer-admin-actions"><button type="button" class="btn btn--reveal" data-buzzer-action="resolve" ${buzzer.contenderId || buzzer.status === 'exhausted' ? '' : 'disabled'}>${buzzer.contenderId ? '✅ Richtig werten & auflösen' : 'Ohne Gewinner auflösen'}</button><button type="button" class="btn" data-buzzer-action="wrong" ${buzzer.contenderId ? '' : 'disabled'}>❌ Falsch · Spieler sperren & neu freigeben</button></div>`;
+      if (!resolved) html += `<div class="buzzer-admin-actions"><button type="button" class="btn btn--reveal" data-buzzer-action="resolve">${buzzer.contenderId ? '✅ Richtig werten & auflösen' : 'Ohne Gewinner auflösen'}</button><button type="button" class="btn" data-buzzer-action="wrong" ${buzzer.contenderId ? '' : 'disabled'}>❌ Falsch · Spieler sperren & neu freigeben</button></div>`;
       if (resolved && correct) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>`;
       if (resolved && submitted) html += answerRows(current.question, answers);
       els['answer-status'].innerHTML = html;
@@ -478,10 +478,19 @@
   function duelCheckGuesses(q) {
     const Game = Quiz.gameOf(q);
     const game = state.game;
-    if (!Game || !game || game.phase !== 'play' || q.answerMode !== 'typed' || duel.busy) return;
+    if (!Game || !game || game.phase !== 'play' || duel.busy) return;
     const record = state.answers[q.id]?.[game.active];
     const answer = record?.answer;
     if (!answer || typeof answer !== 'object' || Number(answer.pos) !== Number(game.pos)) return;
+    // v24: Spieler hat selbst gepasst (in beiden Modi erlaubt)
+    if (answer.pass) {
+      const key = `${game.active}|${answer.pos}|pass`;
+      if (duel.processed.has(key)) return;
+      duel.processed.add(key);
+      applyDuel(Game.pass(game, q, Date.now()));
+      return;
+    }
+    if (q.answerMode !== 'typed') return;
     const key = `${game.active}|${answer.pos}|${record.submittedAt}|${answer.text}`;
     if (duel.processed.has(key)) return;
     duel.processed.add(key);

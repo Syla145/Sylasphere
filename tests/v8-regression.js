@@ -23,7 +23,7 @@ const quiz = JSON.parse(fs.readFileSync(path.join(root,'data/quiz-showtime.json'
 const normalized = ctx.window.SchmobinQuiz.normalizeQuiz(quiz);
 const all = ctx.window.SchmobinQuiz.allQuestions(normalized);
 assert(all.length >= 10, 'showtime quiz has at least 10 questions');
-assert(new Set(all.map(x=>x.question.type)).size === ctx.window.SchmobinQuiz.SUPPORTED_TYPES.length, 'all question types are represented');
+assert(new Set(all.map(x=>x.question.type)).size === ctx.window.SchmobinQuiz.SUPPORTED_TYPES.filter(t=>!ctx.window.SchmobinQuiz.typeDef(t)?.hidden).length, 'all question types are represented');
 
 // Local transport regression: two players must remain independent.
 const Local = ctx.window.SchmobinSession;

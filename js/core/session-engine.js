@@ -241,8 +241,9 @@
         const { question, round } = this.getCurrent(state);
         if (!question) return;
         if (!state.questionStartedAt) throw new Error('Die Frage wurde noch nicht gestartet.');
-        if (state.questionOpen) throw new Error('Bitte zuerst die Antworten schließen.');
+        if (state.questionOpen && question.type !== 'buzzer') throw new Error('Bitte zuerst die Antworten schließen.');
         if (state.scoredQuestionIds.includes(question.id)) return;
+        state.questionOpen = false; state.questionEndsAt = null;
         const answers = state.answers[question.id] || {};
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
@@ -390,7 +391,7 @@
             if (qi < quiz.rounds[ri].questions.length) break;
             if (quiz.rounds[ri]) {
               const standings = state.players.slice().sort((a, b) => b.score - a.score).map(p => ({ id: p.id, name: p.name, score: p.score }));
-              if (!state.roundSummaries.some(s => s.roundId === quiz.rounds[ri].id)) state.roundSummaries.push({ roundId: quiz.rounds[ri].id, title: quiz.rounds[ri].title, standings, at: Date.now() });
+              { const entry = { roundId: quiz.rounds[ri].id, title: quiz.rounds[ri].title, standings, at: Date.now() }; const i = state.roundSummaries.findIndex(s => s.roundId === entry.roundId); if (i >= 0) state.roundSummaries[i] = entry; else state.roundSummaries.push(entry); }
             }
             ri++; qi = 0;
           }

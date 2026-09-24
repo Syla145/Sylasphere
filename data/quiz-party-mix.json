@@ -273,46 +273,6 @@
             "timer": 26
           },
           {
-            "id": "party_hl_games",
-            "type": "higher-lower",
-            "category": "Gaming",
-            "text": "Kam das nächste Spiel später oder früher heraus?",
-            "cards": [
-              {
-                "id": "g1",
-                "label": "Pong",
-                "value": 1972,
-                "unit": ""
-              },
-              {
-                "id": "g2",
-                "label": "Tetris",
-                "value": 1984,
-                "unit": ""
-              },
-              {
-                "id": "g3",
-                "label": "Doom",
-                "value": 1993,
-                "unit": ""
-              },
-              {
-                "id": "g4",
-                "label": "Super Mario Bros.",
-                "value": 1985,
-                "unit": ""
-              },
-              {
-                "id": "g5",
-                "label": "Minecraft (Vollversion)",
-                "value": 2011,
-                "unit": ""
-              }
-            ],
-            "points": 170,
-            "timer": 30
-          },
-          {
             "id": "party_movie_term",
             "type": "multiple-choice",
             "category": "Filme & Serien",

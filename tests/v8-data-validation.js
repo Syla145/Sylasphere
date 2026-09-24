@@ -15,7 +15,7 @@ for(const item of entries){
  const roundtrip=Validator.validate(JSON.parse(JSON.stringify(v.normalized)));ok(roundtrip.valid,`${file}: normalized roundtrip validates`);
  Quiz.allQuestions(v.normalized).forEach(({question:q})=>types.add(q.type));
 }
-for(const type of Quiz.SUPPORTED_TYPES)ok(types.has(type),`${type}: represented in bundled quizzes`);
+for(const type of Quiz.SUPPORTED_TYPES.filter(t=>!Quiz.typeDef(t)?.hidden))ok(types.has(type),`${type}: represented in bundled quizzes`);
 const show=Validator.validate(JSON.parse(fs.readFileSync(path.join(root,'data/quiz-showtime.json'),'utf8'))).normalized;
 for(const {question:q} of Quiz.allQuestions(show)){
  let answer;

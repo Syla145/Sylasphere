@@ -1,5 +1,21 @@
 # Sylasphere – Changelog
 
+## v24 – Rückmeldungen vom Quizabend
+- **Kein „Abschicken“ mehr:** Was beim Ende der Zeit eingetippt oder ausgewählt ist, zählt. Antworten werden automatisch gespeichert und lassen sich bis zum Schluss ändern. Ausnahme: Song-Enthüllung (dort sperrt das Abschicken die Stufe).
+- **Schätzfrage:** neue Einstellung „Wertung“.
+  - **Nächste/r gewinnt** (Standard ohne Toleranz): nur wer am nächsten dran ist, bekommt die Punkte, bei Gleichstand alle Nächsten.
+  - **Nur innerhalb der Toleranz** (Standard mit Toleranz): volle Punkte im Bereich, sonst 0.
+  - **Je näher, desto mehr:** das alte Verhalten, bei dem auch falsche Schätzungen Teilpunkte bekamen.
+- **Hotspot:** Der Trefferkreis ist jetzt auf jedem Gerät gleich groß und rund. Das Bild wird ohne Rand angezeigt, und der Radius bezieht sich auf die Bildbreite.
+- **Buzzer (mündlich):** „Ohne Gewinner auflösen“ funktioniert jetzt, auch wenn niemand gebuzzert hat.
+- **Zuschauer sehen bei der Auflösung, wer was geantwortet hat**, bei allen Fragetypen (außer Buzzer und Zeitduell, die ihre eigene Anzeige haben).
+- **Zwischenstand korrigiert:** Die Rangliste auf den Handys nutzt immer die aktuellen Punkte. Nachträglich geänderte Punkte erscheinen auch in der Runden-Zusammenfassung.
+- **Musik:** Songs werden automatisch auf eine ähnliche Lautstärke gebracht, ein Limiter verhindert Übersteuern, dazu gibt es einen Lautstärke-Regler pro Song (Standard 70 %). Stille am Songanfang wird bei den Ausschnitten übersprungen, damit auch die 0,1-s-Stufe hörbar ist (abschaltbar).
+- **Zeitduell:** Wer dran ist, hat auf dem Handy einen eigenen **⏭ Passen**-Knopf (mündlich und getippt).
+- **Higher / Lower** aus der Auswahl im Editor und aus den Beispiel-Quizzen entfernt. Alte Fragen dieses Typs funktionieren weiter.
+- Neuer Avatar: 🐐 (dazu 🐻 🐯 🐵 🦉 🐢).
+- Keine Änderung an den Firebase-Regeln nötig, keine Dateien zu löschen.
+
 ## v23 – Feinschliff für den Quizabend
 - **Fight List: Treffer prüfen.** Beim Auflösen zeigt das System pro Spieler jeden Begriff an:
   - ✓ erkannt (auch nur der Nachname, zum Beispiel „Obama“)

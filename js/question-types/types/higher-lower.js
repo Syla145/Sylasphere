@@ -9,6 +9,7 @@
     type: 'higher-lower',
     label: 'Higher / Lower',
     icon: '↗',
+    hidden: true, // v24: aus der Auswahl entfernt (Feedback Quizabend), bestehende Fragen laufen weiter
     description: 'Werte paarweise als höher oder niedriger einschätzen.',
 
     defaults: () => {

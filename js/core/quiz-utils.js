@@ -124,7 +124,8 @@
     return fn ? fn(question, answer, part) : null;
   }
   /** Nach der Auflösung sehen alle Spieler die Antworten der anderen */
-  function publishesAnswers(question) { return Boolean(typeDef(question?.type)?.publishAnswers); }
+  // v24: Standard für alle Typen – außer Buzzer/Mini-Spielen oder wenn ein Typ ausdrücklich publishAnswers: false setzt
+  function publishesAnswers(question) { const def = typeDef(question?.type); return Boolean(def) && def.publishAnswers !== false && !def.game && def.interaction !== 'buzzer'; }
   /** Mini-Spiel des Typs (z. B. Zeitduell) oder null */
   function gameOf(question) { return typeDef(question?.type)?.game || null; }
   /** Punkte für alle Spieler vergeben, auch ohne eigene Antwort */
