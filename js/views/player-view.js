@@ -86,6 +86,7 @@
       }
 
       els['join-panel'].hidden=true; els['game-panel'].hidden=false;
+      window.SylasphereJoin?.keepAwake(true); // Handy geht während des Quiz nicht in den Standby
       history.replaceState(null,'',`?code=${code}&mode=${transport}`);
       engine.subscribe(render);
     } catch(error) {

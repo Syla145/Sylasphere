@@ -1,5 +1,18 @@
 # Sylasphere – Changelog
 
+## v23 – Feinschliff für den Quizabend
+- **Fight List: Treffer prüfen.** Beim Auflösen zeigt das System pro Spieler jeden Begriff an:
+  - ✓ erkannt (auch nur der Nachname, zum Beispiel „Obama“)
+  - ≈ mit kleinem Tippfehler erkannt (zum Beispiel „Linkoln“ → Abraham Lincoln)
+  - ✗ nicht erkannt, doppelte Begriffe zählen einmal
+  - Die vorgeschlagene **Trefferzahl** passt du mit − und + an. Alternative Schreibweisen musst du nicht mehr pflegen.
+  - Klarere Punkte im Editor: „Punkte“ ist die **Obergrenze**, „Punkte je Treffer“ gibt es pro Treffer. Mit „Punkte“ = 0 zählt jeder Treffer ohne Grenze. Ein Hinweistext rechnet das vor.
+- **Editor:** Unter jeder Frage gibt es **„+ Frage hier einfügen“** (gleicher Typ und gleiches Thema), am Rundenende **„+ Neue Runde danach“**. Die neue Frage wird direkt angesprungen.
+- **Editor:** Die linke Leiste scrollt nicht mehr horizontal. Bei Higher / Lower sind die Felder beschriftet (Begriff · Wert · Einheit optional).
+- **Lange Themen-Namen** (zum Beispiel „Allgemeinwissen“ im Retro-Design) passen sich der Breite an und laufen nicht mehr über den Rand.
+- **QR-Code zum Beitreten:** groß in der Lobby (Moderator und Beamer), klein im Moderator-Bereich „Mitspielen“. Die QR-Bibliothek ist selbst gehostet (MIT-Lizenz).
+- **Bildschirm bleibt an** auf Spieler-Handys, Beamer und beim Moderator, solange die Seite offen ist (Browser mit Wake-Lock-Unterstützung).
+
 ## v22 – Neuer Spielmodus „Zeitduell“
 - **Zeitduell** (inspiriert von Bilder-Duell-Shows): Jeder Spieler hat ein eigenes Zeitkonto (Standard 30 s, wie eine Schachuhr). Der Zufall bestimmt die Reihenfolge, dann geht es reihum.
   - ✓ **Richtig:** Uhr stoppt, die Lösung ist kurz für alle sichtbar, der nächste Spieler bekommt ein neues Bild.

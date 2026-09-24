@@ -94,6 +94,19 @@
       reviews[question.id][btn.dataset.reviewPlayer] = Object.assign({}, reviews[question.id][btn.dataset.reviewPlayer], { [btn.dataset.reviewPart || '']: btn.dataset.verdict === 'true' });
       renderQuestion(engine.getCurrent(state));
     });
+    // Fight List: Trefferzahl anpassen
+    els['answer-status']?.addEventListener('click', event => {
+      const btn = event.target.closest('[data-count-player]');
+      if (!btn || !engine) return;
+      const question = engine.getCurrent(state).question;
+      if (!question) return;
+      const pid = btn.dataset.countPlayer;
+      const record = state.answers[question.id]?.[pid];
+      const current = countFor(question, pid, record?.answer).count;
+      reviews[question.id] = reviews[question.id] || {};
+      reviews[question.id][pid] = { count: Math.max(0, current + Number(btn.dataset.delta)) };
+      renderQuestion(engine.getCurrent(state));
+    });
     // Zeitduell: Starten, Richtig, Passen, Pause, Beenden
     els['answer-status']?.addEventListener('click', event => {
       const btn = event.target.closest('[data-duel]');
@@ -180,6 +193,7 @@
     const existing = mode === 'online' ? await engine.waitForState() : engine.load();
     if (!existing) { try { await engine.destroy?.(); } catch (_) {} engine = null; throw new Error('Sitzung nicht gefunden.'); }
     els['setup-panel'].hidden = true; els['session-panel'].hidden = false;
+    window.SylasphereJoin?.keepAwake(true); // Bildschirm des Moderator-Geräts bleibt an (Uhr beim Zeitduell!)
     engine.subscribe(render);
   }
 
@@ -299,6 +313,10 @@
     const total = Quiz.allQuestions(state.quiz).length;
     App.setText(els['round-progress'], current.round ? `${current.round.title} · Frage ${qIndexGlobal + 1}/${total}` : 'Keine Frage');
     renderPlayers(); renderQuestion(current); renderTimer(); renderButtons(current);
+    // QR-Code zum Beitreten (nur neu zeichnen, wenn sich Raum oder Modus ändert)
+    const qrBox = document.getElementById('join-qr-small');
+    const qrKey = `${state.code}|${transport}`;
+    if (qrBox && qrBox.dataset.key !== qrKey && window.SylasphereJoin) { qrBox.dataset.key = qrKey; qrBox.innerHTML = window.SylasphereJoin.joinCard(state.code, transport, { size: 'small', title: 'QR für Spieler' }); }
   }
 
   function statusLabel(s) {
@@ -347,6 +365,14 @@
   }
 
   function renderQuestion(current) {
+    if (state.status === 'lobby' && window.SylasphereJoin) {
+      // Lobby: großer QR-Code, falls der Moderator-Bildschirm gezeigt wird
+      const key = `lobby|${state.code}|${transport}`;
+      if (els['question-area'].dataset.key !== key) { els['question-area'].dataset.key = key; els['question-area'].innerHTML = `<div class="lobby-join">${window.SylasphereJoin.joinCard(state.code, transport, { size: 'large' })}</div>`; }
+      els['answer-status'].innerHTML = `<div class="notice">${state.players.length ? `${state.players.length} Spieler in der Lobby. Starte das Spiel, wenn alle da sind.` : 'Noch keine Spieler – QR-Code scannen oder Link teilen.'}</div>`;
+      return;
+    }
+    els['question-area'].dataset.key = '';
     if (state.status === 'finished') {
       const winners = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
       els['question-area'].innerHTML = finalPodium(winners); els['answer-status'].innerHTML = ''; return;
@@ -516,13 +542,41 @@
   function resolveOptions() {
     const question = engine?.getCurrent(state)?.question;
     if (!question || !Quiz.needsReview(question)) return {};
+    if (Quiz.reviewMode(question) === 'count') {
+      const answers = state.answers[question.id] || {};
+      return { verdicts: Object.fromEntries(Object.entries(answers).map(([pid, record]) => [pid, countFor(question, pid, record.answer).count])) };
+    }
     const parts = Quiz.reviewParts(question);
     const answers = state.answers[question.id] || {};
     return { verdicts: Object.fromEntries(Object.entries(answers).map(([pid, record]) => [pid, parts
       ? Object.fromEntries(parts.map(part => [part.key, verdictFor(question, pid, record.answer, part.key).value === true]))
       : verdictFor(question, pid, record.answer).value === true])) };
   }
+  // Fight List: Trefferzahl je Spieler – Vorschlag vom System, per −/+ anpassbar
+  function countFor(question, playerId, answer) {
+    const suggestion = Quiz.countMatches(question, answer);
+    const explicit = reviews[question.id]?.[playerId]?.count;
+    return { count: Number.isFinite(explicit) ? explicit : suggestion.count, suggestion, changed: Number.isFinite(explicit) && explicit !== suggestion.count };
+  }
+  function countPanel(question, answers) {
+    const entries = Object.entries(answers || {});
+    if (!entries.length) return '<div class="notice review-empty">Noch keine Antworten zum Prüfen.</div>';
+    const per = Number(question.pointsPerAnswer) || 0;
+    const cap = Number(question.points) || 0;
+    const rows = entries.map(([pid, a]) => {
+      const { count, suggestion, changed } = countFor(question, pid, a.answer);
+      const chips = suggestion.items.map(item => {
+        const mark = item.kind === 'exact' ? '✓' : item.kind === 'fuzzy' ? '≈' : item.kind === 'double' ? '2×' : '✗';
+        const title = item.solution ? ` title="erkannt als: ${App.escapeHTML(item.solution)}"` : item.kind === 'double' ? ' title="doppelt – zählt nur einmal"' : '';
+        return `<span class="count-term is-${item.kind}"${title}><b>${mark}</b> ${App.escapeHTML(item.term)}${item.kind === 'fuzzy' ? ` <em>→ ${App.escapeHTML(item.solution)}</em>` : ''}</span>`;
+      }).join('') || '<span class="count-term is-none">– keine Begriffe –</span>';
+      const points = cap > 0 ? Math.min(cap, count * per) : count * per;
+      return `<div class="review-row count-row${changed ? ' is-changed' : ''}"><div class="review-who"><strong>${App.escapeHTML(findPlayerName(pid) || 'Spieler')}</strong><div class="count-terms">${chips}</div></div><div class="count-stepper"><button type="button" class="review-btn" data-count-player="${App.escapeHTML(pid)}" data-delta="-1" aria-label="Ein Treffer weniger">−</button><span><b>${count}</b><small>Treffer · ${Math.round(points)} P</small></span><button type="button" class="review-btn" data-count-player="${App.escapeHTML(pid)}" data-delta="1" aria-label="Ein Treffer mehr">+</button></div></div>`;
+    }).join('');
+    return `<div class="review-panel"><div class="review-head"><strong>Treffer prüfen</strong><span>✓ erkannt · ≈ mit Tippfehler erkannt · ✗ nicht erkannt – Zahl bei Bedarf mit −/+ anpassen</span></div>${rows}</div>`;
+  }
   function reviewPanel(question, answers) {
+    if (Quiz.reviewMode(question) === 'count') return countPanel(question, answers);
     const entries = Object.entries(answers || {});
     if (!entries.length) return '<div class="notice review-empty">Noch keine Antworten zum Prüfen.</div>';
     const parts = partsOf(question);

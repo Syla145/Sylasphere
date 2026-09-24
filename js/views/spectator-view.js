@@ -48,6 +48,7 @@
         await engine.waitForState(); transport = 'online';
       } else { engine = new Session(code); transport = 'local'; }
       els['spectator-connect'].hidden = true; els['spectator-live'].hidden = false;
+      window.SylasphereJoin?.keepAwake(true); // Beamer-Laptop bleibt an
       history.replaceState(null, '', `?code=${code}&mode=${transport}`);
       engine.subscribe(render);
     } catch (error) {
@@ -80,7 +81,7 @@
 
   function renderQuestion(current) {
     if (state.status === 'lobby') {
-      els['spectator-question'].innerHTML = `<div class="waiting-card presenter lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">Sylasphere</span><h1>${App.escapeHTML(state.quiz.quiz.title)}</h1><p>Lobby geöffnet · ${state.players.length} Spieler${transport === 'online' ? ' · Online' : ''}</p></div>`;
+      els['spectator-question'].innerHTML = `<div class="waiting-card presenter lobby-wait lobby-join"><span class="eyebrow">Sylasphere</span><h1>${App.escapeHTML(state.quiz.quiz.title)}</h1>${window.SylasphereJoin ? window.SylasphereJoin.joinCard(state.code, transport, { size: 'large' }) : ''}<p>Lobby geöffnet · ${state.players.length} Spieler${transport === 'online' ? ' · Online' : ''}</p></div>`;
       els['spectator-stats'].innerHTML = ''; return;
     }
     if (state.status === 'finished') {

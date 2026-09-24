@@ -81,11 +81,13 @@
     editor(q, ui, box) {
       const { div, input, button } = ui;
       const list = div('');
+      list.append(div('card-row card-row--head', ''));
+      list.lastChild.innerHTML = '<span>Begriff</span><span>Wert</span><span>Einheit (optional)</span><span></span>';
       (q.cards || []).forEach((card, i) => {
         const row = div('card-row');
-        const label = input('text', card.label, 'input'); label.addEventListener('input', e => { card.label = e.target.value; ui.queueSave(); });
-        const value = input('number', card.value, 'input'); value.step = 'any'; value.addEventListener('input', e => { card.value = Number(e.target.value); ui.queueSave(); });
-        const unit = input('text', card.unit || '', 'input'); unit.addEventListener('input', e => { card.unit = e.target.value; ui.queueSave(); });
+        const label = input('text', card.label, 'input'); label.placeholder = 'Begriff, z. B. Schloss Einstein'; label.title = 'Begriff'; label.addEventListener('input', e => { card.label = e.target.value; ui.queueSave(); });
+        const value = input('number', card.value, 'input'); value.step = 'any'; value.placeholder = 'Wert'; value.title = 'Wert, der verglichen wird'; value.addEventListener('input', e => { card.value = Number(e.target.value); ui.queueSave(); });
+        const unit = input('text', card.unit || '', 'input'); unit.placeholder = 'Einheit (optional)'; unit.title = 'Einheit, z. B. m, km, € – bleibt leer bei Jahreszahlen'; unit.addEventListener('input', e => { card.unit = e.target.value; ui.queueSave(); });
         row.append(label, value, unit, button('✕', 'icon-btn', () => { q.cards.splice(i, 1); ui.structuralChange(); }));
         list.append(row);
       });

@@ -41,7 +41,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 ## So läuft ein Quizabend
 
 1. Der Moderator meldet sich auf `moderator.html` an, wählt ein Quiz und tippt auf **🌐 Online-Sitzung erstellen**.
-2. Es erscheint ein **Raumcode** wie `58SN9A`. Die Spieler öffnen `spieler.html` auf dem Handy und geben Code, Namen und Avatar ein.
+2. Es erscheint ein **Raumcode** wie `58SN9A` mit **QR-Code**. Die Spieler scannen ihn oder öffnen `spieler.html` und geben den Code ein. Die Handys gehen während des Quiz nicht in den Standby.
 3. Optional läuft `zuschauer.html` mit demselben Code auf Beamer oder TV.
 4. Der Moderator öffnet jede Frage, schließt die Antworten und löst auf. Die Punkte werden automatisch vergeben, er kann sie aber jederzeit korrigieren.
    - Kurzbefehle: **Leertaste** öffnet, schließt die Antworten und löst auf. **← / →** springt zur vorigen oder nächsten Frage.
@@ -163,7 +163,7 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ↕ | Sortierquiz | Elemente per Drag & Drop in die richtige Reihenfolge bringen |
 | ⇄ | Zuordnen | Paare bilden, zum Beispiel Land ↔ Hauptstadt |
 | ✍ | Lückentext | Wort eintippen, der Moderator bestätigt (Rechtschreibung ist egal) |
-| ✎ | Fight List | Möglichst viele passende Begriffe sammeln |
+| ✎ | Fight List | Möglichst viele passende Begriffe sammeln. Das System zählt die Treffer, auch mit kleinen Tippfehlern, und du kannst die Zahl pro Spieler anpassen |
 | ↗ | Higher / Lower | Werte paarweise als höher oder niedriger einschätzen |
 | ⌖ | Hotspot | Auf einem Bild die gesuchte Stelle treffen |
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |

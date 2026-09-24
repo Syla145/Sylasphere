@@ -2,6 +2,52 @@
   'use strict';
   const Kit = window.SylasphereTypeKit;
 
+  // ---- Treffer zählen: exakt, Nachname/Einzelwort (z. B. „Obama“) oder mit kleinem Tippfehler
+  function distance(a, b, limit) {
+    if (Math.abs(a.length - b.length) > limit) return limit + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      let best = row[0];
+      for (let j = 1; j <= b.length; j++) {
+        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        best = Math.min(best, row[j]);
+      }
+      if (best > limit) return limit + 1;
+      prev = row;
+    }
+    return prev[b.length];
+  }
+  const tolerance = term => (term.length >= 8 ? 2 : term.length >= 4 ? 1 : 0);
+  const clean = value => Kit.normalizeTerm(value).replace(/[.,'’"!?()\-]/g, ' ').replace(/\s+/g, ' ').trim();
+  function entriesOf(answer) { return (Array.isArray(answer) ? answer : String(answer || '').split(/[\n,;]/)).map(v => String(v).trim()).filter(Boolean); }
+  /** { count, items: [{ term, kind: 'exact'|'fuzzy'|'none'|'double', solution }] } */
+  function countMatches(q, answer) {
+    const solutions = (q.correctAnswers || []).map(text => ({ text, full: clean(text), words: clean(text).split(' ').filter(w => w.length >= 4) }));
+    const used = new Set();
+    const seen = new Set();
+    const items = entriesOf(answer).map(term => {
+      const t = clean(term);
+      if (!t) return { term, kind: 'none' };
+      if (seen.has(t)) return { term, kind: 'double' };
+      seen.add(t);
+      let best = null;
+      solutions.forEach((sol, index) => {
+        if (used.has(index)) return;
+        let score = null;
+        if (sol.full === t) score = 0;
+        else if (sol.words.includes(t)) score = 1;
+        else if (distance(t, sol.full, tolerance(sol.full)) <= tolerance(sol.full)) score = 2;
+        else if (t.length >= 4 && sol.words.some(w => distance(t, w, tolerance(w)) <= tolerance(w))) score = 3;
+        if (score !== null && (!best || score < best.score)) best = { index, score };
+      });
+      if (!best) return { term, kind: 'none' };
+      used.add(best.index);
+      return { term, kind: best.score <= 1 ? 'exact' : 'fuzzy', solution: solutions[best.index].text };
+    });
+    return { count: items.filter(i => i.kind === 'exact' || i.kind === 'fuzzy').length, items };
+  }
+
   window.SylasphereTypes.register({
     type: 'fight-list',
     label: 'Fight List',
@@ -22,13 +68,18 @@
       if (!Number.isFinite(Number(q.pointsPerAnswer)) || Number(q.pointsPerAnswer) < 0) report.error('pointsPerAnswer', 'Punkte je Treffer müssen ≥ 0 sein.');
     },
 
-    // Jeder gültige Begriff zählt einmal; Groß-/Kleinschreibung und Leerzeichen sind egal
-    score(q, answer, { base }) {
-      const entries = Array.isArray(answer) ? answer : String(answer || '').split(/[\n,;]/);
-      const submitted = Array.from(new Set(entries.map(Kit.normalizeTerm).filter(Boolean)));
-      const correct = new Set((q.correctAnswers || []).map(Kit.normalizeTerm));
-      const matches = submitted.filter(item => correct.has(item)).length;
-      return { points: Math.min(base, Math.round(matches * Kit.numberOr(q.pointsPerAnswer, base))), detail: `${matches} Treffer` };
+    // v23: Das System zählt die Treffer (auch mit kleinen Tippfehlern), der Moderator kann die Zahl anpassen.
+    review: 'count',
+    countMatches,
+    resolve: (q, answers, options) => ({ kind: 'review', verdicts: Object.assign({}, options?.verdicts || {}) }),
+
+    // Punkte = Treffer × Punkte je Treffer, höchstens „Punkte“ der Frage (Obergrenze)
+    score(q, answer, { base, result, playerId }) {
+      const reviewed = result?.verdicts?.[playerId];
+      const matches = Number.isFinite(Number(reviewed)) && reviewed !== null && reviewed !== '' ? Math.max(0, Math.round(Number(reviewed))) : countMatches(q, answer).count;
+      const perHit = Kit.numberOr(q.pointsPerAnswer, base);
+      const points = base > 0 ? Math.min(base, Math.round(matches * perHit)) : Math.round(matches * perHit);
+      return { points, detail: `${matches} Treffer` };
     },
 
     solutionText(q) { return (q.correctAnswers || []).join(', '); },
@@ -59,8 +110,18 @@
       const grid = ui.div('dynamic-grid');
       const max = ui.input('number', q.maxEntries || 5, 'input'); max.min = '1'; max.addEventListener('input', e => { q.maxEntries = Math.max(1, Math.round(Number(e.target.value) || 1)); ui.queueSave(); });
       const ppa = ui.input('number', q.pointsPerAnswer || 0, 'input'); ppa.min = '0'; ppa.addEventListener('input', e => { q.pointsPerAnswer = ui.nonNegative(e.target.value, 0); ui.queueSave(); });
-      grid.append(ui.labelField('Max. Eingaben', max), ui.labelField('Punkte je Treffer', ppa));
+      grid.append(ui.labelField('Max. Eingaben der Spieler', max), ui.labelField('Punkte je Treffer', ppa));
       box.append(grid);
+      const help = ui.div('editor-help');
+      const updateHelp = () => {
+        const per = Number(q.pointsPerAnswer) || 0; const cap = Number(q.points) || 0;
+        help.textContent = cap > 0 && per > 0
+          ? `Jeder Treffer bringt ${per} Punkte. „Punkte“ oben (${cap}) ist die Obergrenze – ab ${Math.ceil(cap / per)} Treffern gibt es keine weiteren Punkte. Soll jeder Treffer zählen, „Punkte“ oben auf 0 setzen. Beim Auflösen schlägt das System die Trefferzahl vor (auch mit kleinen Tippfehlern), du kannst sie pro Spieler anpassen.`
+          : 'Jeder Treffer bringt die „Punkte je Treffer“ – ohne Obergrenze. Beim Auflösen schlägt das System die Trefferzahl vor, du kannst sie pro Spieler anpassen.';
+      };
+      updateHelp();
+      ppa.addEventListener('input', updateHelp);
+      box.append(help);
     },
 
     stats: {

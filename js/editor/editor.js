@@ -425,6 +425,11 @@
       const empty = document.createElement('div'); empty.className='panel panel-pad empty-state'; empty.textContent='Noch keine Runde vorhanden.'; els['rounds-container'].append(empty); return;
     }
     state.quiz.rounds.forEach((round, ri) => els['rounds-container'].append(renderRound(round, ri)));
+    if (scrollToQuestion) {
+      const target = els['rounds-container'].querySelector(`[data-qid="${CSS.escape(scrollToQuestion)}"]`);
+      scrollToQuestion = '';
+      if (target) requestAnimationFrame(() => { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); target.querySelector('textarea, input')?.focus({ preventScroll: true }); });
+    }
   }
 
   function renderRound(round, ri) {
@@ -455,14 +460,42 @@
     head.append(title, multWrap, actions); card.append(head);
 
     const body = div('');
-    round.questions.forEach((q, qi) => body.append(renderQuestionEditor(q, ri, qi)));
-    if (!round.questions.length) body.append(div('empty-state compact', 'Diese Runde enthält noch keine Fragen.'));
+    round.questions.forEach((q, qi) => { body.append(renderQuestionEditor(q, ri, qi)); body.append(insertBar(ri, qi + 1, q)); });
+    if (!round.questions.length) { body.append(div('empty-state compact', 'Diese Runde enthält noch keine Fragen.')); body.append(insertBar(ri, 0, null)); }
     card.append(body);
     return card;
   }
 
+  // v23: Neue Frage direkt unter einer Frage einfügen (gleicher Typ + Thema) – kein Hochscrollen mehr nötig
+  let scrollToQuestion = '';
+  function insertBar(ri, index, previous) {
+    const bar = div('insert-bar');
+    const round = state.quiz.rounds[ri];
+    const addQuestion = button('+ Frage hier einfügen', 'btn btn--small', () => {
+      const type = Quiz.SUPPORTED_TYPES.includes(previous?.type) ? previous.type : Quiz.SUPPORTED_TYPES[0];
+      const q = newQuestion(type);
+      if (previous?.category) q.category = previous.category;
+      round.questions.splice(index, 0, q);
+      scrollToQuestion = q.id;
+      structuralChange();
+    });
+    addQuestion.title = previous ? `Neue Frage (${Quiz.TYPE_LABELS[previous.type] || previous.type}) direkt darunter` : 'Erste Frage dieser Runde';
+    bar.append(addQuestion);
+    if (index === round.questions.length) {
+      const addRound = button('+ Neue Runde danach', 'btn btn--small btn--ghost', () => {
+        const q = newQuestion(Quiz.SUPPORTED_TYPES[0]);
+        state.quiz.rounds.splice(ri + 1, 0, { id: App.uid('round'), title: `Runde ${state.quiz.rounds.length + 1}`, pointsMultiplier: 1, questions: [q] });
+        scrollToQuestion = q.id;
+        structuralChange();
+      });
+      bar.append(addRound);
+    }
+    return bar;
+  }
+
   function renderQuestionEditor(q, ri, qi) {
     const wrap = div('question-editor');
+    wrap.dataset.qid = q.id;
     const head = div('question-editor-head');
     const typeName = Quiz.TYPE_LABELS[q.type] || q.type;
     head.append(div('pill pill--category', `${Quiz.TYPE_ICONS[q.type] || '•'} ${typeName}`));

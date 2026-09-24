@@ -602,3 +602,50 @@ html[data-theme="pub"] .brand-mark{background:linear-gradient(135deg,#e8a33a,#c7
 .presenter .question-type-time-duel .question-title,.presenter-main .question-type-time-duel .question-title{font-size:clamp(1.5rem,2.4vw,2.4rem)}
 .presenter .duel-stage,.presenter-main .duel-stage{max-height:max(200px,calc(100vh - 500px));aspect-ratio:auto;height:max(200px,calc(100vh - 500px))}
 .presenter .duel-overlay strong,.presenter-main .duel-overlay strong{font-size:clamp(2rem,4.5vw,4rem)}
+
+/* v23 – Editor, Fight List, Überschriften */
+.insert-bar{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;padding:10px 18px 14px;border-top:1px dashed rgba(var(--overlay-rgb),.12)}
+.insert-bar .btn{opacity:.8}
+.insert-bar .btn:hover{opacity:1}
+.editor-sidebar{overflow-x:hidden}
+.editor-sidebar *{min-width:0}
+.topic-row>summary{flex-wrap:wrap}
+.topic-row>summary .topic-chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topic-row-meta{white-space:normal;text-align:right}
+.card-row--head{margin-bottom:2px}
+.card-row--head span{font-size:.78rem;font-weight:750;color:var(--text-soft)}
+.count-row{grid-template-columns:minmax(0,1fr) auto}
+.count-row.is-changed{border-color:rgba(var(--warning-rgb),.55)}
+.count-terms{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.count-term{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:999px;border:1px solid var(--line);font-size:.82rem;background:rgba(var(--overlay-rgb),.04)}
+.count-term b{font-weight:900}
+.count-term em{font-style:normal;color:var(--muted);font-size:.76rem}
+.count-term.is-exact{border-color:rgba(var(--success-rgb),.5);color:var(--success-text)}
+.count-term.is-fuzzy{border-color:rgba(var(--warning-rgb),.55);color:var(--warning-text)}
+.count-term.is-none{color:var(--muted);text-decoration:line-through;text-decoration-color:rgba(var(--danger-rgb),.6)}
+.count-term.is-double{color:var(--muted);opacity:.7}
+.count-stepper{display:flex;align-items:center;gap:8px}
+.count-stepper>span{display:grid;justify-items:center;min-width:64px;line-height:1.1}
+.count-stepper b{font-size:1.4rem}
+.count-stepper small{color:var(--muted);font-size:.72rem;white-space:nowrap}
+.round-intro{container-type:inline-size;grid-template-columns:minmax(0,1fr)}
+.round-intro h1,.round-intro h2{overflow-wrap:anywhere;hyphens:auto;max-width:100%}
+.round-intro h2{font-size:clamp(1.2rem,6.2cqi,3.2rem)}
+.round-intro.presenter h1{font-size:clamp(1.8rem,6.2cqi,5rem)}
+@media(max-width:760px){.count-row{grid-template-columns:1fr}.count-stepper{justify-content:flex-end}.card-row--head{display:none}}
+/* v23 – QR-Code zum Beitreten */
+.join-qr{display:flex;align-items:center;gap:16px;text-align:left}
+.join-qr-code{flex:none;background:#fff;border-radius:14px;padding:6px;line-height:0;box-shadow:0 10px 30px rgba(var(--shadow-rgb),.25)}
+.join-qr-code svg{display:block;width:100%;height:100%}
+.join-qr--small{margin-top:12px;gap:12px}
+.join-qr--small .join-qr-code{width:120px;height:120px;border-radius:10px;padding:4px}
+.join-qr--large{justify-content:center;flex-wrap:wrap}
+.join-qr--large .join-qr-code{width:min(300px,60vw);height:min(300px,60vw)}
+.join-qr-text{display:grid;gap:4px;min-width:0}
+.join-qr-room{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,3rem);letter-spacing:.14em}
+.join-qr--small .join-qr-room{font-size:1.3rem}
+.join-qr-text small{color:var(--muted);overflow-wrap:anywhere}
+.lobby-join{display:grid;place-items:center;gap:14px;min-height:390px;padding:24px;text-align:center}
+.presenter .lobby-join .join-qr--large .join-qr-code{width:min(360px,40vh);height:min(360px,40vh)}
+@media(max-width:560px){.join-qr--large{flex-direction:column;text-align:center}}
+.join-qr--small .join-qr-text small{display:none}

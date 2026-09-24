@@ -113,7 +113,11 @@
     return def?.resolve ? def.resolve(question, submissions || {}, options || {}) : null;
   }
   /** Muss der Moderator die Antworten dieses Typs von Hand prüfen? */
-  function needsReview(question) { return typeDef(question?.type)?.review === 'manual'; }
+  function needsReview(question) { const mode = typeDef(question?.type)?.review; return mode === 'manual' || mode === 'count'; }
+  /** 'manual' = ✓/✗ je Antwort, 'count' = Trefferzahl je Spieler (Fight List), sonst '' */
+  function reviewMode(question) { return typeDef(question?.type)?.review || ''; }
+  /** Vorschlag für die Trefferzahl (review: 'count') */
+  function countMatches(question, answer) { const fn = typeDef(question?.type)?.countMatches; return fn ? fn(question, answer) : { count: 0, items: [] }; }
   /** Vorschlag für die Moderator-Prüfung (true/false/null = unklar) */
   function autoCheck(question, answer, part = '') {
     const fn = typeDef(question?.type)?.autoCheck;
@@ -186,7 +190,7 @@
     clone, numberOr, categoryKey, cleanCategory, slug,
     normalizeQuiz, extractCategories, allQuestions, categoryHue, topic, scoreAnswer, correctAnswerText, answerLabel, normalizeTerm,
     isChoiceType, optionById, correctOption, surveyWinnerIds, computeConsensusResult,
-    typeDef, resolveResult, stagesOf, locksOnSubmit, revealsMedia, reviewParts, needsReview, autoCheck, publishesAnswers, gameOf, scoresAllPlayers, answerEntries, solutionLabel, moderatorSolution, publicQuestion, aggregateStats, statsHTML, hasTimer, isBuzzer
+    typeDef, resolveResult, stagesOf, locksOnSubmit, revealsMedia, reviewParts, needsReview, autoCheck, publishesAnswers, reviewMode, countMatches, gameOf, scoresAllPlayers, answerEntries, solutionLabel, moderatorSolution, publicQuestion, aggregateStats, statsHTML, hasTimer, isBuzzer
   };
   // Live aus der Registry, damit neu registrierte Typen sofort überall auftauchen
   Object.defineProperties(api, {
