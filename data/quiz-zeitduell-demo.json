@@ -1,0 +1,188 @@
+{
+  "quiz": {
+    "id": "quiz_zeitduell_demo",
+    "title": "Zeitduell – Demo",
+    "description": "Zwei Zeitduelle mit 16 Bildern: einmal mündlich (Moderator drückt ✓ oder Passen), einmal getippt (automatische Prüfung).",
+    "settings": {
+      "defaultTimer": 30,
+      "defaultPoints": 300,
+      "buzzerEnabled": true,
+      "theme": "neon"
+    },
+    "rounds": [
+      {
+        "id": "round_duel",
+        "title": "Zeitduell",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "duel_spoken",
+            "type": "time-duel",
+            "category": "Bilderrätsel",
+            "text": "Was ist auf dem Bild? (mündlich)",
+            "points": 300,
+            "timer": 0,
+            "clockSeconds": 30,
+            "passPenalty": 3,
+            "answerMode": "spoken",
+            "placePoints": [
+              100,
+              60,
+              30
+            ],
+            "shuffleImages": true,
+            "items": [
+              {
+                "image": "./assets/duell/sonne.svg",
+                "answer": "Sonne"
+              },
+              {
+                "image": "./assets/duell/mond.svg",
+                "answer": "Mond"
+              },
+              {
+                "image": "./assets/duell/stern.svg",
+                "answer": "Stern"
+              },
+              {
+                "image": "./assets/duell/herz.svg",
+                "answer": "Herz"
+              },
+              {
+                "image": "./assets/duell/baum.svg",
+                "answer": "Baum"
+              },
+              {
+                "image": "./assets/duell/haus.svg",
+                "answer": "Haus"
+              },
+              {
+                "image": "./assets/duell/fisch.svg",
+                "answer": "Fisch"
+              },
+              {
+                "image": "./assets/duell/wolke.svg",
+                "answer": "Wolke"
+              },
+              {
+                "image": "./assets/duell/blume.svg",
+                "answer": "Blume"
+              },
+              {
+                "image": "./assets/duell/apfel.svg",
+                "answer": "Apfel"
+              },
+              {
+                "image": "./assets/duell/pilz.svg",
+                "answer": "Pilz"
+              },
+              {
+                "image": "./assets/duell/regenschirm.svg",
+                "answer": "Regenschirm"
+              },
+              {
+                "image": "./assets/duell/boot.svg",
+                "answer": "Boot"
+              },
+              {
+                "image": "./assets/duell/schneemann.svg",
+                "answer": "Schneemann"
+              },
+              {
+                "image": "./assets/duell/eis.svg",
+                "answer": "Eis"
+              },
+              {
+                "image": "./assets/duell/kerze.svg",
+                "answer": "Kerze"
+              }
+            ]
+          },
+          {
+            "id": "duel_typed",
+            "type": "time-duel",
+            "category": "Bilderrätsel",
+            "text": "Was ist auf dem Bild? (tippen)",
+            "points": 300,
+            "timer": 0,
+            "clockSeconds": 30,
+            "passPenalty": 3,
+            "answerMode": "typed",
+            "placePoints": [
+              100,
+              60,
+              30
+            ],
+            "shuffleImages": true,
+            "items": [
+              {
+                "image": "./assets/duell/sonne.svg",
+                "answer": "Sonne"
+              },
+              {
+                "image": "./assets/duell/mond.svg",
+                "answer": "Mond"
+              },
+              {
+                "image": "./assets/duell/stern.svg",
+                "answer": "Stern"
+              },
+              {
+                "image": "./assets/duell/herz.svg",
+                "answer": "Herz"
+              },
+              {
+                "image": "./assets/duell/baum.svg",
+                "answer": "Baum"
+              },
+              {
+                "image": "./assets/duell/haus.svg",
+                "answer": "Haus"
+              },
+              {
+                "image": "./assets/duell/fisch.svg",
+                "answer": "Fisch"
+              },
+              {
+                "image": "./assets/duell/wolke.svg",
+                "answer": "Wolke"
+              },
+              {
+                "image": "./assets/duell/blume.svg",
+                "answer": "Blume"
+              },
+              {
+                "image": "./assets/duell/apfel.svg",
+                "answer": "Apfel"
+              },
+              {
+                "image": "./assets/duell/pilz.svg",
+                "answer": "Pilz"
+              },
+              {
+                "image": "./assets/duell/regenschirm.svg",
+                "answer": "Regenschirm"
+              },
+              {
+                "image": "./assets/duell/boot.svg",
+                "answer": "Boot"
+              },
+              {
+                "image": "./assets/duell/schneemann.svg",
+                "answer": "Schneemann"
+              },
+              {
+                "image": "./assets/duell/eis.svg",
+                "answer": "Eis"
+              },
+              {
+                "image": "./assets/duell/kerze.svg",
+                "answer": "Kerze"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

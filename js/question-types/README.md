@@ -106,3 +106,5 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
 | `mediaClip(q, media)` / `revealMedia: true` | Was bei einem Abspiel-Befehl auf allen Geräten läuft: `{ url, offset, duration, fade }`; mit `revealMedia` automatisch beim Auflösen. |
 | `update(q, container, ctx)` | Anzeige aktualisieren ohne Neuzeichnen (z. B. neue Stufe), damit Eingabefelder den Fokus behalten. |
 | `interaction: 'buzzer'` | Sonderablauf „erster gewinnt“ (nur der Buzzer). |
+| `game: { start, tick, … }` | Mini-Spiel mit eigenem Spielstand (`state.game`), den das Moderator-Gerät führt und über `engine.setGame()` an alle verteilt (Beispiel: `time-duel.js`). `render` bekommt `ctx.game`, `ctx.players`, `ctx.role`. |
+| `scoresAllPlayers: true` | Punkte für alle Spieler, auch ohne eigene Antwort (z. B. nach Platzierung). |

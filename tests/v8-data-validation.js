@@ -35,7 +35,7 @@ for(const {question:q} of Quiz.allQuestions(show)){
    const submissions={a:{answer:q.options[0].id},b:{answer:q.options[0].id},c:{answer:q.options[1].id}};
    const r=Quiz.computeConsensusResult(q,submissions);ok(r.winningOptionIds.includes(String(q.options[0].id)),'consensus: majority computed');
  }else{
-   const r=Quiz.scoreAnswer(q,answer,1);ok(r.points>0,`${q.type}: canonical correct answer scores`);
+   const r=q.type==='time-duel'?Quiz.scoreAnswer(q,null,1,{placements:[{playerId:'p',rank:1,remainingMs:1000}]},'p'):Quiz.scoreAnswer(q,answer,1);ok(r.points>0,`${q.type}: canonical correct answer scores`);
  }
 }
 const cats=Quiz.extractCategories(show);ok(cats.length>0,'categories extract');

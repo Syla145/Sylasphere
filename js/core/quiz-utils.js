@@ -121,6 +121,10 @@
   }
   /** Nach der Auflösung sehen alle Spieler die Antworten der anderen */
   function publishesAnswers(question) { return Boolean(typeDef(question?.type)?.publishAnswers); }
+  /** Mini-Spiel des Typs (z. B. Zeitduell) oder null */
+  function gameOf(question) { return typeDef(question?.type)?.game || null; }
+  /** Punkte für alle Spieler vergeben, auch ohne eigene Antwort */
+  function scoresAllPlayers(question) { return Boolean(typeDef(question?.type)?.scoresAllPlayers); }
   function answerEntries(question, answers, nameOf) {
     return Object.entries(answers || {}).map(([playerId, record]) => ({
       playerId, name: String(nameOf(playerId) || 'Spieler'),
@@ -182,7 +186,7 @@
     clone, numberOr, categoryKey, cleanCategory, slug,
     normalizeQuiz, extractCategories, allQuestions, categoryHue, topic, scoreAnswer, correctAnswerText, answerLabel, normalizeTerm,
     isChoiceType, optionById, correctOption, surveyWinnerIds, computeConsensusResult,
-    typeDef, resolveResult, stagesOf, locksOnSubmit, revealsMedia, reviewParts, needsReview, autoCheck, publishesAnswers, answerEntries, solutionLabel, moderatorSolution, publicQuestion, aggregateStats, statsHTML, hasTimer, isBuzzer
+    typeDef, resolveResult, stagesOf, locksOnSubmit, revealsMedia, reviewParts, needsReview, autoCheck, publishesAnswers, gameOf, scoresAllPlayers, answerEntries, solutionLabel, moderatorSolution, publicQuestion, aggregateStats, statsHTML, hasTimer, isBuzzer
   };
   // Live aus der Registry, damit neu registrierte Typen sofort überall auftauchen
   Object.defineProperties(api, {

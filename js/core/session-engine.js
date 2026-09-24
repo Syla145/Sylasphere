@@ -182,6 +182,7 @@
         if (question.type === 'buzzer') state.questionResults[question.id] = this.initialBuzzerState(question);
         state.stage = 0;       // Stufen-Fragen beginnen bei Stufe 1 (Index 0)
         state.media = null;    // letzter Abspiel-Befehl
+        state.game = null;     // Mini-Spiel (Zeitduell) startet der Moderator separat
       });
     }
     // ---------- Stufen & Medien (Song-Enthüllung) ----------
@@ -215,6 +216,14 @@
         state.media = this.mediaCommand(state, question, 'reveal');
       });
     }
+    /** Spielstand eines Mini-Spiels (Zeitduell) setzen – nur das Moderator-Gerät ruft das auf */
+    setGame(game) {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        if (!question || !state.questionStartedAt || state.scoredQuestionIds.includes(question.id)) return;
+        state.game = game ? Quiz.clone(game) : null;
+      });
+    }
     lockQuestion() {
       this.mutate(state => {
         const { question } = this.getCurrent(state);
@@ -238,7 +247,8 @@
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
-        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, options);
+        const names = Object.fromEntries(state.players.map(player => [player.id, player.name]));
+        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, Object.assign({ game: state.game || null, names }, options));
         if (typeResult) state.questionResults[question.id] = typeResult;
         if (question.type === 'buzzer') {
           const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
@@ -262,7 +272,8 @@
           state.questionResults[question.id] = result;
         } else {
           state.players.forEach(player => {
-            const submission = answers[player.id];
+            let submission = answers[player.id];
+            if (!submission && Quiz.scoresAllPlayers(question)) submission = answers[player.id] = { answer: null, submittedAt: Date.now() }; // z. B. Zeitduell: Punkte nach Platzierung
             if (!submission) return;
             const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, player.id);
             submission.awardedPoints = result.points;
@@ -370,7 +381,7 @@
         if (unresolved) throw new Error('Bitte die aktuelle Frage zuerst auflösen.');
         state.questionOpen = false;
         state.questionEndsAt = null;
-        state.stage = 0; state.media = null; state.questionStartedAt = null;
+        state.stage = 0; state.media = null; state.game = null; state.questionStartedAt = null;
         const quiz = state.quiz.quiz;
         let ri = state.currentRoundIndex;
         let qi = state.currentQuestionIndex + direction;

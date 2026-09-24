@@ -1,5 +1,21 @@
 # Sylasphere – Changelog
 
+## v22 – Neuer Spielmodus „Zeitduell“
+- **Zeitduell** (inspiriert von Bilder-Duell-Shows): Jeder Spieler hat ein eigenes Zeitkonto (Standard 30 s, wie eine Schachuhr). Der Zufall bestimmt die Reihenfolge, dann geht es reihum.
+  - ✓ **Richtig:** Uhr stoppt, die Lösung ist kurz für alle sichtbar, der nächste Spieler bekommt ein neues Bild.
+  - ⏭ **Passen:** −3 s, die Lösung wird 3 s gezeigt, der nächste Spieler bekommt ein neues Bild.
+  - ⏰ Wer auf 0 fällt, **scheidet aus**. Ende, wenn nur noch einer übrig ist oder die Bilder ausgehen.
+  - **Punkte nach Platzierung**, im Editor einstellbar (Standard 100 % / 60 % / 30 %).
+- **Zwei Antwort-Modi** (im Editor wählbar):
+  - **Mündlich:** Der Moderator drückt ✓ oder Passen.
+  - **Tippen:** Das System erkennt die richtige Antwort automatisch. Groß- und Kleinschreibung sowie Leerzeichen am Rand sind egal, falsche Versuche sehen alle.
+- **Alle Geräte:** Alle sehen das Bild und alle Uhren. Der Beamer zeigt alles auf einen Blick, auf dem Handy sieht man „Du bist dran!“.
+- **Moderator:** Große Knöpfe ✓ Richtig / ⏭ Passen, Pause, „Duell beenden“, die aktuelle Lösung nur für dich. Tastatur: Enter = richtig, P = passen, Leertaste = Pause/Weiter bzw. Start.
+- **Editor:** Bilder mit Lösung, Zeit pro Spieler, Strafzeit, Modus, Mischen. **„📁 Alle Bilder übernehmen“** holt einen ganzen Ordner aus `assets/` und schlägt die Lösung aus dem Dateinamen vor (`hund.webp` → „Hund“).
+- **Demo:** Neues Quiz „Zeitduell – Demo“ (mündlich und getippt, 16 Bilder in `assets/duell/`). „Showtime“ enthält jetzt alle 16 Fragetypen.
+- Editor: Das Feld „Timer (s)“ wird bei Typen ohne gemeinsamen Timer (Buzzer, Zeitduell) ausgeblendet.
+- Keine Änderung an den Firebase-Regeln nötig.
+
 ## v21 – Neue Startseite: Anmelden oder Gast
 - **Startseite fragt zuerst: „Anmelden“ oder „Als Gast fortfahren“.** Danach erscheinen nur die passenden Bereiche:
   - Moderator/Admin: Moderieren, Mitspielen, Zuschauen, Quiz-Editor (Admins zusätzlich: Verwaltung)

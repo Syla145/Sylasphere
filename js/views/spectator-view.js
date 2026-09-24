@@ -98,6 +98,14 @@
     const pendingReveal = (!state.questionOpen || timedOut) && state.questionStartedAt && !resolved;
     window.SylasphereMedia?.sync(state.media, current.question); // Song-Ausschnitte auch beim Zuschauer (z. B. Discord-Stream)
     const shown = els['spectator-question'];
+    if (Quiz.gameOf(current.question)) {
+      // Zeitduell: großes Bild, alle Uhren, Lösung nach jedem Bild
+      if (shown.dataset.renderKey !== `duel:${current.question.id}`) shown.replaceChildren();
+      shown.dataset.renderKey = `duel:${current.question.id}`;
+      Renderers.renderPlayer(current.question, shown, { readOnly: true, reveal: resolved, result, game: state.game || null, players: state.players, role: 'spectator' });
+      els['spectator-stats'].innerHTML = resolved ? `<div class="reveal-box"><span>Ergebnis</span><strong>${App.escapeHTML(Quiz.correctAnswerText(current.question, result) || '–')}</strong></div>` : '';
+      return;
+    }
     const key = JSON.stringify([current.question.id, resolved, result ?? null]);
     if (shown.dataset.renderKey === key && shown.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, shown, { readOnly: true, reveal: resolved, result, stage: state.stage });
     else { Renderers.renderPlayer(current.question, shown, { readOnly: true, reveal: resolved, currentAnswer: null, result, stage: state.stage }); shown.dataset.renderKey = key; }

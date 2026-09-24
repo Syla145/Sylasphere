@@ -150,6 +150,7 @@
     const answerWindowOpen = state.questionOpen && !timedOut;
 
     if (current.question.type === 'buzzer') return renderBuzzer(current, answerRecord, questionResult, resolved);
+    if (Quiz.gameOf(current.question)) return renderDuel(current, answerRecord, questionResult, resolved);
 
     window.SylasphereMedia?.sync(state.media, current.question); // Song-Ausschnitte auf diesem Gerät abspielen
     const stages = Quiz.stagesOf(current.question);
@@ -200,6 +201,33 @@
     }
     Renderers.renderPlayer(question, host, ctx);
     host.dataset.renderKey = key;
+  }
+
+  // Zeitduell (v22): alle sehen Bild und Uhren; wer dran ist, tippt (Modus „Tippen“) oder spricht
+  function renderDuel(current, answerRecord, questionResult, resolved) {
+    const q = current.question;
+    const game = state.game || null;
+    const host = els['game-question'];
+    if (host.dataset.renderKey !== `duel:${q.id}`) host.replaceChildren();
+    host.dataset.renderKey = `duel:${q.id}`;
+    Renderers.renderPlayer(q, host, {
+      readOnly: resolved, reveal: resolved, result: questionResult, game, players: state.players, playerId, role: 'player',
+      onGuess: text => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { text, pos: Number(state.game.pos) || 0 })).catch(error => App.toast(error.message, 'error')); }
+    });
+    els['submit-answer'].hidden = true;
+    if (!resolved) {
+      const g = game;
+      App.setText(els['game-status'], !g ? 'Gleich geht’s los' : g.phase === 'done' ? 'Duell beendet' : g.phase === 'reveal' ? 'Lösung' : g.phase === 'paused' ? 'Pause' : g.active === playerId ? 'Du bist dran!' : 'Zeitduell');
+      const out = g && Array.isArray(g.eliminated) && g.eliminated.includes(playerId);
+      const inGame = g && Array.isArray(g.order) && g.order.includes(playerId);
+      els['answer-feedback'].innerHTML = out ? '<div class="notice">Deine Zeit ist abgelaufen – du bist raus, schau den anderen zu.</div>'
+        : g && !inGame ? '<div class="notice">Du bist nach dem Start beigetreten und schaust bei diesem Duell zu.</div>'
+        : g?.phase === 'done' ? '<div class="notice notice--warning reveal-wait"><strong>🏁 Duell beendet.</strong><span>Der Moderator vergibt gleich die Punkte.</span></div>' : '';
+      return;
+    }
+    App.setText(els['game-status'], 'Auflösung');
+    const points = answerRecord?.awardedPoints;
+    els['answer-feedback'].innerHTML = `<div class="reveal-box"><span>Ergebnis</span><strong>${App.escapeHTML(Quiz.correctAnswerText(q, questionResult) || '–')}</strong></div>${answerRecord ? `<div class="points-earned ${points > 0 ? 'is-positive' : ''}"><span>Deine Punkte</span><strong>+${Math.round(points || 0)} P</strong><small>${App.escapeHTML(answerRecord.scoreDetail || '')}</small></div>` : ''}`;
   }
 
   function renderBuzzer(current, answerRecord, questionResult, resolved) {

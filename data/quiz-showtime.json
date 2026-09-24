@@ -387,6 +387,89 @@
             "revealDuration": 8,
             "points": 200,
             "timer": 0
+          },
+          {
+            "id": "show_duel",
+            "type": "time-duel",
+            "category": "Bilderrätsel",
+            "text": "Zeitduell: Was ist auf dem Bild?",
+            "points": 300,
+            "timer": 0,
+            "clockSeconds": 30,
+            "passPenalty": 3,
+            "answerMode": "spoken",
+            "placePoints": [
+              100,
+              60,
+              30
+            ],
+            "shuffleImages": true,
+            "items": [
+              {
+                "image": "./assets/duell/sonne.svg",
+                "answer": "Sonne"
+              },
+              {
+                "image": "./assets/duell/mond.svg",
+                "answer": "Mond"
+              },
+              {
+                "image": "./assets/duell/stern.svg",
+                "answer": "Stern"
+              },
+              {
+                "image": "./assets/duell/herz.svg",
+                "answer": "Herz"
+              },
+              {
+                "image": "./assets/duell/baum.svg",
+                "answer": "Baum"
+              },
+              {
+                "image": "./assets/duell/haus.svg",
+                "answer": "Haus"
+              },
+              {
+                "image": "./assets/duell/fisch.svg",
+                "answer": "Fisch"
+              },
+              {
+                "image": "./assets/duell/wolke.svg",
+                "answer": "Wolke"
+              },
+              {
+                "image": "./assets/duell/blume.svg",
+                "answer": "Blume"
+              },
+              {
+                "image": "./assets/duell/apfel.svg",
+                "answer": "Apfel"
+              },
+              {
+                "image": "./assets/duell/pilz.svg",
+                "answer": "Pilz"
+              },
+              {
+                "image": "./assets/duell/regenschirm.svg",
+                "answer": "Regenschirm"
+              },
+              {
+                "image": "./assets/duell/boot.svg",
+                "answer": "Boot"
+              },
+              {
+                "image": "./assets/duell/schneemann.svg",
+                "answer": "Schneemann"
+              },
+              {
+                "image": "./assets/duell/eis.svg",
+                "answer": "Eis"
+              },
+              {
+                "image": "./assets/duell/kerze.svg",
+                "answer": "Kerze"
+              }
+            ]
           }
         ]
       }

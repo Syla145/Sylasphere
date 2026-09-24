@@ -331,6 +331,7 @@
         currentPublicQuestion: pub.currentQuestion ? clone(pub.currentQuestion) : null,
         stage: Math.max(0, Number(pub.stage) || 0),
         media: pub.media ? Object.assign(clone(pub.media), { at: Firebase.toLocalTime(this.context, pub.media.at) }) : null,
+        game: pub.game ? this.gameTimes(pub.game, -1) : null,
         answers,
         questionResults,
         scoredQuestionIds: resolved,
@@ -473,7 +474,7 @@
         currentQuestion: publicQuestion(question, false),
         questionResult: question.type === 'buzzer' ? clean(initialBuzzerState(question)) : null, publicStats: null, scoreDeltas: null,
         // Stufen-Fragen: Stufe 1 aktiv; answerLock = Antwort nach Abgabe gesperrt (von den Firebase-Regeln geprüft)
-        stage: 0, media: null, answerLock: Quiz.locksOnSubmit(question)
+        stage: 0, media: null, game: null, answerLock: Quiz.locksOnSubmit(question)
       });
     }
 
@@ -505,6 +506,25 @@
       await this.patchPublic({ media: this.mediaCommand(question, 'reveal', 0) });
     }
 
+    /** Zeitangaben im Spielstand umrechnen: direction +1 = lokal → Server, −1 = Server → lokal */
+    gameTimes(game, direction) {
+      const g = clone(game);
+      const offset = (Number(this.context.serverOffset) || 0) * direction;
+      const shift = value => (value == null || !Number.isFinite(Number(value)) ? null : Number(value) + offset);
+      g.runningSince = shift(g.runningSince);
+      g.startedAt = shift(g.startedAt);
+      if (g.reveal) g.reveal.until = shift(g.reveal.until);
+      if (g.lastGuess) g.lastGuess.at = shift(g.lastGuess.at);
+      return g;
+    }
+    /** Spielstand eines Mini-Spiels (Zeitduell) setzen – nur das Moderator-Gerät */
+    async setGame(game) {
+      this.assertModerator();
+      const state = this.load();
+      const { question } = this.getCurrent(state);
+      if (!question || !state.questionStartedAt || state.scoredQuestionIds.includes(question.id)) return;
+      await this.patchPublic({ game: game ? clean(this.gameTimes(game, 1)) : null });
+    }
     async lockQuestion() {
       this.assertModerator();
       const state = this.load();
@@ -546,7 +566,8 @@
         const roundMultiplier = Number(round?.pointsMultiplier);
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
-        let typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, options);
+        const names = Object.fromEntries(Object.entries(this.raw.profiles || {}).map(([uid, profile]) => [uid, String(profile?.name || 'Spieler')]));
+        let typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, Object.assign({ game: state.game || null, names }, options));
         const buzzerResult = question.type === 'buzzer' ? clone(state.questionResults?.[question.id] || initialBuzzerState(question)) : null;
         const deltas = {};
         const updates = {};
@@ -584,13 +605,18 @@
           buzzerResult.resolvedAt = now;
         } else {
           Object.keys(profiles).forEach(uid => {
-            const submission = answers[uid];
+            let submission = answers[uid];
+            let created = false;
+            if (!submission && Quiz.scoresAllPlayers(question)) { submission = answers[uid] = { answer: '', submittedAt: now }; created = true; } // z. B. Zeitduell
             if (!submission) return;
             const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, uid);
             deltas[uid] = Math.round(Number(result.points) || 0);
-            updates[`answers/${uid}/${question.id}/awardedPoints`] = deltas[uid];
-            updates[`answers/${uid}/${question.id}/scoreDetail`] = String(result.detail || '');
-            updates[`answers/${uid}/${question.id}/scoredAt`] = now;
+            if (created) updates[`answers/${uid}/${question.id}`] = clean(Object.assign({}, submission, { awardedPoints: deltas[uid], scoreDetail: String(result.detail || ''), scoredAt: now }));
+            else {
+              updates[`answers/${uid}/${question.id}/awardedPoints`] = deltas[uid];
+              updates[`answers/${uid}/${question.id}/scoreDetail`] = String(result.detail || '');
+              updates[`answers/${uid}/${question.id}/scoredAt`] = now;
+            }
             updates[`scores/${uid}`] = Math.round((Number(scores[uid]) || 0) + deltas[uid]);
           });
           if (Quiz.publishesAnswers(question)) {
@@ -741,7 +767,7 @@
       const nextQuestion = quiz.rounds[ri]?.questions[qi] || null;
       await this.patchPublic({
         status, finishedAt, currentRoundIndex: ri, currentQuestionIndex: qi,
-        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, answerLock: false,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
         currentQuestionId: nextQuestion?.id || '', currentQuestion: null,
         questionResult: null, publicStats: null, scoreDeltas: null,
         roundSummaries: summaries

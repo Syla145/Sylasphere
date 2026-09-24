@@ -169,8 +169,21 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
 | ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
+| ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 15 Typen. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
+Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
+
+### Zeitduell im Detail
+
+1. **Vorbereiten:** Bilder in einen eigenen Ordner laden, zum Beispiel `assets/duell-tiere/`. Etwa 15–40 Bilder einplanen, damit sie nicht zu früh ausgehen. Im Editor „📁 Alle Bilder übernehmen“ nutzen. Die Lösung wird aus dem Dateinamen vorgeschlagen, bitte kurz prüfen.
+2. **Einstellen:** Zeit pro Spieler (Standard 30 s), Strafzeit fürs Passen (3 s), Modus **mündlich** oder **tippen**, Punkte nach Platz (zum Beispiel `100, 60, 30`).
+3. **Spielen:** Frage öffnen, dann **🎲 Duell starten**. Der Zufall bestimmt, wer anfängt.
+   - **Mündlich:** Du siehst die Lösung und drückst **✓ Richtig** (Enter) oder **⏭ Passen** (P).
+   - **Tippen:** Der Spieler, der dran ist, tippt auf dem Handy. Richtige Antworten erkennt das System, Groß- und Kleinschreibung ist egal. Du kannst trotzdem jederzeit ✓ oder Passen drücken.
+   - **Pause** mit der Leertaste, **🏁 Duell beenden** jederzeit. Dann zählt die aktuelle Restzeit.
+4. **Ende:** Wenn nur noch einer übrig ist oder die Bilder ausgehen, tippst du auf **✨ Frage auflösen**. Die Punkte werden nach Platzierung vergeben.
+
+Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geöffnet bleiben und nicht in den Standby gehen.
 
 ## Designs
 

@@ -504,7 +504,8 @@
     fields.append(spanField('Punkte', points, ''));
     const timer = input('number', q.timer, 'input'); timer.min = '0';
     timer.addEventListener('input', e => { q.timer = nonNegative(e.target.value, 0); queueSave(); });
-    fields.append(spanField('Timer (s)', timer, ''));
+    // Typen ohne gemeinsamen Timer (Buzzer, Zeitduell) blenden das Feld aus
+    if (Quiz.hasTimer(q)) fields.append(spanField('Timer (s)', timer, ''));
     fields.append(renderDynamic(q));
     wrap.append(fields, renderAdvancedQuestionSettings(q));
     return wrap;

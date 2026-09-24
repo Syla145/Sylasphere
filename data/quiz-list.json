@@ -1,8 +1,13 @@
 [
   {
-    "title": "Sylasphere: Showtime · alle 15 Fragetypen",
-    "description": "Showcase mit allen 15 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis zur Song-Enthüllung.",
+    "title": "Sylasphere: Showtime · alle 16 Fragetypen",
+    "description": "Showcase mit allen 16 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung und Zeitduell.",
     "file": "quiz-showtime.json"
+  },
+  {
+    "title": "Zeitduell – Demo",
+    "description": "Zwei Zeitduelle mit 16 Bildern: einmal mündlich (Moderator drückt ✓ oder Passen), einmal getippt (automatische Prüfung).",
+    "file": "quiz-zeitduell-demo.json"
   },
   {
     "title": "Sylasphere: Party Mix",

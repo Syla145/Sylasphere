@@ -30,7 +30,8 @@
     'survey',
     'consensus',
     'hotspot',
-    'buzzer'
+    'buzzer',
+    'time-duel'
   ];
 
   const REQUIRED = ['type', 'label', 'icon', 'normalize', 'score', 'solutionText', 'render'];
@@ -61,6 +62,8 @@
       mediaClip: null,       // (q, media) => { url, offset, duration, fade } – was bei einem Abspiel-Befehl läuft
       revealMedia: false,    // beim Auflösen automatisch mediaClip('reveal') abspielen
       update: null,          // (q, container, ctx) – Anzeige aktualisieren ohne Neuzeichnen
+      game: null,            // Mini-Spiel mit eigenem Spielstand (state.game), z. B. Zeitduell – vom Moderator-Gerät gesteuert
+      scoresAllPlayers: false, // Punkte für alle Spieler vergeben, auch ohne eigene Antwort (z. B. Platzierung im Zeitduell)
       interaction: 'answer'
     }, definition);
     types.set(def.type, Object.freeze(def));

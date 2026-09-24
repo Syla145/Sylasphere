@@ -536,3 +536,69 @@ html[data-theme="pub"] .brand-mark{background:linear-gradient(135deg,#e8a33a,#c7
 @media(max-width:1180px){.home-roles--5{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:1080px){.home-roles--4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:760px){.hero--compact{padding:30px 0 6px}.home-choice,.home-roles--2,.home-roles--4,.home-roles--5{grid-template-columns:1fr}.home-choice .role-card,.home-roles .role-card{min-height:0}.home-roles .role-icon,.home-choice .role-icon{margin-bottom:12px}.home-content{padding-bottom:40px}}
+
+/* v22 – Zeitduell */
+.duel{display:grid;gap:14px}
+.duel-stage{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);background:var(--bg-deep);aspect-ratio:4/3;max-height:min(56vh,520px);width:100%;margin:0 auto}
+.duel-image{position:absolute;inset:0;display:grid;place-items:center}
+.duel-image img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.duel-placeholder{display:grid;gap:8px;place-items:center;font-size:3rem;color:var(--muted)}
+.duel-placeholder span{font-size:1rem;font-weight:750}
+.duel-overlay{position:absolute;left:0;right:0;bottom:0;display:grid;gap:4px;justify-items:center;text-align:center;padding:16px 14px 18px;background:linear-gradient(180deg,transparent,rgba(var(--shadow-rgb),.82) 35%);color:#fff;animation:duelIn .25s ease}
+.duel-overlay strong{font-size:clamp(1.6rem,5vw,3rem);line-height:1.05;letter-spacing:-.02em;overflow-wrap:anywhere}
+.duel-overlay em{font-style:normal;font-weight:800;color:#ffb4b4}
+.duel-reason{font-weight:800;font-size:.9rem;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.14)}
+.duel-overlay.is-correct .duel-reason{background:rgba(var(--success-rgb),.85);color:var(--on-success)}
+.duel-overlay.is-pass .duel-reason{background:rgba(var(--warning-rgb),.9);color:#1b1300}
+.duel-overlay.is-timeout .duel-reason{background:rgba(var(--danger-rgb),.9);color:#fff}
+.duel-overlay.is-paused{top:0;align-content:center;background:rgba(var(--shadow-rgb),.6)}
+@keyframes duelIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.duel-turn{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 12px;text-align:center;min-height:32px}
+.duel-now{font-size:1.1rem}
+.duel-you{font-size:1.3rem;font-weight:900;color:var(--accent-text)}
+.duel-hint{color:var(--muted)}
+.duel-wrong{color:var(--danger-text);font-weight:750}
+.duel-guess{display:flex;gap:8px}
+.duel-guess[hidden]{display:none}
+.duel-guess .input{flex:1;min-width:0;font-size:1.15rem;min-height:52px}
+.duel-guess .btn{min-height:52px}
+.duel-clocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.duel-clock{--clock:1;position:relative;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:9px 11px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(90deg,rgba(var(--accent-rgb),.16) calc(var(--clock)*100%),rgba(var(--overlay-rgb),.03) 0);overflow:hidden;transition:border-color .2s,box-shadow .2s,opacity .2s}
+.duel-avatar{grid-row:1/3;font-size:1.4rem}
+.duel-name{font-weight:750;font-size:.86rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.duel-time{font-size:1.35rem;font-variant-numeric:tabular-nums;line-height:1.1}
+.duel-rank{position:absolute;top:6px;right:9px;font-weight:900;color:var(--accent-text)}
+.duel-clock.is-active{border-color:rgba(var(--accent-rgb),.9);box-shadow:0 0 0 2px rgba(var(--accent-rgb),.35),0 10px 24px rgba(var(--accent-rgb),.2)}
+.duel-clock.is-me .duel-name::after{content:" (du)";color:var(--muted);font-weight:600}
+.duel-clock.is-out{opacity:.45}
+.duel-clock.is-out .duel-time{font-size:1rem;color:var(--danger-text)}
+.duel-clock.is-critical{border-color:rgba(var(--danger-rgb),.9);animation:pulseDanger .6s infinite alternate}
+.duel-clock.is-critical .duel-time{color:var(--danger-text)}
+.duel-clock.is-winner{border-color:rgba(var(--warning-rgb),.9);box-shadow:0 0 0 2px rgba(var(--warning-rgb),.35)}
+.presenter .duel-time,.presenter-main .duel-time{font-size:1.8rem}
+.presenter .duel-clocks,.presenter-main .duel-clocks{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.duel-control{display:grid;gap:12px}
+.duel-control-info{display:grid;gap:4px}
+.duel-control-info span{color:var(--muted);font-size:.9rem}
+.duel-solution strong{font-size:clamp(1.5rem,3vw,2.2rem)}
+.duel-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.duel-big{min-height:64px;font-size:1.15rem}
+.duel-pass{background:rgba(var(--warning-rgb),.16);border-color:rgba(var(--warning-rgb),.5)}
+.duel-pass small{font-weight:700;opacity:.8}
+.duel-secondary{display:flex;flex-wrap:wrap;gap:8px}
+.duel-last-guess{padding:10px 12px;border-radius:12px;background:rgba(var(--danger-rgb),.08);border:1px solid rgba(var(--danger-rgb),.3)}
+.duel-control .microcopy{margin:0}
+.duel-items-head{margin:14px 0 8px}
+.duel-items{display:grid;gap:8px}
+.duel-item{display:grid;grid-template-columns:28px minmax(0,1.3fr) minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px;border:1px solid var(--line);border-radius:12px;background:rgba(var(--overlay-rgb),.025)}
+.duel-item-no{display:grid;place-items:center;height:28px;margin-top:26px;border-radius:8px;background:rgba(var(--accent-rgb),.16);font-weight:850;font-size:.8rem}
+.duel-item .icon-btn{margin-top:26px}
+.duel-item-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;align-items:center}
+.duel-item-actions .select{width:auto;min-width:220px;flex:1}
+.dynamic-grid .span-wide{grid-column:1/-1}
+@media(max-width:760px){.duel-item{grid-template-columns:28px minmax(0,1fr) auto}.duel-item>label:nth-of-type(2){grid-column:2/3}.duel-clocks{grid-template-columns:repeat(2,minmax(0,1fr))}.duel-buttons{grid-template-columns:1fr 1fr}.duel-stage{max-height:42vh}}
+/* Zeitduell auf dem Beamer: alles auf einen Blick (Bild, Lösung, Uhren) */
+.presenter .question-type-time-duel,.presenter-main .question-type-time-duel{gap:12px}
+.presenter .question-type-time-duel .question-title,.presenter-main .question-type-time-duel .question-title{font-size:clamp(1.5rem,2.4vw,2.4rem)}
+.presenter .duel-stage,.presenter-main .duel-stage{max-height:max(200px,calc(100vh - 500px));aspect-ratio:auto;height:max(200px,calc(100vh - 500px))}
+.presenter .duel-overlay strong,.presenter-main .duel-overlay strong{font-size:clamp(2rem,4.5vw,4rem)}

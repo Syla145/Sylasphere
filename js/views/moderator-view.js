@@ -17,6 +17,8 @@
   let transport = 'local';
   // Moderator-Entscheidungen je Frage: { frageId: { spielerId: true|false } }
   const reviews = {};
+  // Zeitduell: Das Moderator-Gerät ist die Uhr (Schleife + Schreibschutz gegen doppelte Ereignisse)
+  const duel = { busy: false, writtenSeq: 0, processed: new Set(), loop: null };
 
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
@@ -92,6 +94,11 @@
       reviews[question.id][btn.dataset.reviewPlayer] = Object.assign({}, reviews[question.id][btn.dataset.reviewPlayer], { [btn.dataset.reviewPart || '']: btn.dataset.verdict === 'true' });
       renderQuestion(engine.getCurrent(state));
     });
+    // Zeitduell: Starten, Richtig, Passen, Pause, Beenden
+    els['answer-status']?.addEventListener('click', event => {
+      const btn = event.target.closest('[data-duel]');
+      if (btn && !btn.disabled) duelAction(btn.dataset.duel);
+    });
     // Song-Steuerung: Stufe abspielen, nächste Stufe, Ton auf diesem Gerät, Auflösung erneut
     els['answer-status']?.addEventListener('click', event => {
       const btn = event.target.closest('[data-song-action]');
@@ -120,6 +127,17 @@
 
     document.addEventListener('keydown', event => {
       if (!engine || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName)) return;
+      // Zeitduell läuft: eigene Tasten, Leertaste schließt NICHT die Frage
+      if (duelGame() && state?.questionStartedAt && !state.game && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) {
+        if (event.code === 'Space' || event.key === 'Enter') { event.preventDefault(); duelAction('start'); }
+        return;
+      }
+      if (duelGame() && state?.game && state.game.phase !== 'done' && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) {
+        if (event.key === 'Enter') { event.preventDefault(); duelAction('correct'); }
+        else if (event.key.toLowerCase() === 'p') { event.preventDefault(); duelAction('pass'); }
+        else if (event.code === 'Space') { event.preventDefault(); duelAction(state.game.phase === 'paused' ? 'resume' : 'pause'); }
+        return;
+      }
       if (event.code === 'Space') {
         event.preventDefault();
         const current = engine.getCurrent(state);
@@ -342,6 +360,7 @@
     const questionResult = state.questionResults?.[current.question.id] || null;
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
+    if (Quiz.gameOf(current.question)) { renderDuel(current.question, resolved, questionResult); return; }
     Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage });
     window.SylasphereMedia?.sync(state.media, current.question); // Ton auch auf dem Moderator-Gerät (abschaltbar)
     const answers = state.answers[current.question.id] || {};
@@ -374,6 +393,104 @@
     const review = Quiz.needsReview(current.question) && !resolved ? reviewPanel(current.question, answers) : '';
     const songControl = stagePanel(current.question, resolved);
     els['answer-status'].innerHTML = `${songControl}<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${review}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
+  }
+
+  // ---------------------------------------------------------------- Zeitduell (v22)
+  function duelGame() { return Quiz.gameOf(engine?.getCurrent(state)?.question); }
+  /** Neuen Spielstand schreiben – nie zwei Schreibvorgänge gleichzeitig */
+  async function applyDuel(next) {
+    if (!next || next === state?.game || duel.busy) return;
+    duel.busy = true;
+    duel.writtenSeq = Number(next.seq) || 0;
+    try { await engine.setGame(next); }
+    catch (error) { App.toast(error.message, 'error'); }
+    finally { duel.busy = false; }
+  }
+  function duelAction(action, attempt = 0) {
+    const current = engine?.getCurrent(state);
+    const Game = Quiz.gameOf(current?.question);
+    if (!Game || !state) return;
+    // Schreibt das Gerät gerade (oder ist der eigene Stand noch nicht zurück)? Kurz warten, damit kein Klick verloren geht.
+    if (duel.busy || (state.game && (Number(state.game.seq) || 0) < duel.writtenSeq)) {
+      if (attempt < 25) setTimeout(() => duelAction(action, attempt + 1), 80);
+      return;
+    }
+    const now = Date.now();
+    const q = current.question;
+    if (action === 'start') {
+      const ids = state.players.filter(p => p.active !== false).map(p => p.id);
+      if (!ids.length) return App.toast('Es ist noch kein Spieler im Raum.', 'error');
+      return applyDuel(Game.start(q, ids, now));
+    }
+    if (!state.game) return;
+    if (action === 'correct') return applyDuel(Game.correct(state.game, q, now));
+    if (action === 'pass') return applyDuel(Game.pass(state.game, q, now));
+    if (action === 'pause') return applyDuel(Game.pause(state.game, now));
+    if (action === 'resume') return applyDuel(Game.resume(state.game, now));
+    if (action === 'stop') {
+      if (!confirm('Duell jetzt beenden? Die Platzierung ergibt sich aus der aktuellen Restzeit.')) return;
+      const g = Game.normalize(state.game);
+      g.phase = 'done'; g.active = ''; g.runningSince = null; g.reveal = null; g.endReason = 'stopped'; g.seq = (g.seq || 0) + 1;
+      if (state.game.phase === 'play' && state.game.runningSince) g.clocks[state.game.active] = Game.remaining(state.game, state.game.active, now);
+      return applyDuel(g);
+    }
+  }
+  // Uhr-Schleife: prüft Zeitablauf und Ende der Lösungsanzeige
+  function duelTick() {
+    const current = engine?.getCurrent(state);
+    const Game = Quiz.gameOf(current?.question);
+    if (!Game || !state?.game || duel.busy) return;
+    if ((Number(state.game.seq) || 0) < duel.writtenSeq) return; // eigener Stand noch nicht zurückgekommen
+    if (state.game.phase === 'done') {
+      if (state.questionOpen) { duel.busy = true; Promise.resolve(engine.lockQuestion()).catch(() => {}).finally(() => { duel.busy = false; }); }
+      return;
+    }
+    const next = Game.tick(state.game, current.question, Date.now());
+    if (next !== state.game) applyDuel(next);
+  }
+  // Getippte Antworten (Modus „Tippen“) automatisch prüfen
+  function duelCheckGuesses(q) {
+    const Game = Quiz.gameOf(q);
+    const game = state.game;
+    if (!Game || !game || game.phase !== 'play' || q.answerMode !== 'typed' || duel.busy) return;
+    const record = state.answers[q.id]?.[game.active];
+    const answer = record?.answer;
+    if (!answer || typeof answer !== 'object' || Number(answer.pos) !== Number(game.pos)) return;
+    const key = `${game.active}|${answer.pos}|${record.submittedAt}|${answer.text}`;
+    if (duel.processed.has(key)) return;
+    duel.processed.add(key);
+    applyDuel(Game.guess(game, q, game.active, answer.text, Date.now()));
+  }
+  function renderDuel(q, resolved, result) {
+    const Game = Quiz.gameOf(q);
+    const game = state.game ? Game.normalize(state.game) : null;
+    Renderers.renderModerator(q, els['question-area'], { readOnly: true, reveal: resolved, result, game, players: state.players, role: 'moderator' });
+    if (!duel.loop) duel.loop = setInterval(duelTick, 120);
+    duelCheckGuesses(q);
+    const esc = App.escapeHTML;
+    const name = id => findPlayerName(id) || 'Spieler';
+    let html = '';
+    if (resolved) {
+      const places = result?.placements || [];
+      html = `<div class="reveal-box"><span>Ergebnis</span><strong>${esc(Quiz.correctAnswerText(q, result))}</strong></div><div class="answer-review">${places.map(p => `<div><span>${p.rank}. ${esc(p.name || name(p.playerId))}</span><span>${p.out ? 'ausgeschieden' : `${(p.remainingMs / 1000).toFixed(1).replace('.', ',')} s übrig`}</span><strong class="${(state.answers[q.id]?.[p.playerId]?.awardedPoints || 0) > 0 ? 'score-positive' : ''}">+${Math.round(state.answers[q.id]?.[p.playerId]?.awardedPoints || 0)} P</strong></div>`).join('')}</div>`;
+    } else if (!game) {
+      const count = state.players.filter(p => p.active !== false).length;
+      html = `<div class="duel-control"><div class="duel-control-info"><strong>${count} Spieler · ${(q.items || []).length} Bilder · ${q.clockSeconds} s pro Spieler</strong><span>${q.answerMode === 'typed' ? '⌨️ Spieler tippen – richtige Antworten erkennt das System.' : '🗣 Mündlich – du drückst ✓ oder Passen.'} Passen kostet ${q.passPenalty} s.</span></div><button type="button" class="btn btn--primary duel-big" data-duel="start" ${count ? '' : 'disabled'}>🎲 Duell starten</button></div>`;
+    } else if (game.phase === 'done') {
+      const places = Game.placements(game);
+      html = `<div class="duel-control"><div class="notice notice--success"><strong>🏁 Duell beendet${game.endReason === 'out-of-images' ? ' – alle Bilder gespielt' : ''}.</strong> Tippe auf „✨ Frage auflösen“, dann gibt es Punkte nach Platzierung.</div><div class="answer-review">${places.map(p => `<div><span>${p.rank}. ${esc(name(p.playerId))}</span><span>${p.out ? 'ausgeschieden' : `${(p.remainingMs / 1000).toFixed(1).replace('.', ',')} s übrig`}</span><strong>${Game.parsePlaces(q.placePoints)[p.rank - 1] || 0} %</strong></div>`).join('')}</div></div>`;
+    } else {
+      const item = game.phase === 'reveal' ? { answer: game.reveal?.answer } : (q.items || [])[game.deck[game.pos]] || {};
+      const playing = game.phase === 'play';
+      const guess = game.lastGuess && game.lastGuess.by === game.active ? `<div class="duel-last-guess">Letzter Versuch von ${esc(name(game.active))}: <b>✗ ${esc(game.lastGuess.text)}</b></div>` : '';
+      html = `<div class="duel-control">
+        <div class="reveal-box moderator-solution duel-solution"><span>🔒 Lösung · nur für dich · Bild ${Math.min(game.pos + 1, game.deck.length)}/${game.deck.length}</span><strong>${esc(item.answer || '–')}</strong><small>${game.phase === 'reveal' ? 'Lösung wird gerade allen gezeigt …' : `${esc(name(game.active))} ist dran`}</small></div>
+        ${guess}
+        <div class="duel-buttons"><button type="button" class="btn btn--success duel-big" data-duel="correct" ${playing ? '' : 'disabled'}>✓ Richtig</button><button type="button" class="btn duel-big duel-pass" data-duel="pass" ${playing ? '' : 'disabled'}>⏭ Passen <small>−${q.passPenalty} s</small></button></div>
+        <div class="duel-secondary">${game.phase === 'paused' ? '<button type="button" class="btn btn--small" data-duel="resume">▶ Weiter</button>' : `<button type="button" class="btn btn--small" data-duel="pause" ${playing ? '' : 'disabled'}>⏸ Pause</button>`}<button type="button" class="btn btn--ghost btn--small" data-duel="stop">🏁 Duell beenden</button></div>
+        <p class="microcopy">Tastatur: <b>Enter</b> = richtig · <b>P</b> = passen · <b>Leertaste</b> = Pause/Weiter</p></div>`;
+    }
+    els['answer-status'].innerHTML = html;
   }
 
   // Lösung dauerhaft für den Moderator – vor, während und nach der Frage (Spieler sehen sie erst bei der Auflösung).
@@ -483,6 +600,7 @@
       return;
     }
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
+    if (Quiz.gameOf(current?.question) && state.questionStartedAt) { App.setText(els['timer-number'], '⏱'); els['timer-ring']?.style.setProperty('--timer-progress', '0deg'); return; }
     const pendingReveal = Boolean(current?.question && state.questionStartedAt && !state.questionOpen && !resolved);
     if (pendingReveal) { App.setText(els['timer-number'], '0'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); els['timer-ring']?.classList.add('is-ended'); return; }
     if (!state.questionOpen || !state.questionEndsAt) { App.setText(els['timer-number'], '–'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); return; }
