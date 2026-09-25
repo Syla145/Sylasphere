@@ -31,7 +31,8 @@
     'consensus',
     'hotspot',
     'buzzer',
-    'time-duel'
+    'time-duel',
+    'ranking'
   ];
 
   const REQUIRED = ['type', 'label', 'icon', 'normalize', 'score', 'solutionText', 'render'];

@@ -19,6 +19,7 @@
   const reviews = {};
   // Zeitduell: Das Moderator-Gerät ist die Uhr (Schleife + Schreibschutz gegen doppelte Ereignisse)
   const duel = { busy: false, writtenSeq: 0, processed: new Set(), loop: null };
+  const panelCache = { html: '', node: null }; // Einordnen-Panel nur neu zeichnen, wenn sich etwas ändert
 
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
@@ -143,6 +144,11 @@
       // Zeitduell läuft: eigene Tasten, Leertaste schließt NICHT die Frage
       if (duelGame() && state?.questionStartedAt && !state.game && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) {
         if (event.code === 'Space' || event.key === 'Enter') { event.preventDefault(); duelAction('start'); }
+        return;
+      }
+      // Einordnen & andere Spiele mit eigenem Panel: keine Kurztasten, Leertaste schließt nicht die Frage
+      if (duelGame()?.host && state?.game && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) {
+        if (event.code === 'Space') event.preventDefault();
         return;
       }
       if (duelGame() && state?.game && state.game.phase !== 'done' && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) {
@@ -449,6 +455,11 @@
       return applyDuel(Game.start(q, ids, now));
     }
     if (!state.game) return;
+    // Spiele mit eigenem Panel (Einordnen): Knöpfe gehen direkt an das Spiel-Modul
+    if (Game.host) {
+      if (action === 'stop' && !confirm('Spiel jetzt beenden? Die Punkte ergeben sich aus den bisher richtig eingeordneten Karten.')) return;
+      return applyDuel(Game.act(state.game, q, action, now));
+    }
     if (action === 'correct') return applyDuel(Game.correct(state.game, q, now));
     if (action === 'pass') return applyDuel(Game.pass(state.game, q, now));
     if (action === 'pause') return applyDuel(Game.pause(state.game, now));
@@ -467,7 +478,7 @@
     const Game = Quiz.gameOf(current?.question);
     if (!Game || !state?.game || duel.busy) return;
     if ((Number(state.game.seq) || 0) < duel.writtenSeq) return; // eigener Stand noch nicht zurückgekommen
-    if (state.game.phase === 'done') {
+    if (Game.isOver ? Game.isOver(state.game) : state.game.phase === 'done') {
       if (state.questionOpen) { duel.busy = true; Promise.resolve(engine.lockQuestion()).catch(() => {}).finally(() => { duel.busy = false; }); }
       return;
     }
@@ -481,6 +492,15 @@
     if (!Game || !game || game.phase !== 'play' || duel.busy) return;
     const record = state.answers[q.id]?.[game.active];
     const answer = record?.answer;
+    // Einordnen: Zug des aktiven Spielers (Karte + Stelle) prüft das Spiel-Modul
+    if (Game.host) {
+      if (!answer || typeof answer !== 'object') return;
+      const key = `${game.active}|${answer.turn}|${answer.item}|${answer.slot}`;
+      if (duel.processed.has(key)) return;
+      duel.processed.add(key);
+      applyDuel(Game.input(game, q, game.active, answer, Date.now()));
+      return;
+    }
     if (!answer || typeof answer !== 'object' || Number(answer.pos) !== Number(game.pos)) return;
     // v24: Spieler hat selbst gepasst (in beiden Modi erlaubt)
     if (answer.pass) {
@@ -504,6 +524,15 @@
     duelCheckGuesses(q);
     const esc = App.escapeHTML;
     const name = id => findPlayerName(id) || 'Spieler';
+    if (Game.panel) {
+      const html = resolved ? hostedResult(q, result, name) : Game.panel(q, game, { esc, name, count: state.players.filter(p => p.active !== false).length });
+      if (panelCache.html === html && panelCache.node && panelCache.node === els['answer-status'].firstElementChild) return;
+      const open = [...els['answer-status'].querySelectorAll('details')].map(d => d.open); // aufgeklappte Bereiche behalten
+      els['answer-status'].innerHTML = html;
+      panelCache.html = html; panelCache.node = els['answer-status'].firstElementChild;
+      els['answer-status'].querySelectorAll('details').forEach((d, k) => { if (open[k]) d.open = true; });
+      return;
+    }
     let html = '';
     if (resolved) {
       const places = result?.placements || [];
@@ -526,6 +555,13 @@
         <p class="microcopy">Tastatur: <b>Enter</b> = richtig · <b>P</b> = passen · <b>Leertaste</b> = Pause/Weiter</p></div>`;
     }
     els['answer-status'].innerHTML = html;
+  }
+
+  // Ergebnis eines Spiels mit eigenem Panel (Einordnen) nach der Auflösung
+  function hostedResult(q, result, name) {
+    const esc = App.escapeHTML;
+    const rows = (result?.players || []).map(p => { const pts = Math.round(state.answers[q.id]?.[p.playerId]?.awardedPoints || 0); return `<div><span>${p.rank}. ${esc(p.name || name(p.playerId))}${p.winner ? ' 🏆' : ''}</span><span>✓ ${p.correct}${p.out ? ' · raus' : ''}</span><strong class="${pts > 0 ? 'score-positive' : ''}">+${pts} P</strong></div>`; }).join('');
+    return `<div class="reveal-box"><span>Ergebnis</span><strong>${esc(Quiz.correctAnswerText(q, result) || '–')}</strong></div><div class="answer-review">${rows}</div>`;
   }
 
   // Lösung dauerhaft für den Moderator – vor, während und nach der Frage (Spieler sehen sie erst bei der Auflösung).

@@ -513,6 +513,7 @@
       const shift = value => (value == null || !Number.isFinite(Number(value)) ? null : Number(value) + offset);
       g.runningSince = shift(g.runningSince);
       g.startedAt = shift(g.startedAt);
+      if ('turnStartedAt' in g) g.turnStartedAt = shift(g.turnStartedAt); // Einordnen (v25)
       if (g.reveal) g.reveal.until = shift(g.reveal.until);
       if (g.lastGuess) g.lastGuess.at = shift(g.lastGuess.at);
       return g;

@@ -1,0 +1,236 @@
+{
+  "quiz": {
+    "id": "quiz_einordnen_demo",
+    "title": "Einordnen – Demo",
+    "description": "Länder nach Einwohnern und nach Fläche einordnen: reihum, mit Leben und Nachzieh-Regel.",
+    "settings": {
+      "defaultTimer": 30,
+      "defaultPoints": 50,
+      "buzzerEnabled": true,
+      "theme": "neon"
+    },
+    "rounds": [
+      {
+        "id": "round_rank",
+        "title": "Einordnen",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "rank_population",
+            "type": "ranking",
+            "category": "Geografie",
+            "text": "Ordne die Länder nach Einwohnern ein!",
+            "points": 50,
+            "timer": 0,
+            "scale": "Einwohner",
+            "unit": "Mio.",
+            "lives": 3,
+            "turnSeconds": 0,
+            "scoring": "fixed",
+            "growth": 1.5,
+            "anchor": 0,
+            "items": [
+              {
+                "name": "Deutschland",
+                "value": 83.6,
+                "image": "./assets/flaggen/deutschland.svg"
+              },
+              {
+                "name": "Indien",
+                "value": 1476.6,
+                "image": "./assets/flaggen/indien.svg"
+              },
+              {
+                "name": "Indonesien",
+                "value": 287.9,
+                "image": "./assets/flaggen/indonesien.svg"
+              },
+              {
+                "name": "Nigeria",
+                "value": 242.4,
+                "image": "./assets/flaggen/nigeria.svg"
+              },
+              {
+                "name": "Bangladesch",
+                "value": 177.8,
+                "image": "./assets/flaggen/bangladesch.svg"
+              },
+              {
+                "name": "Russland",
+                "value": 143.4,
+                "image": "./assets/flaggen/russland.svg"
+              },
+              {
+                "name": "Japan",
+                "value": 122.4,
+                "image": "./assets/flaggen/japan.svg"
+              },
+              {
+                "name": "Frankreich",
+                "value": 66.7,
+                "image": "./assets/flaggen/frankreich.svg"
+              },
+              {
+                "name": "Italien",
+                "value": 58.9,
+                "image": "./assets/flaggen/italien.svg"
+              },
+              {
+                "name": "Kolumbien",
+                "value": 53.9,
+                "image": "./assets/flaggen/kolumbien.svg"
+              },
+              {
+                "name": "Polen",
+                "value": 37.8,
+                "image": "./assets/flaggen/polen.svg"
+              },
+              {
+                "name": "Niederlande",
+                "value": 18.4,
+                "image": "./assets/flaggen/niederlande.svg"
+              },
+              {
+                "name": "Belgien",
+                "value": 11.8,
+                "image": "./assets/flaggen/belgien.svg"
+              },
+              {
+                "name": "Österreich",
+                "value": 9.1,
+                "image": "./assets/flaggen/oesterreich.svg"
+              },
+              {
+                "name": "Schweiz",
+                "value": 9.0,
+                "image": "./assets/flaggen/schweiz.svg"
+              },
+              {
+                "name": "Irland",
+                "value": 5.4,
+                "image": "./assets/flaggen/irland.svg"
+              },
+              {
+                "name": "Estland",
+                "value": 1.3,
+                "image": "./assets/flaggen/estland.svg"
+              },
+              {
+                "name": "Island",
+                "value": 0.4,
+                "image": "./assets/flaggen/island.svg"
+              }
+            ]
+          },
+          {
+            "id": "rank_area",
+            "type": "ranking",
+            "category": "Geografie",
+            "text": "Und jetzt nach Fläche – mit Zeitlimit und steigenden Punkten!",
+            "points": 30,
+            "timer": 0,
+            "scale": "Fläche",
+            "unit": "Tsd. km²",
+            "lives": 3,
+            "turnSeconds": 30,
+            "scoring": "growing",
+            "growth": 1.5,
+            "anchor": 0,
+            "items": [
+              {
+                "name": "Deutschland",
+                "value": 357.6,
+                "image": "./assets/flaggen/deutschland.svg"
+              },
+              {
+                "name": "Indien",
+                "value": 3287.3,
+                "image": "./assets/flaggen/indien.svg"
+              },
+              {
+                "name": "Indonesien",
+                "value": 1904.6,
+                "image": "./assets/flaggen/indonesien.svg"
+              },
+              {
+                "name": "Nigeria",
+                "value": 923.8,
+                "image": "./assets/flaggen/nigeria.svg"
+              },
+              {
+                "name": "Bangladesch",
+                "value": 148.5,
+                "image": "./assets/flaggen/bangladesch.svg"
+              },
+              {
+                "name": "Russland",
+                "value": 17098.2,
+                "image": "./assets/flaggen/russland.svg"
+              },
+              {
+                "name": "Japan",
+                "value": 377.9,
+                "image": "./assets/flaggen/japan.svg"
+              },
+              {
+                "name": "Frankreich",
+                "value": 551.7,
+                "image": "./assets/flaggen/frankreich.svg"
+              },
+              {
+                "name": "Italien",
+                "value": 302.1,
+                "image": "./assets/flaggen/italien.svg"
+              },
+              {
+                "name": "Kolumbien",
+                "value": 1141.7,
+                "image": "./assets/flaggen/kolumbien.svg"
+              },
+              {
+                "name": "Polen",
+                "value": 312.7,
+                "image": "./assets/flaggen/polen.svg"
+              },
+              {
+                "name": "Niederlande",
+                "value": 41.5,
+                "image": "./assets/flaggen/niederlande.svg"
+              },
+              {
+                "name": "Belgien",
+                "value": 30.7,
+                "image": "./assets/flaggen/belgien.svg"
+              },
+              {
+                "name": "Österreich",
+                "value": 83.9,
+                "image": "./assets/flaggen/oesterreich.svg"
+              },
+              {
+                "name": "Schweiz",
+                "value": 41.3,
+                "image": "./assets/flaggen/schweiz.svg"
+              },
+              {
+                "name": "Irland",
+                "value": 70.3,
+                "image": "./assets/flaggen/irland.svg"
+              },
+              {
+                "name": "Estland",
+                "value": 45.3,
+                "image": "./assets/flaggen/estland.svg"
+              },
+              {
+                "name": "Island",
+                "value": 103.0,
+                "image": "./assets/flaggen/island.svg"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

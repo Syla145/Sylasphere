@@ -58,7 +58,9 @@
       if (!this.code) return;
       try {
         this.channel = new BroadcastChannel(`schmobin:${this.code}`);
-        this.channel.onmessage = event => { if (event.data?.type === 'state') this.emit(event.data.state); else this.emit(this.load()); };
+        // v25: immer den aktuellen Stand aus dem Speicher lesen – die mitgeschickte Kopie kann schon veraltet sein
+        // (sonst überschreibt eine späte Nachricht eines Spielers den neueren Stand des Moderators im Speicher)
+        this.channel.onmessage = () => this.emit(this.load());
       } catch (_) { this.channel = null; }
       this.storageHandler = event => { if (event.key === this.key) this.emit(this.load()); };
       window.addEventListener('storage', this.storageHandler);

@@ -436,6 +436,63 @@
                 "answer": "Kerze"
               }
             ]
+          },
+          {
+            "id": "show_rank",
+            "type": "ranking",
+            "category": "Geografie",
+            "text": "Ordne die Länder nach Einwohnern ein!",
+            "points": 50,
+            "timer": 0,
+            "scale": "Einwohner",
+            "unit": "Mio.",
+            "lives": 2,
+            "turnSeconds": 0,
+            "scoring": "fixed",
+            "growth": 1.5,
+            "anchor": 0,
+            "items": [
+              {
+                "name": "Deutschland",
+                "value": 83.6,
+                "image": "./assets/flaggen/deutschland.svg"
+              },
+              {
+                "name": "Indien",
+                "value": 1476.6,
+                "image": "./assets/flaggen/indien.svg"
+              },
+              {
+                "name": "Russland",
+                "value": 143.4,
+                "image": "./assets/flaggen/russland.svg"
+              },
+              {
+                "name": "Frankreich",
+                "value": 66.7,
+                "image": "./assets/flaggen/frankreich.svg"
+              },
+              {
+                "name": "Polen",
+                "value": 37.8,
+                "image": "./assets/flaggen/polen.svg"
+              },
+              {
+                "name": "Belgien",
+                "value": 11.8,
+                "image": "./assets/flaggen/belgien.svg"
+              },
+              {
+                "name": "Österreich",
+                "value": 9.1,
+                "image": "./assets/flaggen/oesterreich.svg"
+              },
+              {
+                "name": "Island",
+                "value": 0.4,
+                "image": "./assets/flaggen/island.svg"
+              }
+            ]
           }
         ]
       }

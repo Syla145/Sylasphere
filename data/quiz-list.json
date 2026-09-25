@@ -1,8 +1,13 @@
 [
   {
-    "title": "Sylasphere: Showtime · alle 15 Fragetypen",
-    "description": "Showcase mit allen 15 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung und Zeitduell.",
+    "title": "Sylasphere: Showtime · alle 16 Fragetypen",
+    "description": "Showcase mit allen 16 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung, Zeitduell und Einordnen.",
     "file": "quiz-showtime.json"
+  },
+  {
+    "title": "Einordnen – Demo",
+    "description": "Länder nach Einwohnern und nach Fläche einordnen: reihum, mit Leben und Nachzieh-Regel.",
+    "file": "quiz-einordnen-demo.json"
   },
   {
     "title": "Zeitduell – Demo",

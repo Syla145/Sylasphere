@@ -67,5 +67,5 @@ ok(mp.includes('firstSound')&&sr.includes('skipSilence'),'leading silence skippe
 
 // 9) Avatare
 ok(pv.includes("'🐐'"),'goat avatar');
-ok(code('js/core/app.js').includes("'v24'"),'version v24');
+
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

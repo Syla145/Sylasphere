@@ -168,11 +168,21 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
 | ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
+| 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, Punkte pro richtiger Karte |
 | ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 15 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
+Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
 
 **Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung gibt es weiter „Abschicken“, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
+
+### Einordnen im Detail
+
+1. **Vorbereiten:** Im Editor Messgröße und Einheit eintragen (zum Beispiel „Einwohner“, „Mio.“), dann die Karten mit Name, Wert und optional Bild. Schnell geht es mit **„📋 Liste einfügen“**: eine Karte pro Zeile, `Name; Wert; Bild`, auch direkt aus Excel kopiert. Eine Karte als **⚓ Anker** markieren, sie liegt von Anfang an offen auf der Leiste.
+2. **Einstellen:** Leben pro Spieler (Standard 3), Zeit pro Zug (0 = ohne), Punkte fest oder steigend (jede weitere Karte ist mehr wert, weil die Leiste enger wird).
+3. **Spielen:** Frage öffnen, dann **🎲 Spiel starten**. Der Zufall bestimmt, wer anfängt. Wer dran ist, zieht auf dem Handy eine Karte an eine Stelle (oder tippt Karte und ＋ an) und bestätigt. Das System prüft sofort.
+4. **Ende:** Alle Karten liegen, oder keiner hat mehr Leben. Bleibt nur einer übrig, zieht er noch einmal: richtig = Sieg. Danach **👁 Aufdecken** und **✨ Frage auflösen**.
+
+Hinweis: Wie beim Zeitduell führt das Moderator-Gerät den Spielstand und sollte während des Spiels geöffnet bleiben.
 
 ### Zeitduell im Detail
 

@@ -221,9 +221,18 @@
       readOnly: resolved, reveal: resolved, result: questionResult, game, players: state.players, playerId, role: 'player',
       onGuess: text => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { text, pos: Number(state.game.pos) || 0 })).catch(error => App.toast(error.message, 'error')); },
       // v24: Spieler kann selbst passen (beide Modi) – der Moderator-Rechner verarbeitet es
-      onPass: () => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { pass: true, pos: Number(state.game.pos) || 0, at: Date.now() })).catch(error => App.toast(error.message, 'error')); }
+      onPass: () => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, { pass: true, pos: Number(state.game.pos) || 0, at: Date.now() })).catch(error => App.toast(error.message, 'error')); },
+      // v25: Einordnen – Zug (Karte + Stelle) an den Moderator-Rechner
+      onInput: answer => { if (!state.game) return; Promise.resolve(engine.submitAnswer(playerId, answer)).catch(error => App.toast(error.message, 'error')); }
     });
     els['submit-answer'].hidden = true;
+    const Game = Quiz.gameOf(q);
+    if (!resolved && Game?.playerStatus) {
+      const info = Game.playerStatus(game, playerId);
+      App.setText(els['game-status'], info.status);
+      if (els['answer-feedback'].innerHTML !== info.html) els['answer-feedback'].innerHTML = info.html;
+      return;
+    }
     if (!resolved) {
       const g = game;
       App.setText(els['game-status'], !g ? 'Gleich geht’s los' : g.phase === 'done' ? 'Duell beendet' : g.phase === 'reveal' ? 'Lösung' : g.phase === 'paused' ? 'Pause' : g.active === playerId ? 'Du bist dran!' : 'Zeitduell');

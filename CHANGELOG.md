@@ -1,5 +1,19 @@
 # Sylasphere – Changelog
 
+## v25 – Neuer Spielmodus „Einordnen“
+- **Einordnen** (Ranking-Spiel reihum): Oben liegt eine Leiste von niedrig nach hoch mit der offenen **Anker-Karte**, darunter ein Pool mit Karten, deren Werte geheim sind.
+  - Wer dran ist, wählt auf dem Handy eine Karte, **zieht sie an eine Stelle** der Leiste (oder tippt Karte und ＋ an) und bestätigt mit **„✓ Hier einordnen“**.
+  - **Richtig:** Die Karte bleibt liegen, ihr Wert wird gezeigt. **Falsch:** Die Karte geht zurück in den Pool, der Spieler verliert ein Leben. Ohne Leben ist man raus.
+  - **Nachzieh-Regel:** Verliert der vorletzte Spieler sein letztes Leben, zieht der letzte noch einmal. Richtig = Sieg, falsch = kein Sieger.
+  - Ende, wenn alle Karten liegen oder niemand mehr Leben hat. Danach darf der Sieger mündlich weiterraten, **„👁 Aufdecken“** zeigt allen die komplette Reihenfolge mit Werten.
+  - **Moderator:** Zug überspringen (zum Beispiel wenn ein Handy hängt), Pause (bei Zeitlimit), Spiel beenden und ein aufklappbarer Pool mit allen Werten nur für dich.
+  - **Editor:** Messgröße und Einheit, Karten mit Name, Wert und Bild, ⚓ Anker, Leben (Standard 3), Zeit pro Zug (optional), Punkte **fest** oder **steigend mit Multiplikator** (mit Vorschau). **„📋 Liste einfügen“** übernimmt Zeilen wie `Frankreich; 66,7` direkt aus Excel, „↕ Nach Wert sortieren“ ordnet die Liste.
+  - **Punkte:** „Punkte“ der Frage gibt es pro richtig eingeordneter Karte.
+- **Demo „Einordnen – Demo“:** 18 Länder nach Einwohnern (Stand 2026, UN-Schätzung, gerundet) und dieselben Länder nach Fläche, mit 30 s pro Zug und steigenden Punkten. Die 18 Flaggen liegen selbst gezeichnet in `assets/flaggen/`. „Showtime“ enthält jetzt alle 16 Fragetypen.
+- **Rangliste:** Der Avatar überdeckt den Namen nicht mehr (Beamer, Handy, alle Designs). Das Prüfskript kontrolliert das jetzt automatisch.
+- **Lokaler Modus stabiler:** Ein Gerät übernimmt nicht mehr versehentlich einen veralteten Spielstand eines anderen Tabs (ließ im lokalen Test manchmal Mini-Spiele hängen).
+- Keine Änderung an den Firebase-Regeln nötig, keine Dateien zu löschen.
+
 ## v24 – Rückmeldungen vom Quizabend
 - **Kein „Abschicken“ mehr:** Was beim Ende der Zeit eingetippt oder ausgewählt ist, zählt. Antworten werden automatisch gespeichert und lassen sich bis zum Schluss ändern. Ausnahme: Song-Enthüllung (dort sperrt das Abschicken die Stufe).
 - **Schätzfrage:** neue Einstellung „Wertung“.
