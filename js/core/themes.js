@@ -23,6 +23,7 @@
   const DEFAULT = 'neon';
   const LAST_KEY = 'sylasphere:last-theme';
   const PREVIEW_KEY = 'sylasphere:theme-preview';
+  const DEVICE_KEY = 'sylasphere:device-theme'; // v26: Einstellung „Design auf diesem Gerät“
   const byId = id => THEMES.find(theme => theme.id === id);
 
   function storage(fn) { try { return fn(window.localStorage); } catch (_) { return null; } }
@@ -32,8 +33,20 @@
   function override() {
     let fromUrl = '';
     try { fromUrl = new URLSearchParams(location.search).get('theme') || ''; } catch (_) {}
-    return byId(fromUrl) ? fromUrl : (byId(storage(s => s.getItem(PREVIEW_KEY))) ? storage(s => s.getItem(PREVIEW_KEY)) : '');
+    if (byId(fromUrl)) return fromUrl;
+    const preview = storage(s => s.getItem(PREVIEW_KEY));
+    if (byId(preview)) return preview;
+    const device = storage(s => s.getItem(DEVICE_KEY));
+    return byId(device) ? device : '';
   }
+  let quizTheme = DEFAULT;
+  /** v26: eigenes Design für dieses Gerät ('' = wie im Quiz) */
+  function setDeviceTheme(id) {
+    storage(s => (byId(id) ? s.setItem(DEVICE_KEY, id) : s.removeItem(DEVICE_KEY)));
+    active = '';
+    return apply(quizTheme, { remember: false });
+  }
+  const deviceTheme = () => { const id = storage(s => s.getItem(DEVICE_KEY)); return byId(id) ? id : ''; };
 
   let active = '';
   function apply(id, { remember = true } = {}) {
@@ -50,7 +63,8 @@
   /** Design aus einem Quiz übernehmen (Moderator, Spieler, Zuschauer) */
   function applyQuiz(quizLike) {
     const quiz = quizLike?.quiz || quizLike;
-    return apply(quiz?.settings?.theme || DEFAULT);
+    quizTheme = valid(quiz?.settings?.theme || DEFAULT);
+    return apply(quizTheme);
   }
 
   // Sofort beim Laden: zuletzt genutztes Design (Spieler sehen so direkt den richtigen Look)
@@ -83,5 +97,5 @@
     return wrap;
   }
 
-  window.SylasphereThemes = { list: () => THEMES.map(t => Object.assign({}, t)), get: byId, apply, applyQuiz, picker, current: () => active, DEFAULT, isValid: id => Boolean(byId(id)) };
+  window.SylasphereThemes = { list: () => THEMES.map(t => Object.assign({}, t)), get: byId, apply, applyQuiz, picker, current: () => active, DEFAULT, isValid: id => Boolean(byId(id)), setDeviceTheme, deviceTheme };
 })();

@@ -499,6 +499,297 @@
             ],
             "revealValues": "end",
             "showAnchor": true
+          },
+          {
+            "id": "show_grid",
+            "type": "grid",
+            "category": "Geografie",
+            "text": "Welche Stadt passt in jedes Feld?",
+            "points": 20,
+            "bonus": 50,
+            "timer": 120,
+            "rows": [
+              {
+                "label": "Hauptstadt",
+                "image": ""
+              },
+              {
+                "label": "Liegt am Meer",
+                "image": ""
+              },
+              {
+                "label": "Über 1 Mio. Einwohner",
+                "image": ""
+              }
+            ],
+            "cols": [
+              {
+                "label": "Europa",
+                "image": ""
+              },
+              {
+                "label": "Asien",
+                "image": ""
+              },
+              {
+                "label": "Afrika",
+                "image": ""
+              }
+            ],
+            "cells": [
+              {
+                "answers": [
+                  "Berlin",
+                  "Paris",
+                  "Madrid",
+                  "Rom",
+                  "Wien",
+                  "London",
+                  "Lissabon",
+                  "Athen",
+                  "Warschau",
+                  "Prag",
+                  "Budapest",
+                  "Oslo",
+                  "Kopenhagen",
+                  "Stockholm",
+                  "Helsinki",
+                  "Dublin",
+                  "Amsterdam",
+                  "Brüssel",
+                  "Bern",
+                  "Bukarest",
+                  "Sofia",
+                  "Belgrad",
+                  "Zagreb",
+                  "Ljubljana",
+                  "Bratislava",
+                  "Riga",
+                  "Vilnius",
+                  "Tallinn",
+                  "Kiew",
+                  "Moskau",
+                  "Reykjavík",
+                  "Luxemburg",
+                  "Valletta"
+                ]
+              },
+              {
+                "answers": [
+                  "Tokio",
+                  "Peking",
+                  "Seoul",
+                  "Bangkok",
+                  "Neu-Delhi",
+                  "Jakarta",
+                  "Manila",
+                  "Hanoi",
+                  "Kuala Lumpur",
+                  "Singapur",
+                  "Kabul",
+                  "Teheran",
+                  "Bagdad",
+                  "Riad",
+                  "Islamabad",
+                  "Dhaka",
+                  "Kathmandu",
+                  "Ulaanbaatar",
+                  "Taschkent",
+                  "Astana",
+                  "Colombo",
+                  "Doha",
+                  "Abu Dhabi",
+                  "Maskat"
+                ]
+              },
+              {
+                "answers": [
+                  "Kairo",
+                  "Nairobi",
+                  "Accra",
+                  "Rabat",
+                  "Dakar",
+                  "Abuja",
+                  "Addis Abeba",
+                  "Tunis",
+                  "Algier",
+                  "Pretoria",
+                  "Kinshasa",
+                  "Luanda",
+                  "Kampala",
+                  "Harare",
+                  "Lusaka",
+                  "Maputo",
+                  "Windhoek",
+                  "Khartum",
+                  "Tripolis",
+                  "Bamako",
+                  "Niamey",
+                  "Dodoma",
+                  "Kigali",
+                  "Antananarivo"
+                ]
+              },
+              {
+                "answers": [
+                  "Lissabon",
+                  "Barcelona",
+                  "Neapel",
+                  "Marseille",
+                  "Kopenhagen",
+                  "Oslo",
+                  "Kiel",
+                  "Rostock",
+                  "Genua",
+                  "Venedig",
+                  "Dubrovnik",
+                  "Nizza",
+                  "Helsinki",
+                  "Stockholm",
+                  "Valencia",
+                  "Palermo",
+                  "Split",
+                  "Tallinn",
+                  "Riga",
+                  "Danzig",
+                  "Bergen",
+                  "Porto",
+                  "Cádiz",
+                  "Malaga",
+                  "Bari",
+                  "Triest",
+                  "Reykjavík"
+                ]
+              },
+              {
+                "answers": [
+                  "Tokio",
+                  "Mumbai",
+                  "Shanghai",
+                  "Singapur",
+                  "Hongkong",
+                  "Manila",
+                  "Jakarta",
+                  "Colombo",
+                  "Busan",
+                  "Osaka",
+                  "Dubai",
+                  "Karatschi",
+                  "Chennai",
+                  "Ho-Chi-Minh-Stadt",
+                  "Yokohama",
+                  "Doha",
+                  "Tel Aviv",
+                  "Beirut",
+                  "Maskat",
+                  "Abu Dhabi"
+                ]
+              },
+              {
+                "answers": [
+                  "Dakar",
+                  "Accra",
+                  "Lagos",
+                  "Kapstadt",
+                  "Durban",
+                  "Alexandria",
+                  "Tunis",
+                  "Algier",
+                  "Casablanca",
+                  "Mombasa",
+                  "Daressalam",
+                  "Maputo",
+                  "Luanda",
+                  "Tripolis",
+                  "Abidjan",
+                  "Lomé",
+                  "Monrovia",
+                  "Freetown",
+                  "Dschibuti",
+                  "Mogadischu",
+                  "Port Elizabeth"
+                ]
+              },
+              {
+                "answers": [
+                  "Berlin",
+                  "Hamburg",
+                  "München",
+                  "Köln",
+                  "Wien",
+                  "Paris",
+                  "London",
+                  "Madrid",
+                  "Barcelona",
+                  "Rom",
+                  "Mailand",
+                  "Warschau",
+                  "Budapest",
+                  "Bukarest",
+                  "Prag",
+                  "Moskau",
+                  "Sankt Petersburg",
+                  "Kiew",
+                  "Minsk",
+                  "Birmingham",
+                  "Belgrad",
+                  "Sofia"
+                ]
+              },
+              {
+                "answers": [
+                  "Shanghai",
+                  "Mumbai",
+                  "Delhi",
+                  "Neu-Delhi",
+                  "Tokio",
+                  "Peking",
+                  "Seoul",
+                  "Bangkok",
+                  "Jakarta",
+                  "Karatschi",
+                  "Dhaka",
+                  "Manila",
+                  "Osaka",
+                  "Kalkutta",
+                  "Chennai",
+                  "Bangalore",
+                  "Teheran",
+                  "Bagdad",
+                  "Riad",
+                  "Hongkong",
+                  "Singapur",
+                  "Ho-Chi-Minh-Stadt",
+                  "Hanoi",
+                  "Lahore",
+                  "Kabul"
+                ]
+              },
+              {
+                "answers": [
+                  "Lagos",
+                  "Kinshasa",
+                  "Kairo",
+                  "Johannesburg",
+                  "Nairobi",
+                  "Addis Abeba",
+                  "Casablanca",
+                  "Abidjan",
+                  "Luanda",
+                  "Daressalam",
+                  "Khartum",
+                  "Alexandria",
+                  "Accra",
+                  "Dakar",
+                  "Algier",
+                  "Kano",
+                  "Kapstadt",
+                  "Durban",
+                  "Kampala",
+                  "Abuja"
+                ]
+              }
+            ]
           }
         ]
       }

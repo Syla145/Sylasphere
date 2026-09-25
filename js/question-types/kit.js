@@ -292,8 +292,50 @@
     return `<div class="stat-cards">${cards.map(([label, value]) => `<div><span>${escapeHTML(label)}</span><strong>${escapeHTML(value)}</strong></div>`).join('')}</div>`;
   }
 
+  // ---- Freitext mit Lösungen vergleichen (v26, aus Fight List übernommen):
+  // exakt, einzelnes Wort ab 4 Buchstaben (z. B. Nachname „Obama“) oder mit kleinem Tippfehler
+  function editDistance(a, b, limit) {
+    if (Math.abs(a.length - b.length) > limit) return limit + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const row = [i];
+      let best = row[0];
+      for (let j = 1; j <= b.length; j++) {
+        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        best = Math.min(best, row[j]);
+      }
+      if (best > limit) return limit + 1;
+      prev = row;
+    }
+    return prev[b.length];
+  }
+  const typoTolerance = term => (term.length >= 8 ? 2 : term.length >= 4 ? 1 : 0);
+  const cleanTerm = value => normalizeTerm(value).replace(/[.,'’"!?()\-]/g, ' ').replace(/\s+/g, ' ').trim();
+  /** Bewertung 0 (exakt) … 3 (Tippfehler in einem Wort) oder null (kein Treffer) */
+  function termScore(term, solution) {
+    const t = cleanTerm(term), full = cleanTerm(solution);
+    if (!t || !full) return null;
+    const words = full.split(' ').filter(w => w.length >= 4);
+    if (full === t) return 0;
+    if (words.includes(t)) return 1;
+    if (editDistance(t, full, typoTolerance(full)) <= typoTolerance(full)) return 2;
+    if (t.length >= 4 && words.some(w => editDistance(t, w, typoTolerance(w)) <= typoTolerance(w))) return 3;
+    return null;
+  }
+  /** Bester Treffer eines Begriffs in einer Lösungsliste: { kind: 'exact'|'fuzzy'|'none', solution, index } */
+  function matchTerm(term, solutions, skip = null) {
+    let best = null;
+    (solutions || []).forEach((solution, index) => {
+      if (skip?.has(index)) return;
+      const score = termScore(term, solution);
+      if (score !== null && (!best || score < best.score)) best = { index, score };
+    });
+    if (!best) return { kind: 'none' };
+    return { kind: best.score <= 1 ? 'exact' : 'fuzzy', solution: String(solutions[best.index]), index: best.index };
+  }
+
   window.SylasphereTypeKit = {
-    clone, numberOr, clamp, normalizeTerm, escapeHTML,
+    clone, numberOr, clamp, normalizeTerm, escapeHTML, cleanTerm, matchTerm, editDistance,
     MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,
     normalizeOptions, optionById, correctOption, defaultOptions, validateOptions, seededShuffle,
     el, baseQuestion, addImage, addAudio, renderChoice,

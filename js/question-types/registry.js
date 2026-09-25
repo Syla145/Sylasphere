@@ -32,7 +32,8 @@
     'hotspot',
     'buzzer',
     'time-duel',
-    'ranking'
+    'ranking',
+    'grid'
   ];
 
   const REQUIRED = ['type', 'label', 'icon', 'normalize', 'score', 'solutionText', 'render'];
@@ -58,6 +59,7 @@
       autoCheck: null,       // Vorschlag für die Prüfung: (q, answer) => true | false | null
       publishAnswers: true,  // nach der Auflösung sehen alle die Antworten der anderen (v24: Standard; false = aus)
       reviewParts: null,     // (q) => [{ key, label }] – getrennte Prüfung, z. B. Titel/Interpret
+      reviewPanel: null,     // v26: (q, answers, { esc, name, verdict }) => HTML – eigene Prüf-Ansicht (z. B. Grid)
       stages: null,          // (q) => [{ duration, percent }] – Stufen-Fragen (Song-Enthüllung)
       lockOnSubmit: false,   // Antwort nach Abgabe gesperrt
       mediaClip: null,       // (q, media) => { url, offset, duration, fade } – was bei einem Abspiel-Befehl läuft

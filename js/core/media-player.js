@@ -17,6 +17,7 @@
    *   Nummer (nonce) in den Spielstand; jedes Gerät spielt ihn genau einmal ab.
    */
   const SOUND_KEY = 'sylasphere:sound';
+  const VOLUME_KEY = 'sylasphere:music-volume'; // v26: Musik-Lautstärke dieses Geräts (0–100)
   const MAX_COMMAND_AGE_MS = 8000; // ältere Befehle (z. B. nach Neuladen) nicht mehr abspielen
 
   let ctx = null;
@@ -32,6 +33,7 @@
     if (!AC) return null;
     ctx = new AC();
     master = ctx.createGain();
+    master.gain.value = volume() / 100;
     // Limiter gegen Übersteuern (sehr laute Songs)
     const limiter = ctx.createDynamicsCompressor();
     limiter.threshold.value = -10; limiter.knee.value = 6; limiter.ratio.value = 12;
@@ -44,6 +46,17 @@
   function status() { return { enabled: enabled(), locked: !ctx || ctx.state !== 'running', supported: Boolean(window.AudioContext || window.webkitAudioContext) }; }
   function onChange(fn) { listeners.add(fn); return () => listeners.delete(fn); }
 
+  function volume() { try { const v = Number(localStorage.getItem(VOLUME_KEY)); return localStorage.getItem(VOLUME_KEY) === null || !Number.isFinite(v) ? 100 : Math.max(0, Math.min(100, v)); } catch (_) { return 100; } }
+  function setVolume(value) {
+    const v = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+    try { localStorage.setItem(VOLUME_KEY, String(v)); } catch (_) {}
+    if (master && ctx) master.gain.setTargetAtTime(v / 100, ctx.currentTime, 0.02);
+    document.querySelectorAll('audio').forEach(a => { a.volume = v / 100; });
+    notify();
+    return v;
+  }
+  // Auch normale Audio-Player (Audio-Quiz, Vorschau) folgen der Lautstärke
+  document.addEventListener('play', event => { if (event.target instanceof HTMLMediaElement) event.target.volume = volume() / 100; }, true);
   function enabled() { try { return localStorage.getItem(SOUND_KEY) !== '0'; } catch (_) { return true; } }
   function setEnabled(value) {
     try { localStorage.setItem(SOUND_KEY, value ? '1' : '0'); } catch (_) {}
@@ -165,5 +178,5 @@
     if (clip?.url) play(clip.url, clip);
   }
 
-  window.SylasphereMedia = { preload, play, stop, unlock, enabled, setEnabled, status, onChange, sync };
+  window.SylasphereMedia = { preload, play, stop, unlock, enabled, setEnabled, status, onChange, sync, volume, setVolume };
 })();

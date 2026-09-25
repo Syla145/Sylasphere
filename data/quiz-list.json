@@ -1,13 +1,18 @@
 [
   {
-    "title": "Sylasphere: Showtime · alle 16 Fragetypen",
-    "description": "Showcase mit allen 16 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung, Zeitduell und Einordnen.",
+    "title": "Sylasphere: Showtime · alle 17 Fragetypen",
+    "description": "Showcase mit allen 17 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung, Zeitduell, Einordnen und 3×3-Grid.",
     "file": "quiz-showtime.json"
   },
   {
     "title": "Einordnen – Demo",
     "description": "Länder nach Einwohnern (Werte erst am Ende) und nach Fläche (Werte sofort, 30 s pro Zug) einordnen – mit Leben und Stechen.",
     "file": "quiz-einordnen-demo.json"
+  },
+  {
+    "title": "3×3-Grid – Demo",
+    "description": "Zwei Grids zum Ausprobieren: Städte der Welt und Tiere. Jedes Feld muss zu Zeile und Spalte passen – 3 Minuten Zeit.",
+    "file": "quiz-grid-demo.json"
   },
   {
     "title": "Zeitduell – Demo",

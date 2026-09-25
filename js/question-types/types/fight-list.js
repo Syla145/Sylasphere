@@ -2,48 +2,22 @@
   'use strict';
   const Kit = window.SylasphereTypeKit;
 
-  // ---- Treffer zählen: exakt, Nachname/Einzelwort (z. B. „Obama“) oder mit kleinem Tippfehler
-  function distance(a, b, limit) {
-    if (Math.abs(a.length - b.length) > limit) return limit + 1;
-    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const row = [i];
-      let best = row[0];
-      for (let j = 1; j <= b.length; j++) {
-        row[j] = Math.min(prev[j] + 1, row[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        best = Math.min(best, row[j]);
-      }
-      if (best > limit) return limit + 1;
-      prev = row;
-    }
-    return prev[b.length];
-  }
-  const tolerance = term => (term.length >= 8 ? 2 : term.length >= 4 ? 1 : 0);
-  const clean = value => Kit.normalizeTerm(value).replace(/[.,'’"!?()\-]/g, ' ').replace(/\s+/g, ' ').trim();
+  // ---- Treffer zählen: exakt, Nachname/Einzelwort (z. B. „Obama“) oder mit kleinem Tippfehler (Vergleich in kit.js)
   function entriesOf(answer) { return (Array.isArray(answer) ? answer : String(answer || '').split(/[\n,;]/)).map(v => String(v).trim()).filter(Boolean); }
   /** { count, items: [{ term, kind: 'exact'|'fuzzy'|'none'|'double', solution }] } */
   function countMatches(q, answer) {
-    const solutions = (q.correctAnswers || []).map(text => ({ text, full: clean(text), words: clean(text).split(' ').filter(w => w.length >= 4) }));
+    const solutions = (q.correctAnswers || []).map(String);
     const used = new Set();
     const seen = new Set();
     const items = entriesOf(answer).map(term => {
-      const t = clean(term);
+      const t = Kit.cleanTerm(term);
       if (!t) return { term, kind: 'none' };
       if (seen.has(t)) return { term, kind: 'double' };
       seen.add(t);
-      let best = null;
-      solutions.forEach((sol, index) => {
-        if (used.has(index)) return;
-        let score = null;
-        if (sol.full === t) score = 0;
-        else if (sol.words.includes(t)) score = 1;
-        else if (distance(t, sol.full, tolerance(sol.full)) <= tolerance(sol.full)) score = 2;
-        else if (t.length >= 4 && sol.words.some(w => distance(t, w, tolerance(w)) <= tolerance(w))) score = 3;
-        if (score !== null && (!best || score < best.score)) best = { index, score };
-      });
-      if (!best) return { term, kind: 'none' };
-      used.add(best.index);
-      return { term, kind: best.score <= 1 ? 'exact' : 'fuzzy', solution: solutions[best.index].text };
+      const match = Kit.matchTerm(term, solutions, used);
+      if (match.kind === 'none') return { term, kind: 'none' };
+      used.add(match.index);
+      return { term, kind: match.kind, solution: match.solution };
     });
     return { count: items.filter(i => i.kind === 'exact' || i.kind === 'fuzzy').length, items };
   }

@@ -622,6 +622,9 @@
   }
   function reviewPanel(question, answers) {
     if (Quiz.reviewMode(question) === 'count') return countPanel(question, answers);
+    // v26: Fragetyp mit eigener Prüf-Ansicht (z. B. 3×3-Grid: Feld antippen zum Umdrehen)
+    const custom = Quiz.typeDef(question.type)?.reviewPanel;
+    if (custom) return custom(question, answers, { esc: App.escapeHTML, name: findPlayerName, verdict: (pid, answer, part) => verdictFor(question, pid, answer, part) });
     const entries = Object.entries(answers || {});
     if (!entries.length) return '<div class="notice review-empty">Noch keine Antworten zum Prüfen.</div>';
     const parts = partsOf(question);

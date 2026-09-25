@@ -1,5 +1,22 @@
 # Sylasphere – Changelog
 
+## v26 – Neuer Spielmodus „3×3-Grid“ und Einstellungen
+- **3×3-Grid:** 3 Begriffe links, 3 oben (Text und/oder Bild). Jedes Feld braucht eine Antwort, die zu Zeile und Spalte passt. Alle tippen gleichzeitig, bis die Zeit um ist (Standard 3 Minuten), und alles wird automatisch gespeichert.
+  - **Am Handy:** Feld antippen und unten eintippen. Enter springt zum nächsten freien Feld.
+  - **Doppelte Antworten** werden direkt markiert. Sie zählen nur einmal, auch in anderer Schreibweise („Tokyo“/„Tokio“).
+  - **Prüfen:** Das System markiert jedes Feld vorab (✓ erkannt, ≈ mit Tippfehler, ✗ nicht erkannt/doppelt). Du tippst nur die Felder an, die du umdrehen willst. Pro Spieler siehst du ein kleines Grid.
+  - **Auflösung:** Alle sehen ihr Grid mit ✓/✗ und pro Feld die gültigen Antworten, der Beamer zeigt das komplette Lösungs-Grid.
+  - **Punkte:** „Punkte“ gibt es pro richtigem Feld (Standard 20), dazu optional ein Bonus für ein komplett richtiges Grid (Standard 50).
+  - **Editor:** Zeilen und Spalten mit Text und Bild (inkl. ⬆ Hochladen), pro Feld die gültigen Antworten, eine pro Zeile, mit Zähler.
+- **Demo „3×3-Grid – Demo“:** Städte der Welt und Tiere. „Showtime“ enthält jetzt alle 17 Fragetypen.
+- **⚙️ Einstellungen** (oben rechts auf Spieler-, Zuschauer- und Moderator-Seite, gelten nur für dieses Gerät):
+  - **Design:** „Wie im Quiz“ oder ein eigenes Design für dieses Gerät.
+  - **Musik:** an/aus, Lautstärke und Probehören. Die Lautstärke gilt auch für Audio-Fragen.
+  - Soundeffekte bekommen hier mit dem nächsten Update einen eigenen Regler.
+- Technik: Der Tippfehler-Vergleich (Fight List, Grid) liegt jetzt zentral in `kit.js`. Fragetypen können eine eigene Prüf-Ansicht für den Moderator mitbringen (`reviewPanel`).
+- Aufgeräumt: `TEST_REPORT.md`, `ONLINE_TEST_CHECKLIST.md` (Stand v10) und `assets/schmobin-icon.svg` entfernt. Auf GitHub bitte ebenfalls löschen.
+- Keine Änderung an den Firebase-Regeln nötig.
+
 ## v25.2 – Einordnen: neue Punkte, Stechen, versteckte Werte
 - **Werte erst am Ende:** Im Editor wählbar, ob die Werte (z. B. Einwohnerzahlen) sofort beim richtigen Einordnen erscheinen oder erst beim „👁 Aufdecken“ bzw. bei der Auflösung (Standard). Versteckte Werte stehen gar nicht im Spielstand, auch nicht technisch auf den Handys. Den **Anker-Wert** kann man zur Orientierung zeigen (Standard) oder ebenfalls verstecken.
 - **Stechen statt „kein Sieger“:** Verliert der Vorletzte sein letztes Leben, muss der Letzte eine Karte richtig legen, dann gewinnt er. Vergibt er auch, geht es ins Stechen: Beide sind abwechselnd dran, und wer vergibt, während der andere trifft, verliert. Im Stechen zählen keine Leben mehr.

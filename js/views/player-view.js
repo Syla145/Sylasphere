@@ -206,7 +206,7 @@
       Quiz.typeDef(question.type)?.update?.(question, host, ctx);
       return;
     }
-    Renderers.renderPlayer(question, host, ctx);
+    Renderers.renderPlayer(question, host, Object.assign({ playerId }, ctx)); // v26: eigene Wertung (z. B. Grid)
     host.dataset.renderKey = key;
   }
 

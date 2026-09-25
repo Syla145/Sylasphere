@@ -767,3 +767,70 @@ button.rank-card--pool:hover{border-color:rgba(var(--accent-rgb),.6)}
 @media(max-width:560px){.media-drop{padding:10px}.media-drop>div:first-child{display:none}.media-cloud-foot{display:none}.media-grid{min-height:220px}.media-source-tabs .btn{flex:1}}
 .media-item-actions .btn{padding-inline:8px}
 .duel-item>*,.rank-item>*{min-width:0}.duel-item .media-upload-btn span,.rank-item .media-upload-btn span,.duel-item .media-pick-btn span,.rank-item .media-pick-btn span{display:none}
+
+/* ---------------------------------------------------------------- v26: 3×3-Grid */
+.grid9{display:grid;gap:12px}
+.grid9-board{display:grid;grid-template-columns:minmax(64px,.8fr) repeat(3,minmax(0,1fr));gap:6px}
+.grid9-corner{min-height:10px}
+.grid9-head{display:grid;place-items:center;gap:4px;padding:8px 6px;border-radius:12px;background:rgba(var(--accent-rgb),.14);border:1px solid rgba(var(--accent-rgb),.35);text-align:center;font-weight:800;font-size:.86rem;line-height:1.2;min-width:0;overflow-wrap:anywhere;-webkit-hyphens:auto;hyphens:auto}
+.grid9-head img{width:100%;max-width:72px;max-height:52px;object-fit:contain;border-radius:6px}
+.grid9-head.is-row{justify-items:start;text-align:left}
+.grid9-cell{position:relative;display:grid;align-content:center;justify-items:center;gap:3px;min-height:74px;padding:6px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;text-align:center;min-width:0;overflow-wrap:anywhere}
+button.grid9-cell{cursor:pointer}
+.grid9-text{font-weight:750;font-size:.9rem;line-height:1.2}
+button.grid9-cell:not(.is-filled) .grid9-text{color:var(--muted);font-size:1.2rem}
+.grid9-cell.is-active{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.3)}
+.grid9-cell.is-filled{background:rgba(var(--accent-rgb),.1)}
+.grid9-cell.is-double{border-color:var(--warning);background:rgba(var(--warning-rgb),.14)}
+.grid9-cell.is-right{border-color:rgba(var(--success-rgb),.7);background:rgba(var(--success-rgb),.14)}
+.grid9-cell.is-wrong{border-color:rgba(var(--danger-rgb),.55);background:rgba(var(--danger-rgb),.1)}
+.grid9-mark{font-size:.85rem;line-height:1}
+.grid9-cell.is-right .grid9-mark{color:var(--success-text)}
+.grid9-cell.is-wrong .grid9-mark{color:var(--danger-text)}
+.grid9-valid{color:var(--muted);font-size:.7rem;line-height:1.2}
+.grid9-input{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end;position:sticky;bottom:10px;z-index:4;padding:10px;border-radius:14px;background:var(--panel2);border:1px solid rgba(var(--accent-rgb),.45);box-shadow:0 8px 24px rgba(var(--shadow-rgb),.3)}
+.grid9-nav{display:flex;gap:6px}
+.grid9-nav .btn{min-width:44px;min-height:46px}
+.grid9-note{margin:0;color:var(--muted);font-size:.85rem}
+.grid9-note.is-warning{color:var(--warning-text);font-weight:700}
+.presenter .grid9-head,.presenter-main .grid9-head{font-size:1.05rem}
+.presenter .grid9-cell,.presenter-main .grid9-cell{min-height:96px}
+.presenter .grid9-text,.presenter-main .grid9-text{font-size:1.05rem}
+.presenter .grid9-valid,.presenter-main .grid9-valid{font-size:.85rem}
+@media(max-width:560px){.grid9-board{grid-template-columns:minmax(72px,.9fr) repeat(3,minmax(0,1fr));gap:4px}.grid9-head{font-size:.66rem;padding:6px 4px;letter-spacing:-.01em}.grid9-cell{min-height:64px;padding:4px}.grid9-text{font-size:.78rem}.grid9-valid{font-size:.62rem}}
+/* Moderator-Prüfung */
+.grid9-review-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.grid9-review{display:grid;gap:6px;padding:8px;border-radius:12px;border:1px solid var(--line);background:rgba(var(--overlay-rgb),.03)}
+.grid9-review-who{display:flex;justify-content:space-between;gap:8px;font-size:.85rem}
+.grid9-review-who span{color:var(--muted)}
+.grid9-review-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+.grid9-review-cell{display:grid;gap:2px;justify-items:center;min-height:52px;padding:4px;border-radius:9px;border:1px solid var(--line);background:var(--surface);color:var(--text);font:inherit;font-size:.72rem;cursor:pointer;min-width:0;overflow-wrap:anywhere;text-align:center}
+.grid9-review-cell b{font-size:.9rem}
+.grid9-review-cell.is-right{border-color:rgba(var(--success-rgb),.7);background:rgba(var(--success-rgb),.14)}
+.grid9-review-cell.is-wrong{border-color:rgba(var(--danger-rgb),.5);background:rgba(var(--danger-rgb),.08)}
+.grid9-review-cell.is-manual{box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),.5)}
+/* Editor */
+.grid9-editor{display:grid;grid-template-columns:minmax(120px,.8fr) repeat(3,minmax(0,1fr));gap:8px;margin-top:8px}
+.grid9-editor-head{display:grid;gap:6px;padding:8px;border-radius:12px;background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.3);min-width:0}
+.grid9-editor-cell{display:grid;gap:4px;padding:8px;border-radius:12px;border:1px solid var(--line);min-width:0}
+.grid9-editor-cell textarea{min-height:78px;resize:vertical;font-size:.85rem}
+.grid9-editor-cell .field-label{font-size:.72rem;color:var(--muted);overflow-wrap:anywhere}
+.grid9-editor .field-hint.is-warning{color:var(--warning-text)}
+.grid9-editor-head .media-pick-btn span,.grid9-editor-head .media-upload-btn span{display:none}
+@media(max-width:900px){.grid9-editor{grid-template-columns:1fr}.grid9-editor-corner{display:none}}
+
+/* ---------------------------------------------------------------- v26: Einstellungen (pro Gerät) */
+.settings-btn{font-size:1.05rem;flex:none}
+.settings-modal{width:min(560px,100%);max-height:92vh;overflow:auto;display:grid;gap:16px;padding:20px}
+.settings-section{display:grid;gap:8px}
+.settings-section h3{margin:0;font-size:1rem}
+.settings-section .microcopy{margin:0}
+.settings-themes{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px}
+.settings-auto-swatch{display:grid;place-items:center;font-size:.72rem;font-weight:850;color:var(--on-accent);background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.settings-switch{display:flex;gap:10px;align-items:center;min-height:40px;cursor:pointer;font-weight:650}
+.settings-switch input{width:22px;height:22px;accent-color:var(--accent)}
+.settings-slider{display:flex;align-items:center;gap:8px}
+.settings-slider input{flex:1;min-width:0;accent-color:var(--accent)}
+.settings-slider b{min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums}
+.settings-section .btn{justify-self:start}
+.settings-soon{opacity:.75}

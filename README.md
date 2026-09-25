@@ -178,11 +178,19 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
 | 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, am Ende entscheidet ein Stechen. Punkte pro Karte plus Platzierung |
+| ▦ | 3×3-Grid | Neun Felder, jedes muss zu seiner Zeile und Spalte passen. Alle tippen gleichzeitig, das System prüft pro Feld vor, du drehst Fehler per Tipp um. Punkte pro Feld plus Bonus fürs volle Grid |
 | ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
+Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 17 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
 
 **Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung gibt es weiter „Abschicken“, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
+
+### 3×3-Grid im Detail
+
+1. **Vorbereiten:** Im Editor drei Zeilen- und drei Spaltenbegriffe eintragen (Text und/oder Bild, zum Beispiel Vereinslogos oder Flaggen). In jedes der 9 Felder alle gültigen Antworten schreiben, eine pro Zeile. Nachnamen und kleine Tippfehler erkennt das System selbst.
+2. **Einstellen:** Timer für das ganze Grid (Standard 180 s), „Punkte“ pro richtigem Feld, Bonus für ein komplett richtiges Grid.
+3. **Spielen:** Frage öffnen. Alle tippen gleichzeitig: Feld antippen, unten eintippen, Enter springt weiter. Eine Antwort darf nur einmal im Grid stehen, das Handy warnt sofort.
+4. **Prüfen und Auflösen:** Nach dem Schließen siehst du pro Spieler ein kleines Grid mit ✓ / ≈ / ✗. Tippe nur die Felder an, die du umdrehen willst, dann **✨ Frage auflösen**. Alle sehen ihr Grid mit Markierungen und die gültigen Antworten.
 
 ### Einordnen im Detail
 
@@ -212,6 +220,13 @@ Hinweis: Wie beim Zeitduell führt das Moderator-Gerät den Spielstand und sollt
 4. **Ende:** Wenn nur noch einer übrig ist oder die Bilder ausgehen, tippst du auf **✨ Frage auflösen**. Die Punkte werden nach Platzierung vergeben.
 
 Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geöffnet bleiben und nicht in den Standby gehen.
+
+## Einstellungen pro Gerät (⚙️)
+
+Oben rechts auf der Spieler-, Zuschauer- und Moderator-Seite:
+- **Design:** „Wie im Quiz“ (Standard) oder ein eigenes Design nur für dieses Gerät.
+- **Musik:** an/aus und Lautstärke, mit „Probehören“. Das ist praktisch, wenn der Ton am Moderator-Rechner stören würde.
+- Soundeffekte folgen mit dem nächsten Update.
 
 ## Designs
 
@@ -255,6 +270,7 @@ js/core/
   account.js / account-ui.js    Konten, Rollen, Login-Oberfläche
   cloud-quizzes.js              „Meine Quizze“ (Online-Speicher)
   cloud-media.js                Datei-Upload (Firebase Storage) + Upload-Freigaben
+  settings.js                   ⚙️ Einstellungen pro Gerät (Design, Musik-Lautstärke)
   moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)
   session-engine.js             lokaler Spielablauf (Testmodus)
   online-session-engine.js      Online-Spielablauf über Firebase
