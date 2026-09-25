@@ -98,6 +98,15 @@ Im **Editor** (`editor.html`):
 
 ### So kommt eine Datei ins Quiz
 
+**Am einfachsten (ab v25.1): direkt im Editor hochladen.**
+- Neben jedem Bild- und Audiofeld gibt es **⬆ Hochladen**. Datei wählen, fertig: Der Link wird sofort eingetragen.
+- In der Dateiauswahl (📁) findest du unter **☁️ Meine Uploads** alle eigenen Dateien. Dort kannst du auch mehrere auf einmal hochladen (Knopf oder hineinziehen), den Füllstand sehen und mit 🗑 löschen.
+- Beim **Zeitduell** und bei **Einordnen** lädt **⬆ Bilder hochladen** viele Bilder auf einmal und legt daraus Karten an. Der Name wird aus dem Dateinamen vorgeschlagen.
+- Bilder werden automatisch auf höchstens 1600 px verkleinert. Die Dateien bekommen neutrale Namen, Spieler sehen darin keine Lösung.
+- Voraussetzung: freigeschaltetes Moderator-Konto und die einmalige Einrichtung aus `FIREBASE_SETUP.md` („v25.1 Datei-Upload“).
+
+**Alternativ über das GitHub-Repo:**
+
 1. **Auf GitHub hochladen:** Im Repo den Ordner `assets` öffnen, dann **Add file → Upload files**.
    - Für Ordnung sorgen Unterordner wie `assets/bilder/` und `assets/musik/`. Beim Hochladen einfach den Ordnernamen vor den Dateinamen schreiben.
    - Dann auf **Commit changes** klicken.
@@ -219,10 +228,12 @@ Alles läuft **kostenlos**:
 |---|---|---|
 | GitHub Pages | Website, Bilder, Musik | 1 GB Repo, ca. 100 GB Abruf pro Monat |
 | Firebase Authentication | Anmeldung (Google, E-Mail, Gäste) | für diese Nutzung praktisch unbegrenzt |
-| Firebase Realtime Database | Räume, Antworten, „Meine Quizze“ | 100 gleichzeitige Verbindungen, 1 GB Speicher, 10 GB Abruf pro Monat |
+| Firebase Realtime Database | Räume, Antworten, „Meine Quizze“, Dateiliste | 1 GB Speicher, ca. 360 MB Abruf pro Tag (Blaze) |
+| Firebase Cloud Storage (ab v25.1) | hochgeladene Bilder und Musik | 5 GB Speicher, 100 GB Abruf pro Monat (nur US-Standorte, Blaze-Tarif) |
+| Cloud Firestore (ab v25.1) | Liste, wer hochladen darf | 1 GB, 50.000 Lesevorgänge pro Tag |
 
-- **100 gleichzeitige Verbindungen** heißt ungefähr 100 Geräte auf einmal, verteilt auf alle gleichzeitig laufenden Räume.
-- Den Firebase-Dateispeicher (Cloud Storage) nutzt Sylasphere bewusst **nicht**, weil er nicht mehr kostenlos ist.
+- Seit v25.1 läuft das Projekt im **Blaze-Tarif** (Kreditkarte hinterlegt), weil Cloud Storage nur dort verfügbar ist. Solange die Gratis-Grenzen nicht überschritten werden, kostet es nichts. Eine **Budget-Warnung bei 1 €** meldet sich sofort per E-Mail.
+- Im Blaze-Tarif gibt es keine harte Grenze von 100 gleichzeitigen Verbindungen mehr.
 
 ## Projektstruktur
 
@@ -236,6 +247,7 @@ js/core/
   firebase-service.js           Verbindung zu Firebase
   account.js / account-ui.js    Konten, Rollen, Login-Oberfläche
   cloud-quizzes.js              „Meine Quizze“ (Online-Speicher)
+  cloud-media.js                Datei-Upload (Firebase Storage) + Upload-Freigaben
   moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)
   session-engine.js             lokaler Spielablauf (Testmodus)
   online-session-engine.js      Online-Spielablauf über Firebase
@@ -244,6 +256,8 @@ js/question-types/              ein Modul pro Fragetyp (+ README zum Erweitern)
 js/editor/                      Editor, Themenauswahl, Medien-Auswahl
 js/views/                       Startseite, Moderator-, Spieler-, Zuschauer- und Verwaltungsansicht
 firebase-database.rules.json    Sicherheitsregeln (in Firebase veröffentlichen)
+storage.rules                   Regeln für den Dateispeicher (ab v25.1)
+firestore.rules                 Regeln für die Upload-Freigaben (ab v25.1, Admin-ID eintragen)
 tests/                          automatische Tests
 ```
 

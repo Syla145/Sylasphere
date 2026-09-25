@@ -1,0 +1,19 @@
+rules_version = '2';
+
+// Sylasphere – Firestore-Regeln, ab v25.1
+// Firestore enthält nur die Liste uploaders/<uid>: Wer darf Dateien hochladen?
+// WICHTIG: DEINE_ADMIN_UID durch deine Konto-ID ersetzen (steht in der Realtime Database unter admins).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.uid in ['DEINE_ADMIN_UID'];
+    }
+    match /uploaders/{uid} {
+      allow read: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+      allow write: if isAdmin();
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

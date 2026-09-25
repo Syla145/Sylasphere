@@ -362,6 +362,18 @@
 
     const actions = div('duel-item-actions');
     actions.append(button('+ Bild', 'btn btn--small', () => { q.items.push({ image: '', answer: '' }); renderItems(); ui.queueSave(); }));
+    // v25.1: viele Bilder auf einmal hochladen – Lösung aus dem Dateinamen (katze.jpg → Katze)
+    const Cloud = window.SylasphereCloudMedia;
+    if (Cloud?.available()) {
+      const note = Kit.el('span', 'field-hint', '');
+      actions.append(button('⬆ Bilder hochladen', 'btn btn--small btn--primary', async () => {
+        await Cloud.pickAndUpload({
+          kind: 'image', multiple: true, folder: 'zeitduell',
+          onProgress: text => { note.textContent = text; },
+          onEach: r => { q.items = q.items.filter(i => i.image || i.answer); q.items.push({ image: r.url, answer: Cloud.labelFromName(r.name) }); renderItems(); ui.queueSave(); }
+        });
+      }), note);
+    }
     // Ganzen Ordner übernehmen – Lösung aus dem Dateinamen (katze.webp → Katze)
     const Library = window.SylasphereMediaLibrary;
     if (Library) {

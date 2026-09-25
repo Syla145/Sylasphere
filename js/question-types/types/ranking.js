@@ -572,6 +572,18 @@
         renderItems(); ui.queueSave();
       })
     );
+    // v25.1: viele Bilder auf einmal hochladen – Name aus dem Dateinamen, Wert danach eintragen
+    const Cloud = window.SylasphereCloudMedia;
+    if (Cloud?.available()) {
+      const note = Kit.el('span', 'field-hint', '');
+      actions.append(button('⬆ Bilder hochladen', 'btn btn--small btn--primary', async () => {
+        await Cloud.pickAndUpload({
+          kind: 'image', multiple: true, folder: 'einordnen',
+          onProgress: text => { note.textContent = text; },
+          onEach: r => { q.items = q.items.filter(i => String(i.name || '').trim() || Number.isFinite(Number(i.value)) || i.image); q.items.push({ name: Cloud.labelFromName(r.name), value: null, image: r.url }); renderItems(); ui.queueSave(); }
+        });
+      }), note);
+    }
     box.append(actions);
     // Liste einfügen: eine Karte pro Zeile – „Name; Wert; Bild (optional)“
     const paste = document.createElement('details'); paste.className = 'rank-paste';

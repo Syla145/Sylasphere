@@ -743,3 +743,27 @@ button.rank-card--pool:hover{border-color:rgba(var(--accent-rgb),.6)}
 .rank-paste textarea{width:100%;margin:8px 0;font-family:ui-monospace,monospace;font-size:.85rem}
 .rank-points-preview{margin:-4px 0 10px}
 @media(max-width:760px){.rank-item{grid-template-columns:auto minmax(0,1fr) minmax(0,.8fr) auto}.rank-item>label:nth-of-type(3){grid-column:2/4}}
+
+/* ---------------------------------------------------------------- v25.1: Datei-Upload */
+.media-modal{display:flex;flex-direction:column}
+.media-modal>[hidden]{display:none}
+.media-grid{flex:1 1 auto}
+.media-upload-btn{flex:none;white-space:nowrap}
+.media-source-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.media-drop{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:14px;border:2px dashed rgba(var(--accent-rgb),.45);border-radius:14px;background:rgba(var(--accent-rgb),.06);transition:background .15s ease,border-color .15s ease}
+.media-drop.is-over{background:rgba(var(--accent-rgb),.2);border-color:var(--accent)}
+.media-drop>div:first-child{display:grid;gap:2px}
+.media-drop>div:first-child span{color:var(--muted);font-size:.8rem}
+.media-usage{flex:1 1 200px;display:grid;gap:4px;min-width:0}
+.media-usage small{color:var(--muted);font-size:.78rem}
+.media-progress{flex-basis:100%;font-size:.85rem;font-weight:700;color:var(--accent-text)}
+.media-item-actions{display:flex;gap:6px;align-items:center}
+.media-item-actions .btn{flex:1}
+.media-cloud-foot{margin:0}
+.admin-storage{margin-top:18px}
+@media(max-width:560px){.media-upload-btn span,.media-pick-btn span{display:none}}
+.media-item-actions{flex-wrap:wrap}
+.media-item-actions .btn{min-width:0}
+@media(max-width:560px){.media-drop{padding:10px}.media-drop>div:first-child{display:none}.media-cloud-foot{display:none}.media-grid{min-height:220px}.media-source-tabs .btn{flex:1}}
+.media-item-actions .btn{padding-inline:8px}
+.duel-item>*,.rank-item>*{min-width:0}.duel-item .media-upload-btn span,.rank-item .media-upload-btn span,.duel-item .media-pick-btn span,.rank-item .media-pick-btn span{display:none}

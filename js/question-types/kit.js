@@ -253,7 +253,7 @@
       if (/\s/.test(raw)) out.push({ level: 'warn', text: 'Leerzeichen im Dateinamen machen oft Ärger – besser Bindestriche verwenden (z. B. eiffel-turm.jpg).' });
       else if (/[äöüßÄÖÜ]|[^\x00-\x7f]/.test(name)) out.push({ level: 'warn', text: 'Umlaute/Sonderzeichen im Dateinamen machen oft Ärger – besser nur a–z, 0–9 und Bindestriche.' });
       if (!out.some(item => item.level === 'error') && !/^(\.\/|\.\.\/)?assets\//.test(raw) && !/^\.?\/?data\//.test(raw)) out.push({ level: 'info', text: 'Tipp: Mediendateien gehören in den Ordner assets/, z. B. ./assets/bilder/…' });
-    } else if (options.needsCors) {
+    } else if (options.needsCors && !window.SylasphereCloudMedia?.isStorageUrl(raw) && !/^https:\/\/firebasestorage\.googleapis\.com\//i.test(raw)) {
       out.push({ level: 'warn', text: 'Fremde Links funktionieren bei der Song-Enthüllung meist nicht (der sekundengenaue Ausschnitt braucht eine Freigabe der fremden Seite). Datei lieber ins Repo hochladen.' });
     }
     return out;

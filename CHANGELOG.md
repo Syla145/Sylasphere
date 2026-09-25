@@ -1,5 +1,15 @@
 # Sylasphere – Changelog
 
+## v25.1 – Dateien direkt im Editor hochladen
+- **⬆ Hochladen** neben jedem Bild- und Audiofeld: Datei wählen, der Link wird sofort eingetragen.
+- **Dateiauswahl mit „☁️ Meine Uploads“:** alle eigenen Dateien mit Vorschau, Suche und Ordnern. Mehrere Dateien auf einmal hochladen (Knopf oder hineinziehen), Füllstand (Richtwert 500 MB pro Moderator) und 🗑 Löschen. Der Reiter „📁 GitHub“ zeigt wie bisher `assets/`.
+- **Zeitduell und Einordnen:** „⬆ Bilder hochladen“ lädt viele Bilder auf einmal und legt daraus Karten an (Name bzw. Lösung aus dem Dateinamen).
+- **Bilder** werden im Browser automatisch auf höchstens 1600 px verkleinert und als WebP gespeichert. **Audio** bis 20 MB, am besten als MP3.
+- **Neutrale Dateinamen:** Spieler können aus der Adresse keine Lösung ablesen.
+- **Nur freigeschaltete Moderatoren** dürfen hochladen. Die Verwaltungsseite gleicht die Freigabe automatisch ab (neuer Bereich „☁️ Datei-Upload“).
+- **Einmalige Einrichtung nötig** (Blaze-Tarif, Storage, Firestore, Regeln, CORS): siehe `FIREBASE_SETUP.md` → „v25.1 Datei-Upload“.
+- **Neue Dateien:** `js/core/cloud-media.js`, `storage.rules`, `firestore.rules`. Die **Realtime-Database-Regeln** sind erweitert (`userMedia`) und müssen neu veröffentlicht werden.
+
 ## v25 – Neuer Spielmodus „Einordnen“
 - **Einordnen** (Ranking-Spiel reihum): Oben liegt eine Leiste von niedrig nach hoch mit der offenen **Anker-Karte**, darunter ein Pool mit Karten, deren Werte geheim sind.
   - Wer dran ist, wählt auf dem Handy eine Karte, **zieht sie an eine Stelle** der Leiste (oder tippt Karte und ＋ an) und bestätigt mit **„✓ Hier einordnen“**.

@@ -25,6 +25,7 @@
   };
   const GITHUB_UPLOAD_MAX = 25 * 1024 * 1024;
   const Kit = () => window.SylasphereTypeKit;
+  const Cloud = () => window.SylasphereCloudMedia; // v25.1: eigene Uploads (Firebase Storage)
   const App = () => window.SchmobinApp;
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
 
@@ -103,6 +104,12 @@
     const items = (Kit()?.mediaAdvice(raw, kind, options) || []).slice();
     if (items.some(item => item.level === 'error')) return items;
     if (/^data:/i.test(raw)) return items;
+    if (Cloud()?.isStorageUrl(raw)) {
+      const own = Cloud().available() ? (await Cloud().list().catch(() => [])).find(file => file.url === raw) : null;
+      if (kind === 'image' && (await probeImage(raw)) === false) items.push({ level: 'error', text: 'Diese Datei ist im Online-Speicher nicht mehr vorhanden (gelöscht?).' });
+      else items.push({ level: 'ok', text: `Im Online-Speicher${own ? ` · ${own.name} · ${formatSize(own.size)}` : ''}` });
+      return items;
+    }
     if (/^https?:\/\//i.test(raw)) {
       if (kind === 'image') {
         const loaded = await probeImage(raw);
@@ -151,6 +158,14 @@
     pick.innerHTML = '📁 <span>Auswählen</span>';
     pick.title = kind === 'image' ? 'Bild aus assets/ auswählen' : 'Audiodatei aus assets/ auswählen';
     row.append(input, pick);
+    // v25.1: direkt hochladen (nur für freigeschaltete Moderatoren)
+    const up = document.createElement('button');
+    up.type = 'button';
+    up.className = 'btn btn--small media-upload-btn';
+    up.innerHTML = '⬆ <span>Hochladen</span>';
+    up.title = kind === 'image' ? 'Bild von deinem Gerät hochladen (wird automatisch verkleinert)' : 'Audiodatei von deinem Gerät hochladen';
+    up.hidden = !Cloud()?.available();
+    row.append(up);
     const status = document.createElement('div');
     status.className = 'media-status';
     status.setAttribute('aria-live', 'polite');
@@ -181,6 +196,14 @@
     }
     input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(run, 650); });
     pick.addEventListener('click', () => openPicker(kind, { current: input.value, onPick: set }));
+    up.addEventListener('click', async () => {
+      if (!Cloud()?.available()) { App()?.toast('Hochladen geht nur mit freigeschaltetem Moderator-Konto.', 'error'); return; }
+      up.disabled = true;
+      const done = await Cloud().pickAndUpload({ kind, folder: options.folder || (kind === 'audio' ? 'audio' : 'bilder'), onProgress: text => { status.innerHTML = text ? `<span class="media-note is-info">⬆ ${esc(text)}</span>` : ''; } });
+      up.disabled = false;
+      if (done[0]) set(done[0].url); else run();
+    });
+
     if (input.value.trim()) setTimeout(run, 150);
   }
 
@@ -192,6 +215,8 @@
     let filterKind = kind;
     let search = '';
     let folder = '';
+    const cloudOk = Boolean(Cloud()?.available());
+    let source = cloudOk ? 'cloud' : 'github'; // v25.1: eigene Uploads zuerst
     const backdrop = document.createElement('div');
     backdrop.className = 'preview-backdrop media-backdrop';
     const box = document.createElement('div');
@@ -199,11 +224,14 @@
     box.setAttribute('role', 'dialog');
     box.setAttribute('aria-label', 'Datei auswählen');
     box.innerHTML = `
-      <div class="media-modal-head"><div><span class="eyebrow">📁 assets/</span><h2>${kind === 'image' ? 'Bild auswählen' : 'Audiodatei auswählen'}</h2></div><button type="button" class="icon-btn" data-close title="Schließen">✕</button></div>
+      <div class="media-modal-head"><div><span class="eyebrow" data-eyebrow></span><h2>${kind === 'image' ? 'Bild auswählen' : 'Audiodatei auswählen'}</h2></div><button type="button" class="icon-btn" data-close title="Schließen">✕</button></div>
+      <div class="media-source-tabs"${cloudOk ? '' : ' hidden'}><button type="button" class="btn btn--small" data-source="cloud">☁️ Meine Uploads</button><button type="button" class="btn btn--small" data-source="github">📁 GitHub (assets/)</button></div>
+      <div class="media-drop" data-drop hidden><div><strong>Dateien hierher ziehen</strong><span>oder</span></div><button type="button" class="btn btn--primary btn--small" data-upload-files>⬆ ${kind === 'image' ? 'Bilder' : 'Audio'} hochladen</button><div class="media-usage" data-usage></div><div class="media-progress" data-progress hidden></div></div>
       <div class="media-toolbar"><input class="input" type="search" placeholder="Suchen …" data-search><select class="select" data-folder><option value="">Alle Ordner</option></select><button type="button" class="btn btn--small" data-refresh title="Liste neu laden">↻</button></div>
       <div class="media-kind-tabs" role="tablist"><button type="button" class="chip" data-kind="${kind}">${kind === 'image' ? '🖼️ Bilder' : '🎵 Audio'}</button><button type="button" class="chip" data-kind="">Alle Dateien</button></div>
-      <div class="media-grid${kind === 'audio' ? ' is-list' : ''}" data-grid><p class="microcopy">Lade Dateiliste von GitHub …</p></div>
-      <div class="media-modal-foot"><a class="btn btn--primary btn--small" data-upload target="_blank" rel="noopener">⬆ Neue Datei auf GitHub hochladen ↗</a><p class="microcopy">Nach dem Hochladen: ↻ tippen. Formate: Bilder als <b>WebP/JPG</b> (ca. 1600 px, unter 500 KB), Audio als <b>MP3</b>. Dateinamen ohne Leerzeichen und Umlaute.</p></div>`;
+      <div class="media-grid${kind === 'audio' ? ' is-list' : ''}" data-grid><p class="microcopy">Lade Dateiliste …</p></div>
+      <div class="media-modal-foot" data-github-foot><a class="btn btn--primary btn--small" data-upload target="_blank" rel="noopener">⬆ Neue Datei auf GitHub hochladen ↗</a><p class="microcopy">Nach dem Hochladen: ↻ tippen. Formate: Bilder als <b>WebP/JPG</b> (ca. 1600 px, unter 500 KB), Audio als <b>MP3</b>. Dateinamen ohne Leerzeichen und Umlaute.</p></div>
+      <p class="microcopy media-cloud-foot" data-cloud-foot hidden>Bilder werden beim Hochladen automatisch auf höchstens 1600 px verkleinert. Audio bitte als <b>MP3</b> (max. 20 MB). Die Dateien bekommen neutrale Namen – Spieler sehen darin keine Lösung.</p>`;
     backdrop.append(box);
     document.body.append(backdrop);
     const $ = sel => box.querySelector(sel);
@@ -221,23 +249,39 @@
     let files = [];
     function render() {
       box.querySelectorAll('[data-kind]').forEach(tab => tab.classList.toggle('is-active', tab.dataset.kind === filterKind));
+      box.querySelectorAll('[data-source]').forEach(tab => tab.classList.toggle('btn--primary', tab.dataset.source === source));
+      $('[data-eyebrow]').textContent = source === 'cloud' ? '☁️ Online-Speicher' : '📁 assets/';
+      $('[data-drop]').hidden = source !== 'cloud';
+      $('[data-cloud-foot]').hidden = source !== 'cloud';
+      $('[data-github-foot]').hidden = source !== 'github';
       grid.classList.toggle('is-list', (filterKind || 'audio') !== 'image');
       const term = search.toLowerCase();
-      const shown = files.filter(file => (!filterKind || file.kind === filterKind) && (!folder || file.folder === folder) && (!term || file.path.toLowerCase().includes(term)));
-      if (!shown.length) { grid.innerHTML = `<p class="microcopy">${files.length ? 'Keine passenden Dateien.' : 'Noch keine Dateien in assets/.'} Lade neue Dateien über den Knopf unten auf GitHub hoch.</p>`; return; }
+      const shown = files.filter(file => (!filterKind || file.kind === filterKind) && (!folder || file.folder === folder) && (!term || `${file.path} ${file.name}`.toLowerCase().includes(term)));
+      if (!shown.length) {
+        grid.innerHTML = `<p class="microcopy">${source === 'cloud'
+          ? (files.length ? 'Keine passenden Dateien.' : 'Noch nichts hochgeladen. Zieh Dateien in das Feld oben oder tippe auf „Hochladen“.')
+          : `${files.length ? 'Keine passenden Dateien.' : 'Noch keine Dateien in assets/.'} Lade neue Dateien über den Knopf unten auf GitHub hoch.`}</p>`;
+        return;
+      }
       grid.replaceChildren(...shown.map(file => {
-        const advice = Kit()?.mediaAdvice(file.path, file.kind) || [];
+        const advice = file.cloud ? [] : (Kit()?.mediaAdvice(file.path, file.kind) || []);
         const bad = advice.find(item => item.level === 'error' || item.level === 'warn');
         const card = document.createElement('div');
-        card.className = `media-item${file.path === normalizePath(current) ? ' is-current' : ''}`;
+        card.className = `media-item${file.path === (file.cloud ? String(current).trim() : normalizePath(current)) ? ' is-current' : ''}`;
         const thumb = file.kind === 'image'
           ? `<img src="${esc(file.path)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'media-thumb-missing',textContent:'Vorschau nicht verfügbar'}))">`
           : `<button type="button" class="icon-btn media-play" data-play title="Anhören">▶</button>`;
         card.innerHTML = `${file.kind === 'image' ? `<button type="button" class="media-thumb" data-choose>${thumb}</button>` : thumb}
-          <div class="media-meta"><strong title="${esc(file.path)}">${esc(file.name)}</strong><span>${esc(file.folder || 'assets')} · ${esc(formatSize(file.size))}${bad ? ` · <em class="is-${bad.level}">${esc(bad.level === 'error' ? 'Format ungeeignet' : 'Hinweis')}</em>` : ''}</span></div>
-          <button type="button" class="btn btn--small${file.kind === 'image' ? '' : ' btn--primary'}" data-choose>Übernehmen</button>`;
+          <div class="media-meta"><strong title="${esc(file.name)}">${esc(file.name)}</strong><span>${esc(file.folder || 'assets')} · ${esc(formatSize(file.size))}${bad ? ` · <em class="is-${bad.level}">${esc(bad.level === 'error' ? 'Format ungeeignet' : 'Hinweis')}</em>` : ''}</span></div>
+          <div class="media-item-actions"><button type="button" class="btn btn--small${file.kind === 'image' ? '' : ' btn--primary'}" data-choose>Übernehmen</button>${file.cloud ? '<button type="button" class="icon-btn" data-delete title="Aus dem Speicher löschen">🗑</button>' : ''}</div>`;
         if (bad) card.title = bad.text;
         card.querySelectorAll('[data-choose]').forEach(button => button.addEventListener('click', () => choose(file)));
+        card.querySelector('[data-delete]')?.addEventListener('click', async event => {
+          if (!confirm(`„${file.name}“ endgültig löschen?\nWird die Datei noch in einem Quiz verwendet, fehlt sie dort danach.`)) return;
+          event.currentTarget.disabled = true;
+          try { await Cloud().remove(file.id); App()?.toast('Datei gelöscht.', 'success'); await load(true); }
+          catch (error) { App()?.toast(error.message, 'error'); event.currentTarget.disabled = false; }
+        });
         card.querySelector('[data-play]')?.addEventListener('click', event => {
           const button = event.currentTarget;
           if (audioPreview && button.classList.contains('is-playing')) { stopPreview(); button.classList.remove('is-playing'); button.textContent = '▶'; return; }
@@ -252,26 +296,72 @@
       }));
     }
 
+    function usage() {
+      const used = files.reduce((sum, f) => sum + (Number(f.size) || 0), 0);
+      const quota = Cloud()?.QUOTA_BYTES || 1;
+      const pct = Math.min(100, Math.round(used / quota * 100));
+      $('[data-usage]').innerHTML = `<div class="meter"><span style="width:${pct}%"></span></div><small>${esc(formatSize(used))} von ${esc(formatSize(quota))} belegt · ${files.length} ${files.length === 1 ? 'Datei' : 'Dateien'}</small>`;
+    }
+
     async function load(force) {
-      grid.innerHTML = '<p class="microcopy">Lade Dateiliste von GitHub …</p>';
+      grid.innerHTML = `<p class="microcopy">Lade Dateiliste ${source === 'cloud' ? 'aus deinem Speicher' : 'von GitHub'} …</p>`;
       try {
-        files = await list({ force });
+        files = source === 'cloud'
+          ? (await Cloud().list({ force })).map(f => ({ id: f.id, path: f.url, name: f.name, folder: f.folder, size: f.size, kind: f.kind, cloud: true }))
+          : await list({ force });
         const folders = [...new Set(files.map(file => file.folder))].sort();
         $('[data-folder]').innerHTML = '<option value="">Alle Ordner</option>' + folders.map(f => `<option value="${esc(f)}">${esc(f || 'assets (Hauptordner)')}</option>`).join('');
         $('[data-folder]').value = folders.includes(folder) ? folder : '';
+        if (source === 'cloud') usage();
         render();
       } catch (error) {
         grid.innerHTML = `<div class="notice notice--error">${esc(error.message)}</div><p class="microcopy">Du kannst den Pfad auch direkt ins Feld schreiben, z. B. ./assets/bilder/bild.webp</p>`;
       }
     }
+
+    // Hochladen: Knopf oder Dateien ins Fenster ziehen
+    const progress = $('[data-progress]');
+    async function uploadFiles(fileList) {
+      const accepted = fileList.filter(f => Cloud().kindOf(f));
+      if (!accepted.length) { App()?.toast('Nur Bilder und Audiodateien können hochgeladen werden.', 'error'); return; }
+      const done = await Cloud().uploadMany(accepted, { folder: folder || (kind === 'audio' ? 'audio' : 'bilder'), onProgress: text => { progress.hidden = !text; progress.textContent = text ? `⬆ ${text}` : ''; } });
+      await load(true);
+      if (done.length === 1 && done[0].kind === kind) choose({ path: done[0].url, name: done[0].name });
+    }
+    $('[data-upload-files]').addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file'; input.multiple = true;
+      input.accept = kind === 'audio' ? 'audio/*,.mp3,.m4a' : 'image/*';
+      input.addEventListener('change', () => uploadFiles([...input.files]), { once: true });
+      input.click();
+    });
+    box.addEventListener('dragover', event => { if (source !== 'cloud') return; event.preventDefault(); $('[data-drop]').classList.add('is-over'); });
+    box.addEventListener('dragleave', event => { if (!box.contains(event.relatedTarget)) $('[data-drop]').classList.remove('is-over'); });
+    box.addEventListener('drop', event => {
+      if (source !== 'cloud') return;
+      event.preventDefault(); $('[data-drop]').classList.remove('is-over');
+      uploadFiles([...(event.dataTransfer?.files || [])]);
+    });
+
     $('[data-search]').addEventListener('input', event => { search = event.target.value; render(); });
     $('[data-folder]').addEventListener('change', event => { folder = event.target.value; render(); });
     $('[data-refresh]').addEventListener('click', () => load(true));
     box.querySelectorAll('[data-kind]').forEach(tab => tab.addEventListener('click', () => { filterKind = tab.dataset.kind; render(); }));
+    box.querySelectorAll('[data-source]').forEach(tab => tab.addEventListener('click', () => { if (source === tab.dataset.source) return; source = tab.dataset.source; folder = ''; files = []; load(false); }));
     load(false);
     if (window.matchMedia?.('(pointer: fine)').matches) setTimeout(() => $('[data-search]').focus(), 50); // am Handy keine Tastatur aufklappen
     return { close };
   }
+
+  // Anmeldung wird oft erst nach dem Aufbau fertig → Hochladen-Knöpfe dann einblenden
+  let accountWatch = false;
+  function watchAccount() {
+    if (accountWatch || !window.SylasphereAccount?.onChange) return;
+    accountWatch = true;
+    window.SylasphereAccount.onChange(() => document.querySelectorAll('.media-upload-btn').forEach(b => { b.hidden = !Cloud()?.available(); }));
+  }
+  document.addEventListener('DOMContentLoaded', watchAccount);
+  watchAccount();
 
   window.SylasphereMediaLibrary = { enhance, openPicker, list, check, repo, uploadUrl, formatSize, LIMITS };
 })();

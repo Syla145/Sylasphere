@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Sylasphere – Regeln für den Dateispeicher (Firebase Storage), ab v25.1
+// Hochladen dürfen nur Konten, die in Firestore unter uploaders/<uid> stehen.
+// Diese Liste pflegt die Verwaltungsseite (admin.html) automatisch: Admin + alle Moderatoren.
+// Spieler laden Dateien über den Download-Link (mit Token) – dafür ist keine Leseregel nötig.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /media/{uid}/{allPaths=**} {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && firestore.exists(/databases/(default)/documents/uploaders/$(uid))
+        && request.resource.size < 20 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*|audio/.*');
+    }
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

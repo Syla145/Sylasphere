@@ -51,7 +51,30 @@
     const context = Account.context();
     const dbm = context.modules.database;
     dbm.onValue(dbm.ref(context.db, 'moderatorRequests'), snap => renderRequests(snap.val() || {}), error => showListError('request-list', error));
-    dbm.onValue(dbm.ref(context.db, 'moderators'), snap => renderModerators(snap.val() || {}), error => showListError('moderator-list', error));
+    dbm.onValue(dbm.ref(context.db, 'moderators'), snap => { renderModerators(snap.val() || {}); syncStorage(snap.val() || {}); }, error => showListError('moderator-list', error));
+  }
+
+  // v25.1: Upload-Freigaben (Firestore uploaders/<uid>) an Admin + Moderatoren angleichen
+  let syncing = Promise.resolve();
+  function syncStorage(moderators) {
+    const box = $('storage-status');
+    const Cloud = window.SylasphereCloudMedia;
+    if (!box || !Cloud) return;
+    const uids = [...Object.keys(moderators), Account.state().user?.uid];
+    syncing = syncing.then(async () => {
+      try {
+        const result = await Cloud.syncUploaders(uids);
+        const changes = [result.added.length ? `${result.added.length} neu freigegeben` : '', result.removed.length ? `${result.removed.length} entfernt` : ''].filter(Boolean).join(', ');
+        box.innerHTML = `<div class="notice notice--success">✓ ${result.total} ${result.total === 1 ? 'Konto darf' : 'Konten dürfen'} Dateien hochladen${changes ? ` (${esc(changes)})` : ''}.</div>`;
+      } catch (error) {
+        const code = String(error?.code || error?.message || '');
+        const hint = /permission/i.test(code) ? 'Firestore lehnt ab: Sind die Firestore-Regeln veröffentlicht und steht dort deine Konto-ID statt DEINE_ADMIN_UID?'
+          : /not-found|NOT_FOUND|failed-precondition|unavailable/i.test(code) ? 'Firestore ist noch nicht eingerichtet (Build → Firestore Database → Create database).'
+          : Account.errorText(error);
+        box.innerHTML = `<div class="notice notice--warning"><strong>Upload-Freigabe noch nicht aktiv.</strong><br>${esc(hint)}<br><small>Anleitung: FIREBASE_SETUP.md → „v25.1 Datei-Upload“.</small></div><button type="button" class="btn btn--small" data-storage-retry>Erneut versuchen</button>`;
+        box.querySelector('[data-storage-retry]')?.addEventListener('click', () => syncStorage(moderators));
+      }
+    });
   }
 
   function showListError(id, error) {

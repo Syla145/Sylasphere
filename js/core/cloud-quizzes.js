@@ -17,8 +17,8 @@
    * Spielern geschützt; in einen Raum gelangt wie bisher nur die öffentliche
    * Version der Fragen.
    *
-   * Bilder/Audio: bitte weiter im GitHub-Repo (assets/) ablegen oder per Link
-   * einbinden. Firebase-Dateispeicher ist nicht mehr kostenlos.
+   * Bilder/Audio: seit v25.1 über den Datei-Upload (cloud-media.js, Firebase Storage)
+   * oder weiter im GitHub-Repo (assets/). Im Quiz steht nur der Link.
    */
   const MAX_JSON = 4000000; // ~4 MB pro Quiz (Grenze auch in den Firebase-Regeln)
   const Account = () => window.SylasphereAccount;
