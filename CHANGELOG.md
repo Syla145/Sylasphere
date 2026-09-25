@@ -1,5 +1,14 @@
 # Sylasphere – Changelog
 
+## v25.2 – Einordnen: neue Punkte, Stechen, versteckte Werte
+- **Werte erst am Ende:** Im Editor wählbar, ob die Werte (z. B. Einwohnerzahlen) sofort beim richtigen Einordnen erscheinen oder erst beim „👁 Aufdecken“ bzw. bei der Auflösung (Standard). Versteckte Werte stehen gar nicht im Spielstand, auch nicht technisch auf den Handys. Den **Anker-Wert** kann man zur Orientierung zeigen (Standard) oder ebenfalls verstecken.
+- **Stechen statt „kein Sieger“:** Verliert der Vorletzte sein letztes Leben, muss der Letzte eine Karte richtig legen, dann gewinnt er. Vergibt er auch, geht es ins Stechen: Beide sind abwechselnd dran, und wer vergibt, während der andere trifft, verliert. Im Stechen zählen keine Leben mehr.
+- **Neue Punkte:** Punkte pro richtiger Karte (Standard 10) plus Platzierung in % der Fragenpunkte (Standard 100 / 60 / 30 %), beides im Editor einstellbar, mit Beispielrechnung. Die Platzierung ergibt sich daraus, wer am längsten dabei war. Das „steigend“-Modell ist entfallen.
+- Alte Einordnen-Fragen aus v25 werden automatisch umgestellt: Die bisherigen Punkte gelten als Punkte pro Karte.
+- Der Moderator sieht unter „🔒 Werte“ jetzt auch die Werte der Karten auf der Leiste.
+- Demo: Einwohner mit Werten erst am Ende, Fläche mit sofort sichtbaren Werten.
+- Kleinigkeit: Leere Eingabe bei „Punkte nach Platz“ (Zeitduell/Einordnen) fällt wieder auf 100 / 60 / 30 zurück.
+
 ## v25.1 – Dateien direkt im Editor hochladen
 - **⬆ Hochladen** neben jedem Bild- und Audiofeld: Datei wählen, der Link wird sofort eingetragen.
 - **Dateiauswahl mit „☁️ Meine Uploads“:** alle eigenen Dateien mit Vorschau, Suche und Ordnern. Mehrere Dateien auf einmal hochladen (Knopf oder hineinziehen), Füllstand (Richtwert 500 MB pro Moderator) und 🗑 Löschen. Der Reiter „📁 GitHub“ zeigt wie bisher `assets/`.

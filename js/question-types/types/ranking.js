@@ -3,30 +3,33 @@
   const Kit = window.SylasphereTypeKit;
 
   /*
-   * Einordnen (v25) – Ranking-Spiel reihum
+   * Einordnen (v25, Regeln überarbeitet in v25.2) – Ranking-Spiel reihum
    * ------------------------------------------------------------------
-   * Oben liegt eine Leiste von niedrig nach hoch (z. B. „Einwohner“). Die Anker-Karte
-   * liegt von Anfang an mit sichtbarem Wert darauf. Darunter liegt ein Pool mit Karten,
-   * deren Werte geheim sind.
+   * Oben liegt eine Leiste von niedrig nach hoch (z. B. „Einwohner“) mit der Anker-Karte.
+   * Darunter liegt ein Pool mit Karten, deren Werte geheim sind.
    *
    * Reihum (Startspieler zufällig) wählt der Spieler, der dran ist, eine Karte aus dem Pool
    * und legt sie auf seinem Handy an eine Stelle der Leiste (ziehen oder antippen), dann „✓ Hier einordnen“.
-   *  ✓ richtig → Karte bleibt liegen, Wert wird gezeigt, Punkte, der Nächste ist dran
+   *  ✓ richtig → Karte bleibt liegen, der Nächste ist dran
    *  ✗ falsch  → Karte geht zurück in den Pool, −1 Leben, der Nächste ist dran
    *  ⏰ Zeit um → (nur mit Zeitlimit pro Zug) −1 Leben
    * Wer keine Leben mehr hat, scheidet aus.
-   * Nachzieh-Regel: Verliert der vorletzte Spieler sein letztes Leben, zieht der letzte noch
-   * einmal – richtig = Sieg, falsch = Spiel ohne Sieger vorbei.
-   * Ende auch, wenn alle Karten liegen. Danach darf der Sieger mündlich weiterraten,
-   * „👁 Aufdecken“ zeigt allen die komplette Reihenfolge.
    *
-   * Punkte: „Punkte“ der Frage = Wert je richtig eingeordneter Karte, fest oder steigend
-   * (jede weitere Karte auf der Leiste ist mehr wert, weil es enger wird).
+   * Ende (v25.2, „Stechen“ wie beim Elfmeterschießen):
+   *  - Verliert der Vorletzte sein letztes Leben, muss der Letzte EINE Karte richtig legen → Sieg.
+   *  - Vergibt er auch, beginnt das Stechen: beide abwechselnd, der zuletzt Ausgeschiedene zuerst.
+   *    Wer in einer Runde vergibt, während der andere trifft, verliert. Leben zählen dann nicht mehr.
+   *  - Gehen die Karten aus, entscheidet die Rangfolge (richtige Karten, dann Leben).
+   * Danach darf der Sieger mündlich weiterraten, „👁 Aufdecken“ zeigt allen die komplette Reihenfolge.
    *
-   * Wie beim Zeitduell führt das Moderator-Gerät den Spielstand (state.game) und prüft
-   * die Züge – die geheimen Werte kennen nur Moderator und Leiste.
+   * Werte (v25.2, im Editor): sofort beim richtigen Einordnen zeigen – oder erst beim Aufdecken/Auflösen.
+   * Der Anker-Wert ist standardmäßig sichtbar (abschaltbar). Versteckte Werte stehen gar nicht erst
+   * im Spielstand – geprüft wird auf dem Moderator-Gerät mit der vollständigen Frage.
+   *
+   * Punkte (v25.2): Punkte pro richtiger Karte + Platzierung in % der Fragenpunkte (Standard 100/60/30).
    */
   const REVEAL_MS = { correct: 2600, wrong: 2600, timeout: 2400, skip: 1500 };
+  const DEFAULT_PLACES = [100, 60, 30];
   const toNumber = (v, f) => { const n = Number(v); return Number.isFinite(n) ? n : f; };
   const list = v => (Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []));
   function shuffle(items, rand = Math.random) {
@@ -39,31 +42,37 @@
     if (value == null || !Number.isFinite(Number(value))) return '?';
     return `${numberFormat.format(Number(value))}${unit ? ` ${unit}` : ''}`;
   }
+  function parsePlaces(value) {
+    const out = (Array.isArray(value) ? value : String(value ?? '').split(/[,;\s]+/).filter(Boolean)).map(Number).filter(n => Number.isFinite(n) && n >= 0).map(n => Math.min(100, n));
+    return out.length ? out : DEFAULT_PLACES.slice();
+  }
   const livesOf = q => Math.max(1, Math.min(9, Math.round(toNumber(q.lives, 3))));
   const turnMs = q => Math.round(Math.max(0, Math.min(300, toNumber(q.turnSeconds, 0))) * 1000);
   const anchorOf = q => { const n = Math.round(toNumber(q.anchor, 0)); return n >= 0 && n < (q.items || []).length ? n : 0; };
-  /** Wert der n-ten richtig eingeordneten Karte (n ab 1) als Faktor der Fragenpunkte */
-  function factorFor(q, n) {
-    if (q.scoring !== 'growing') return 1;
-    const growth = Math.max(1, Math.min(5, toNumber(q.growth, 1.5)));
-    return Math.round((1 + (Math.max(1, n) - 1) * (growth - 1)) * 1000) / 1000;
-  }
+  const instant = q => q.revealValues === 'instant';           // Werte sofort zeigen?
+  const anchorVisible = q => q.showAnchor !== false;             // Anker-Wert zeigen?
+  const cardPointsOf = q => Math.max(0, toNumber(q.cardPoints, 10));
 
   // ---------------------------------------------------------------- Spiellogik (rein, ohne DOM – testbar)
   function normalizeGame(game) {
     if (!game || typeof game !== 'object') return null;
     const g = JSON.parse(JSON.stringify(game));
+    const entry = e => ({ i: Number(e?.i), v: e?.v == null || !Number.isFinite(Number(e.v)) ? null : Number(e.v) });
     g.order = list(g.order).map(String);
     g.eliminated = list(g.eliminated).map(String);
     g.pool = list(g.pool).map(Number);
-    g.line = list(g.line).map(e => ({ i: Number(e?.i), v: Number(e?.v) }));
-    g.uncovered = g.uncovered ? list(g.uncovered).map(e => ({ i: Number(e?.i), v: Number(e?.v) })) : null;
-    ['lives', 'earned', 'correct'].forEach(key => { g[key] = g[key] && typeof g[key] === 'object' ? g[key] : {}; });
+    g.line = list(g.line).map(entry);
+    g.uncovered = g.uncovered ? list(g.uncovered).map(entry) : null;
+    ['lives', 'correct'].forEach(key => { g[key] = g[key] && typeof g[key] === 'object' ? g[key] : {}; });
     g.turn = toNumber(g.turn, 1);
     g.turnStartedAt = g.turnStartedAt == null ? null : Number(g.turnStartedAt);
     g.turnLeftMs = g.turnLeftMs == null ? null : Number(g.turnLeftMs);
     g.reveal = g.reveal || null;
     g.lastChance = g.lastChance === true;
+    g.lastChanceAgainst = String(g.lastChanceAgainst || '');
+    if (g.shootout && typeof g.shootout === 'object') {
+      g.shootout = { players: list(g.shootout.players).map(String), round: toNumber(g.shootout.round, 1), results: g.shootout.results && typeof g.shootout.results === 'object' ? g.shootout.results : {} };
+    } else g.shootout = null;
     g.winner = String(g.winner || '');
     return g;
   }
@@ -82,13 +91,12 @@
     const anchor = anchorOf(q);
     const pool = shuffle((q.items || []).map((_, i) => i).filter(i => i !== anchor), rand);
     const lives = Object.fromEntries(order.map(id => [id, livesOf(q)]));
-    const zero = Object.fromEntries(order.map(id => [id, 0]));
     const playable = order.length && pool.length;
     return {
       kind: 'ranking', questionId: String(q.id || ''), phase: playable ? 'play' : 'done', order, active: playable ? order[0] : '',
-      lives, earned: Object.assign({}, zero), correct: Object.assign({}, zero), eliminated: [],
-      line: (q.items || []).length ? [{ i: anchor, v: valueAt(q, anchor) }] : [], pool,
-      turn: 1, turnStartedAt: now, turnLeftMs: null, reveal: null, lastChance: false, winner: '',
+      lives, correct: Object.fromEntries(order.map(id => [id, 0])), eliminated: [],
+      line: (q.items || []).length ? [{ i: anchor, v: anchorVisible(q) || instant(q) ? valueAt(q, anchor) : null }] : [], pool,
+      turn: 1, turnStartedAt: now, turnLeftMs: null, reveal: null, lastChance: false, lastChanceAgainst: '', shootout: null, winner: '',
       endReason: playable ? '' : (order.length ? 'no-cards' : 'no-players'), uncovered: null, startedAt: now, seq: 1
     };
   }
@@ -99,7 +107,7 @@
     game.seq = (game.seq || 0) + 1;
     return game;
   }
-  /** Zug des aktiven Spielers prüfen. answer: { turn, item, slot } */
+  /** Zug des aktiven Spielers prüfen. answer: { turn, item, slot } – Werte kommen aus der vollständigen Frage */
   function input(inputGame, q, playerId, answer, now = Date.now()) {
     const game = normalizeGame(inputGame);
     if (!game || game.phase !== 'play' || game.active !== String(playerId) || !answer || typeof answer !== 'object') return inputGame;
@@ -108,19 +116,19 @@
     const slot = Math.round(toNumber(answer.slot, -1));
     if (!game.pool.includes(item) || slot < 0 || slot > game.line.length) return inputGame;
     const v = valueAt(q, item);
-    const left = slot > 0 ? game.line[slot - 1].v : -Infinity;
-    const right = slot < game.line.length ? game.line[slot].v : Infinity;
+    const left = slot > 0 ? valueAt(q, game.line[slot - 1].i) : -Infinity;
+    const right = slot < game.line.length ? valueAt(q, game.line[slot].i) : Infinity;
     const ok = Number.isFinite(v) && left <= v && v <= right;
     const by = game.active;
     if (ok) {
-      game.line.splice(slot, 0, { i: item, v });
+      game.line.splice(slot, 0, { i: item, v: instant(q) ? v : null });
       game.pool = game.pool.filter(i => i !== item);
-      const factor = factorFor(q, game.line.length - 1);
-      game.earned[by] = Math.round((toNumber(game.earned[by], 0) + factor) * 1000) / 1000;
       game.correct[by] = toNumber(game.correct[by], 0) + 1;
-      return beginReveal(game, now, { reason: 'correct', by, item, slot, value: v, factor });
+      const data = { reason: 'correct', by, item, slot };
+      if (instant(q)) data.value = v;
+      return beginReveal(game, now, data);
     }
-    game.lives[by] = Math.max(0, toNumber(game.lives[by], 0) - 1);
+    if (!game.shootout) game.lives[by] = Math.max(0, toNumber(game.lives[by], 0) - 1);
     return beginReveal(game, now, { reason: 'wrong', by, item, slot });
   }
   function nextPlayer(game, from) {
@@ -137,35 +145,66 @@
     game.seq = (game.seq || 0) + 1;
     return game;
   }
-  /** Nach der Anzeige: Ausscheiden, Nachzieh-Regel, Ende oder nächster Spieler */
-  function advance(game, q, now) {
-    const r = game.reveal || {};
-    const by = r.by || game.active;
-    if (toNumber(game.lives[by], 0) <= 0 && !game.eliminated.includes(by)) game.eliminated.push(by);
-    const wasLastChance = game.lastChance;
-    game.reveal = null;
-    if (wasLastChance) return finish(game, r.reason === 'correct' ? 'last-chance-won' : 'last-chance-lost', r.reason === 'correct' ? by : '');
-    if (!game.pool.length) return finish(game, 'all-placed', placements(game)[0]?.playerId || '');
-    const left = alive(game);
-    if (!left.length) return finish(game, 'no-lives');
-    let active;
-    if (game.order.length > 1 && left.length === 1) {
-      // Nachzieh-Regel: Der Letzte muss noch einmal richtig liegen, um zu gewinnen
-      if (left[0] === by) return finish(game, 'last-standing', by);
-      active = left[0];
-      game.lastChance = true;
-    } else active = nextPlayer(game, by);
+  function nextTurn(game, active, now) {
     game.active = active;
     game.phase = 'play'; game.turn += 1; game.turnStartedAt = now; game.turnLeftMs = null;
     game.seq = (game.seq || 0) + 1;
     return game;
+  }
+  /** Nach der Anzeige: Ausscheiden, letzte Chance, Stechen, Ende oder nächster Spieler */
+  function advance(game, q, now) {
+    const r = game.reveal || {};
+    const by = r.by || game.active;
+    const hit = r.reason === 'correct';
+    const skipped = r.reason === 'skip';
+    game.reveal = null;
+    const topOnEmpty = () => finish(game, 'all-placed', placements(game)[0]?.playerId || '');
+
+    // Stechen: pro Runde je ein Versuch; trifft genau einer, gewinnt er
+    if (game.shootout) {
+      const so = game.shootout;
+      if (!skipped) so.results[by] = hit;
+      const [a, b] = so.players;
+      if (so.results[a] !== undefined && so.results[b] !== undefined) {
+        if (so.results[a] !== so.results[b]) return finish(game, 'shootout', so.results[a] ? a : b);
+        so.round += 1; so.results = {};
+      }
+      if (!game.pool.length) return topOnEmpty();
+      return nextTurn(game, skipped ? by : (so.results[a] === undefined ? a : b), now);
+    }
+
+    if (toNumber(game.lives[by], 0) <= 0 && !game.eliminated.includes(by)) game.eliminated.push(by);
+
+    // Letzte Chance des Übriggebliebenen
+    if (game.lastChance) {
+      if (skipped) return nextTurn(game, by, now);
+      if (hit) return finish(game, 'last-chance-won', by);
+      const other = game.lastChanceAgainst;
+      game.lastChance = false;
+      if (!game.pool.length || !other) return topOnEmpty();
+      // Stechen: der zuletzt Ausgeschiedene kommt zurück und beginnt
+      game.eliminated = game.eliminated.filter(id => id !== other);
+      game.shootout = { players: [other, by], round: 1, results: {} };
+      return nextTurn(game, other, now);
+    }
+
+    if (!game.pool.length) return topOnEmpty();
+    const left = alive(game);
+    if (!left.length) return finish(game, 'no-lives', game.order.length === 1 ? '' : '');
+    if (game.order.length > 1 && left.length === 1) {
+      if (left[0] === by) return finish(game, 'last-standing', by);
+      game.lastChance = true;
+      game.lastChanceAgainst = by;
+      return nextTurn(game, left[0], now);
+    }
+    return nextTurn(game, nextPlayer(game, by), now);
   }
   function tick(inputGame, q, now = Date.now()) {
     const game = normalizeGame(inputGame);
     if (!game) return inputGame;
     if (game.phase === 'play' && turnMs(q) && turnRemaining(game, q, now) <= 0) {
       const by = game.active;
-      game.lives[by] = Math.max(0, toNumber(game.lives[by], 0) - 1);
+      if (!game.shootout) game.lives[by] = Math.max(0, toNumber(game.lives[by], 0) - 1);
       return beginReveal(game, now, { reason: 'timeout', by });
     }
     if (game.phase === 'reveal' && game.reveal && now >= Number(game.reveal.until)) return advance(game, q, now);
@@ -191,30 +230,43 @@
     return inputGame;
   }
   const isOver = game => Boolean(game && (game.phase === 'done' || game.phase === 'uncovered'));
-  /** Rangfolge: Sieger zuerst, dann nach Punkten, dann richtige Karten, dann wer länger im Spiel war */
+  /** Rangfolge: Sieger, dann alle noch im Spiel (mehr richtige Karten, mehr Leben), dann Ausgeschiedene (zuletzt raus = besser) */
   function placements(inputGame) {
     const game = normalizeGame(inputGame);
     if (!game) return [];
     const outIndex = id => { const k = game.eliminated.indexOf(id); return k < 0 ? Infinity : k; };
     return game.order.slice().sort((a, b) =>
       (b === game.winner) - (a === game.winner) ||
-      toNumber(game.earned[b], 0) - toNumber(game.earned[a], 0) ||
+      outIndex(b) - outIndex(a) ||
       toNumber(game.correct[b], 0) - toNumber(game.correct[a], 0) ||
-      outIndex(b) - outIndex(a)
-    ).map((playerId, k) => ({ playerId, rank: k + 1, earned: toNumber(game.earned[playerId], 0), correct: toNumber(game.correct[playerId], 0), lives: toNumber(game.lives[playerId], 0), out: game.eliminated.includes(playerId), winner: playerId === game.winner }));
+      toNumber(game.lives[b], 0) - toNumber(game.lives[a], 0)
+    ).map((playerId, k) => ({ playerId, rank: k + 1, correct: toNumber(game.correct[playerId], 0), lives: toNumber(game.lives[playerId], 0), out: game.eliminated.includes(playerId), winner: playerId === game.winner }));
+  }
+  /** Punkte eines Platzes: Karten × Kartenpunkte + Platz-% der Fragenpunkte (base enthält den Runden-Multiplikator) */
+  function pointsFor(q, place, base) {
+    if (!place) return 0;
+    const mult = Number(q.points) > 0 ? base / Number(q.points) : 1;
+    return Math.round(place.correct * cardPointsOf(q) * mult + base * (parsePlaces(q.placePoints)[place.rank - 1] || 0) / 100);
   }
 
-  const Game = { start, input, tick, act, advance, placements, alive, isOver, turnRemaining, factorFor, normalize: normalizeGame, REVEAL_MS, panel, playerStatus, host: true };
+  const Game = { start, input, tick, act, advance, placements, pointsFor, alive, isOver, turnRemaining, parsePlaces, normalize: normalizeGame, REVEAL_MS, panel, playerStatus, host: true };
 
   // ---------------------------------------------------------------- Texte
   const REASON = { correct: '✓ Richtig!', wrong: '✗ Falsch!', timeout: '⏰ Zeit abgelaufen', skip: '⏭ Zug übersprungen' };
   const END = {
-    'last-chance-won': w => `🏆 ${w} gewinnt!`, 'last-standing': w => `🏆 ${w} gewinnt!`, 'last-chance-lost': () => 'Spiel vorbei – kein Sieger.',
-    'all-placed': () => '🎉 Alle Karten liegen richtig!', 'no-lives': () => 'Spiel vorbei – keiner hat mehr Leben.', stopped: () => 'Spiel beendet.',
+    'last-chance-won': w => `🏆 ${w} gewinnt!`, 'last-standing': w => `🏆 ${w} gewinnt!`, shootout: w => `🏆 ${w} gewinnt das Stechen!`,
+    'last-chance-lost': () => 'Spiel vorbei – kein Sieger.',
+    'all-placed': w => (w ? `🎉 Alle Karten liegen – ${w} gewinnt!` : '🎉 Alle Karten liegen!'), 'no-lives': () => 'Spiel vorbei – keine Leben mehr.', stopped: () => 'Spiel beendet.',
     'no-cards': () => 'Keine Karten im Pool.', 'no-players': () => 'Keine Spieler im Raum.'
   };
   const hearts = (n, max) => '❤'.repeat(Math.max(0, n)) + '♡'.repeat(Math.max(0, max - n));
-  function endText(game, name) { return (END[game.endReason] || END.stopped)(name(game.winner)); }
+  function endText(game, name) { return (END[game.endReason] || END.stopped)(game.winner ? name(game.winner) : ''); }
+  /** Hinweis zur Spielphase (letzte Chance / Stechen) */
+  function phaseNote(game, name) {
+    if (game?.lastChance) return `Letzte Chance für ${name(game.active)}: richtig = Sieg!`;
+    if (game?.shootout) return `⚔️ Stechen, Runde ${game.shootout.round}: ${game.shootout.players.map(name).join(' gegen ')} – wer vergibt, während der andere trifft, verliert.`;
+    return '';
+  }
 
   /** Status und Hinweis für das Spieler-Handy (Kopfzeile + Kasten unter der Frage) */
   function playerStatus(inputGame, playerId) {
@@ -223,7 +275,7 @@
     if (!g) return { status: 'Gleich geht’s los', html: '' };
     const inGame = g.order.includes(String(playerId));
     const out = g.eliminated.includes(String(playerId));
-    const status = isOver(g) ? 'Spiel vorbei' : g.phase === 'reveal' ? 'Auswertung' : g.phase === 'paused' ? 'Pause' : g.active === playerId ? 'Du bist dran!' : 'Einordnen';
+    const status = isOver(g) ? 'Spiel vorbei' : g.phase === 'reveal' ? 'Auswertung' : g.phase === 'paused' ? 'Pause' : g.active === playerId ? 'Du bist dran!' : g.shootout ? 'Stechen' : 'Einordnen';
     let html = '';
     if (!inGame) html = '<div class="notice">Du bist nach dem Start beigetreten und schaust bei dieser Runde zu.</div>';
     else if (out && !isOver(g)) html = '<div class="notice">Keine Leben mehr – du bist raus und schaust den anderen zu.</div>';
@@ -237,22 +289,25 @@
     const esc = h.esc;
     const unit = q.unit || '';
     if (!game) {
-      return `<div class="duel-control"><div class="duel-control-info"><strong>${h.count} Spieler · ${(q.items || []).length - 1} Karten im Pool · ${livesOf(q)} Leben</strong><span>Reihum wählt jeder eine Karte und ordnet sie auf seinem Handy ein. ${turnMs(q) ? `${q.turnSeconds} s pro Zug.` : 'Ohne Zeitlimit pro Zug.'}</span></div><button type="button" class="btn btn--primary duel-big" data-duel="start" ${h.count ? '' : 'disabled'}>🎲 Spiel starten</button></div>`;
+      return `<div class="duel-control"><div class="duel-control-info"><strong>${h.count} Spieler · ${(q.items || []).length - 1} Karten im Pool · ${livesOf(q)} Leben</strong><span>Reihum wählt jeder eine Karte und ordnet sie auf seinem Handy ein. ${turnMs(q) ? `${q.turnSeconds} s pro Zug.` : 'Ohne Zeitlimit pro Zug.'} Werte ${instant(q) ? 'werden sofort gezeigt' : 'bleiben bis zum Aufdecken verborgen'}.</span></div><button type="button" class="btn btn--primary duel-big" data-duel="start" ${h.count ? '' : 'disabled'}>🎲 Spiel starten</button></div>`;
     }
-    const chips = placements(game).map(p => `<div><span>${esc(h.name(p.playerId))}${p.winner ? ' 🏆' : ''}</span><span>${p.out ? 'raus' : hearts(p.lives, livesOf(q))} · ✓ ${p.correct}</span><strong>${Math.round(p.earned * (Number(q.points) || 0))} P</strong></div>`).join('');
+    const inShootout = id => game.shootout?.players.includes(id);
+    const chips = placements(game).map(p => `<div><span>${p.rank}. ${esc(h.name(p.playerId))}${p.winner ? ' 🏆' : ''}</span><span>${inShootout(p.playerId) && !isOver(game) ? '⚔️ Stechen' : p.out ? 'raus' : hearts(p.lives, livesOf(q))} · ✓ ${p.correct}</span><strong>${pointsFor(q, p, Number(q.points) || 0)} P</strong></div>`).join('');
     if (isOver(game)) {
       const uncover = game.phase === 'done'
-        ? `<p class="microcopy">${game.winner ? `${esc(h.name(game.winner))} darf die restlichen Karten jetzt mündlich einordnen. ` : ''}Mit „👁 Aufdecken“ sehen alle die komplette Reihenfolge.</p><div class="duel-buttons"><button type="button" class="btn duel-big" data-duel="uncover">👁 Aufdecken</button></div>`
+        ? `<p class="microcopy">${game.winner ? `${esc(h.name(game.winner))} darf die restlichen Karten jetzt mündlich einordnen. ` : ''}Mit „👁 Aufdecken“ sehen alle die komplette Reihenfolge${instant(q) ? '' : ' mit allen Werten'}.</p><div class="duel-buttons"><button type="button" class="btn duel-big" data-duel="uncover">👁 Aufdecken</button></div>`
         : '<p class="microcopy">Die komplette Reihenfolge ist für alle sichtbar.</p>';
-      return `<div class="duel-control"><div class="notice notice--success"><strong>${esc(endText(game, h.name))}</strong> Tippe auf „✨ Frage auflösen“, dann gibt es die Punkte.</div>${uncover}<div class="answer-review">${chips}</div></div>`;
+      return `<div class="duel-control"><div class="notice notice--success"><strong>${esc(endText(game, h.name))}</strong> Tippe auf „✨ Frage auflösen“, dann gibt es die Punkte (Vorschau unten, ohne Runden-Multiplikator).</div>${uncover}<div class="answer-review">${chips}</div></div>`;
     }
     const remaining = game.pool.map(i => ({ i, v: valueAt(q, i) })).sort((a, b) => a.v - b.v);
     const secret = remaining.map(e => `<span class="chip">${esc(q.items[e.i]?.name || '?')} · ${esc(fmtValue(e.v, unit))}</span>`).join('');
+    const placed = game.line.map(e => `<span class="chip">${esc(q.items[e.i]?.name || '?')} · ${esc(fmtValue(valueAt(q, e.i), unit))}</span>`).join('');
     const playing = game.phase === 'play' || game.phase === 'paused';
-    const who = game.phase === 'reveal' ? `${esc(REASON[game.reveal?.reason] || '')} · ${esc(h.name(game.reveal?.by))}` : `${esc(h.name(game.active))} ist dran${game.lastChance ? ' – letzte Chance: richtig = Sieg!' : ''}`;
+    const note = phaseNote(game, h.name);
+    const who = game.phase === 'reveal' ? `${esc(REASON[game.reveal?.reason] || '')} · ${esc(h.name(game.reveal?.by))}` : `${esc(h.name(game.active))} ist dran`;
     return `<div class="duel-control">
-      <div class="reveal-box moderator-solution"><span>Zug ${game.turn} · ${game.pool.length} Karten im Pool</span><strong>${who}</strong><small>Der Spieler legt die Karte auf seinem Handy – das System prüft automatisch.</small></div>
-      <details class="rank-secret"><summary>🔒 Pool mit Werten (nur für dich)</summary><div class="chip-row">${secret || '–'}</div></details>
+      <div class="reveal-box moderator-solution"><span>Zug ${game.turn} · ${game.pool.length} Karten im Pool</span><strong>${who}</strong><small>${note ? esc(note) : 'Der Spieler legt die Karte auf seinem Handy – das System prüft automatisch.'}</small></div>
+      <details class="rank-secret"><summary>🔒 Werte (nur für dich)</summary><p class="microcopy">Auf der Leiste:</p><div class="chip-row">${placed || '–'}</div><p class="microcopy">Im Pool:</p><div class="chip-row">${secret || '–'}</div></details>
       <div class="duel-secondary">${turnMs(q) ? (game.phase === 'paused' ? '<button type="button" class="btn btn--small" data-duel="resume">▶ Weiter</button>' : `<button type="button" class="btn btn--small" data-duel="pause" ${playing ? '' : 'disabled'}>⏸ Pause</button>`) : ''}<button type="button" class="btn btn--small" data-duel="skip" ${playing ? '' : 'disabled'}>⏭ Zug überspringen</button><button type="button" class="btn btn--ghost btn--small" data-duel="stop">🏁 Spiel beenden</button></div>
       <div class="answer-review">${chips}</div></div>`;
   }
@@ -299,7 +354,7 @@
     const item = q.items?.[i] || {};
     const src = App.sanitizeURL(item.image || '');
     const media = src ? `<img src="${esc(src)}" alt="" draggable="false" loading="lazy">` : `<span class="rank-initial">${esc(String(item.name || '?').slice(0, 2))}</span>`;
-    const val = value === undefined ? '' : `<b class="rank-value">${esc(fmtValue(value, q.unit))}</b>`;
+    const val = value == null ? '' : `<b class="rank-value">${esc(fmtValue(value, q.unit))}</b>`;
     return `<${tag} class="rank-card ${cls}" data-item="${i}" ${extra}>${media}<span class="rank-name">${esc(item.name || '?')}</span>${val}</${tag}>`;
   }
 
@@ -333,16 +388,18 @@
     else if (game.phase === 'reveal' && game.reveal) {
       const r = game.reveal;
       const card = r.item != null ? esc(q.items?.[r.item]?.name || '') : '';
-      const outNow = r.reason !== 'correct' && r.reason !== 'skip' && toNumber(game.lives[r.by], 0) <= 0;
+      const outNow = !game.shootout && r.reason !== 'correct' && r.reason !== 'skip' && toNumber(game.lives[r.by], 0) <= 0;
+      const loss = game.shootout ? `${esc(name(r.by))} vergibt` : `${esc(name(r.by))} ❤ −1`;
       tone = r.reason === 'correct' ? 'correct' : r.reason === 'skip' ? 'info' : 'wrong';
-      if (r.reason === 'correct') text = `<strong>${REASON.correct}</strong> ${esc(name(r.by))}: ${card} · <b>${esc(fmtValue(r.value, q.unit))}</b>`;
-      else if (r.reason === 'wrong') text = `<strong>${REASON.wrong}</strong> ${card} geht zurück in den Pool · ${esc(name(r.by))} ❤ −1`;
-      else if (r.reason === 'timeout') text = `<strong>${REASON.timeout}</strong> ${esc(name(r.by))} ❤ −1`;
+      if (r.reason === 'correct') text = `<strong>${REASON.correct}</strong> ${esc(name(r.by))}: ${card}${r.value != null ? ` · <b>${esc(fmtValue(r.value, q.unit))}</b>` : ' liegt richtig'}`;
+      else if (r.reason === 'wrong') text = `<strong>${REASON.wrong}</strong> ${card} geht zurück in den Pool · ${loss}`;
+      else if (r.reason === 'timeout') text = `<strong>${REASON.timeout}</strong> ${loss}`;
       else text = `<strong>${REASON.skip}</strong> ${esc(name(r.by))}`;
       if (outNow) text += ` · <em>${esc(name(r.by))} ist raus!</em>`;
     } else if (game.phase === 'paused') text = '<strong>⏸ Pause</strong>';
     else if (game.phase === 'play') {
-      const last = game.lastChance ? ' <em>Letzte Chance – richtig = Sieg!</em>' : '';
+      const note = phaseNote(game, name);
+      const last = note ? ` <em>${esc(note)}</em>` : '';
       text = game.active === me
         ? `<strong>Du bist dran!</strong> ${sel.sent ? 'Wird geprüft …' : 'Wähle eine Karte und leg sie an die richtige Stelle.'}${last}`
         : `<strong>${esc(name(game.active))}</strong> ist dran.${last}`;
@@ -360,7 +417,7 @@
     let entries;
     if (showAll) entries = (fullOrder(q, game) || game?.line || []).map(e => ({ i: e.i, v: e.v, uncovered: game ? !game.line.some(l => l.i === e.i) : false }));
     else if (game) entries = game.line.map(e => ({ i: e.i, v: e.v }));
-    else entries = [{ i: anchorOf(q), v: q.anchorValue ?? q.items?.[anchorOf(q)]?.value }];
+    else entries = [{ i: anchorOf(q), v: anchorVisible(q) || instant(q) ? (q.anchorValue ?? q.items?.[anchorOf(q)]?.value ?? null) : null }];
     const parts = [];
     const reveal = game?.phase === 'reveal' ? game.reveal : null;
     const slotHTML = k => (canChoose ? `<button type="button" class="rank-slot${sel.slot === k ? ' is-selected' : ''}" data-slot="${k}" aria-label="Hier einordnen"><span>+</span></button>` : '');
@@ -409,7 +466,7 @@
       const out = game?.eliminated?.includes(id);
       const active = game && game.active === id && !isOver(game);
       const lives = game ? toNumber(game.lives[id], 0) : maxLives;
-      return `<div class="rank-player${active ? ' is-active' : ''}${out ? ' is-out' : ''}${id === me ? ' is-me' : ''}${game?.winner === id ? ' is-winner' : ''}"><span class="rank-avatar">${esc(App.avatar(p.avatar))}</span><span class="rank-pname">${esc(p.name)}${id === me ? ' <small>(du)</small>' : ''}</span><span class="rank-lives" aria-label="${lives} Leben">${out ? 'raus' : hearts(lives, maxLives)}</span><b class="rank-score">✓ ${game ? toNumber(game.correct[id], 0) : 0}</b></div>`;
+      return `<div class="rank-player${active ? ' is-active' : ''}${out ? ' is-out' : ''}${id === me ? ' is-me' : ''}${game?.winner === id ? ' is-winner' : ''}"><span class="rank-avatar">${esc(App.avatar(p.avatar))}</span><span class="rank-pname">${esc(p.name)}${id === me ? ' <small>(du)</small>' : ''}</span><span class="rank-lives" aria-label="${lives} Leben">${game?.shootout?.players.includes(id) && !isOver(game) ? '⚔️ Stechen' : out ? 'raus' : hearts(lives, maxLives)}</span><b class="rank-score">✓ ${game ? toNumber(game.correct[id], 0) : 0}</b></div>`;
     }).join('');
     const playersBox = root.querySelector('.rank-players');
     if (playersBox.dataset.html !== playersHTML) { playersBox.dataset.html = playersHTML; playersBox.innerHTML = playersHTML; }
@@ -504,7 +561,7 @@
   // ---------------------------------------------------------------- Editor
   function editor(q, ui, box) {
     const { div, input, labelField, button } = ui;
-    box.append(div('editor-help', 'Reihum ordnet jeder Spieler eine Karte aus dem Pool auf der Leiste ein (von niedrig nach hoch). Falsch = Karte zurück in den Pool und ein Leben weniger. „Punkte“ oben = Punkte pro richtig eingeordneter Karte.'));
+    box.append(div('editor-help', 'Reihum ordnet jeder Spieler eine Karte aus dem Pool auf der Leiste ein (von niedrig nach hoch). Falsch = Karte zurück in den Pool und ein Leben weniger. Bleiben zwei übrig, entscheidet ein Stechen. Punkte: pro richtiger Karte + Platzierung in % der „Punkte“ oben.'));
     const grid = div('dynamic-grid');
     const scale = input('text', q.scale || '', 'input'); scale.placeholder = 'z. B. Einwohner';
     scale.addEventListener('input', e => { q.scale = e.target.value; ui.queueSave(); });
@@ -515,23 +572,33 @@
     const turn = input('number', q.turnSeconds, 'input'); turn.min = '0'; turn.max = '300'; turn.step = '5';
     turn.addEventListener('input', e => { q.turnSeconds = Math.max(0, Math.min(300, Number(e.target.value) || 0)); ui.queueSave(); });
     grid.append(labelField('Leiste (Messgröße)', scale), labelField('Einheit', unit), labelField('Leben pro Spieler', lives), labelField('Zeit pro Zug in s (0 = ohne)', turn));
-    const scoring = document.createElement('select'); scoring.className = 'select';
-    scoring.innerHTML = '<option value="fixed">Fest – jede richtige Karte gleich viel</option><option value="growing">Steigend – jede weitere Karte ist mehr wert</option>';
-    scoring.value = q.scoring;
-    const growth = input('number', q.growth, 'input'); growth.min = '1'; growth.max = '5'; growth.step = '0.1';
-    const growthField = labelField('Multiplikator', growth);
+    // Werte sichtbar?
+    const reveal = document.createElement('select'); reveal.className = 'select';
+    reveal.innerHTML = '<option value="end">Erst beim Aufdecken / bei der Auflösung</option><option value="instant">Sofort, wenn eine Karte richtig liegt</option>';
+    reveal.value = instant(q) ? 'instant' : 'end';
+    reveal.addEventListener('change', e => { q.revealValues = e.target.value; ui.queueSave(); });
+    const anchorShow = document.createElement('select'); anchorShow.className = 'select';
+    anchorShow.innerHTML = '<option value="true">Ja – als Orientierung</option><option value="false">Nein – auch der Anker bleibt verborgen</option>';
+    anchorShow.value = String(anchorVisible(q));
+    anchorShow.addEventListener('change', e => { q.showAnchor = e.target.value === 'true'; ui.queueSave(); });
+    grid.append(labelField('Werte zeigen', reveal), labelField('Wert der Anker-Karte zeigen?', anchorShow));
+    // Punkte
+    const card = input('number', cardPointsOf(q), 'input'); card.min = '0'; card.step = '5';
+    const places = input('text', parsePlaces(q.placePoints).join(', '), 'input'); places.placeholder = '100, 60, 30';
     const preview = div('field-hint rank-points-preview');
     const updatePreview = () => {
-      growthField.hidden = q.scoring !== 'growing';
       const base = Number(q.points) || 0;
-      preview.textContent = `Punkte je Karte: ${[1, 2, 3, 4, 5].map(n => Math.round(base * factorFor(q, n))).join(' · ')} …`;
+      const pl = parsePlaces(q.placePoints);
+      const ex = (cards, rank) => cards * cardPointsOf(q) + Math.round(base * (pl[rank - 1] || 0) / 100);
+      preview.textContent = `Beispiel bei ${base} Punkten: Sieger mit 4 Karten = ${ex(4, 1)} P · 2. Platz mit 3 Karten = ${ex(3, 2)} P · früh raus mit 1 Karte = ${ex(1, pl.length + 1)} P`;
     };
-    scoring.addEventListener('change', e => { q.scoring = e.target.value; updatePreview(); ui.queueSave(); });
-    growth.addEventListener('input', e => { q.growth = Math.max(1, Math.min(5, Number(e.target.value) || 1.5)); updatePreview(); ui.queueSave(); });
-    const scoringField = labelField('Punkte', scoring); scoringField.classList.add('span-wide');
-    grid.append(scoringField, growthField);
+    card.addEventListener('input', e => { q.cardPoints = Math.max(0, Number(e.target.value) || 0); updatePreview(); ui.queueSave(); });
+    places.addEventListener('change', e => { q.placePoints = parsePlaces(e.target.value); e.target.value = q.placePoints.join(', '); updatePreview(); ui.queueSave(); });
+    grid.append(labelField('Punkte pro richtiger Karte', card), labelField('Platzierung in % der Punkte (1., 2., 3. …)', places));
     box.append(grid, preview);
     updatePreview();
+    // Änderungen im allgemeinen Feld „Punkte“ ebenfalls in der Vorschau zeigen
+    setTimeout(() => box.closest('.question-editor')?.addEventListener('input', event => { if (event.target.type === 'number') updatePreview(); }), 0);
 
     const head = div('duel-items-head');
     const count = Kit.el('strong', '');
@@ -624,7 +691,7 @@
     scoresAllPlayers: true,
     game: Game,
     defaults: () => ({
-      text: 'Ordne die Länder nach Einwohnern ein!', points: 50, scale: 'Einwohner', unit: 'Mio.', lives: 3, turnSeconds: 0, scoring: 'fixed', growth: 1.5, timer: 0, anchor: 0,
+      text: 'Ordne die Länder nach Einwohnern ein!', points: 100, cardPoints: 10, placePoints: DEFAULT_PLACES.slice(), scale: 'Einwohner', unit: 'Mio.', lives: 3, turnSeconds: 0, revealValues: 'end', showAnchor: true, timer: 0, anchor: 0,
       items: [
         { name: 'Deutschland', value: 83.6, image: './assets/flaggen/deutschland.svg' },
         { name: 'Frankreich', value: 66.7, image: './assets/flaggen/frankreich.svg' },
@@ -640,8 +707,13 @@
       q.unit = String(q.unit ?? '');
       q.lives = livesOf(q);
       q.turnSeconds = Math.max(0, Math.min(300, toNumber(q.turnSeconds, 0)));
-      q.scoring = q.scoring === 'growing' ? 'growing' : 'fixed';
-      q.growth = Math.max(1, Math.min(5, toNumber(q.growth, 1.5)));
+      // v25.2: Punkte pro Karte + Platzierung (alte Fragen: bisherige Punkte galten pro Karte)
+      if (q.cardPoints == null && q.scoring != null) q.cardPoints = toNumber(q.points, 10);
+      q.cardPoints = cardPointsOf(q);
+      q.placePoints = parsePlaces(q.placePoints);
+      delete q.scoring; delete q.growth;
+      q.revealValues = q.revealValues === 'instant' ? 'instant' : 'end';
+      q.showAnchor = q.showAnchor !== false && q.showAnchor !== 'false';
       q.timer = 0;
     },
     validate(q, report) {
@@ -656,10 +728,10 @@
       if (new Set(names).size !== names.length) report.warn('items', 'Zwei Karten haben denselben Namen.');
       if (items.length >= 3 && items.length < 8) report.warn('items', 'Tipp: Mit 10–20 Karten wird es spannender.');
     },
-    // Werte bleiben geheim – nur der Anker ist offen
+    // Werte bleiben geheim – höchstens der Anker ist offen
     hideSolution(pq) {
       const anchor = anchorOf(pq);
-      pq.anchorValue = toNumber(pq.items?.[anchor]?.value, null);
+      pq.anchorValue = anchorVisible(pq) || instant(pq) ? toNumber(pq.items?.[anchor]?.value, null) : null;
       pq.items = (pq.items || []).map(item => ({ name: item.name, image: item.image }));
     },
     resolve(q, answers, options = {}) {
@@ -671,7 +743,7 @@
     score(q, answer, { base, result, playerId }) {
       const p = (result?.players || []).find(x => x.playerId === playerId);
       if (!p) return { points: 0, detail: 'Nicht am Spiel beteiligt' };
-      return { points: Math.round(base * p.earned), detail: `${p.correct} ${p.correct === 1 ? 'Karte' : 'Karten'} richtig${p.winner ? ' · 🏆 Sieger' : p.out ? ' · ausgeschieden' : ''}` };
+      return { points: pointsFor(q, p, base), detail: `${p.rank}. Platz · ${p.correct} ${p.correct === 1 ? 'Karte' : 'Karten'} richtig${p.winner ? ' · 🏆 Sieger' : ''}` };
     },
     solutionText(q, result) {
       if (result?.winnerName) return `🏆 ${result.winnerName}`;
@@ -680,7 +752,7 @@
     },
     moderatorSolution(q) {
       const order = (q.items || []).slice().filter(i => Number.isFinite(Number(i.value))).sort((a, b) => a.value - b.value);
-      return { text: order.map(i => i.name).join(' < ') || '–', extra: `${q.lives} Leben · ${q.turnSeconds ? `${q.turnSeconds} s pro Zug` : 'ohne Zeitlimit'} · ${q.scoring === 'growing' ? `steigend ×${q.growth}` : 'feste Punkte'}` };
+      return { text: order.map(i => i.name).join(' < ') || '–', extra: `${q.lives} Leben · ${q.turnSeconds ? `${q.turnSeconds} s pro Zug` : 'ohne Zeitlimit'} · ${cardPointsOf(q)} P pro Karte + Platz ${parsePlaces(q.placePoints).join('/')} % · Werte ${instant(q) ? 'sofort' : 'erst am Ende'}` };
     },
     answerLabel(q, answer) { return answer && typeof answer === 'object' && answer.item != null ? String(q.items?.[answer.item]?.name || '') : '–'; },
     render,
@@ -688,5 +760,6 @@
     editor
   });
   Game.parseList = parseList;
+  Game.cardPointsOf = cardPointsOf;
   Game.fmtValue = fmtValue;
 })();

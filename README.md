@@ -177,7 +177,7 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
 | ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
-| 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, Punkte pro richtiger Karte |
+| 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, am Ende entscheidet ein Stechen. Punkte pro Karte plus Platzierung |
 | ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
 Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
@@ -186,10 +186,17 @@ Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 16 Typen. (Higher
 
 ### Einordnen im Detail
 
-1. **Vorbereiten:** Im Editor Messgröße und Einheit eintragen (zum Beispiel „Einwohner“, „Mio.“), dann die Karten mit Name, Wert und optional Bild. Schnell geht es mit **„📋 Liste einfügen“**: eine Karte pro Zeile, `Name; Wert; Bild`, auch direkt aus Excel kopiert. Eine Karte als **⚓ Anker** markieren, sie liegt von Anfang an offen auf der Leiste.
-2. **Einstellen:** Leben pro Spieler (Standard 3), Zeit pro Zug (0 = ohne), Punkte fest oder steigend (jede weitere Karte ist mehr wert, weil die Leiste enger wird).
-3. **Spielen:** Frage öffnen, dann **🎲 Spiel starten**. Der Zufall bestimmt, wer anfängt. Wer dran ist, zieht auf dem Handy eine Karte an eine Stelle (oder tippt Karte und ＋ an) und bestätigt. Das System prüft sofort.
-4. **Ende:** Alle Karten liegen, oder keiner hat mehr Leben. Bleibt nur einer übrig, zieht er noch einmal: richtig = Sieg. Danach **👁 Aufdecken** und **✨ Frage auflösen**.
+1. **Vorbereiten:** Im Editor Messgröße und Einheit eintragen (zum Beispiel „Einwohner“, „Mio.“), dann die Karten mit Name, Wert und optional Bild. Schnell geht es mit **„📋 Liste einfügen“** (eine Karte pro Zeile, `Name; Wert; Bild`, auch direkt aus Excel) oder **„⬆ Bilder hochladen“**. Eine Karte als **⚓ Anker** markieren, sie liegt von Anfang an auf der Leiste.
+2. **Einstellen:**
+   - Leben pro Spieler (Standard 3) und Zeit pro Zug (0 = ohne).
+   - **Werte zeigen:** sofort beim richtigen Einordnen oder erst beim Aufdecken (Standard). Den Anker-Wert kann man zur Orientierung zeigen oder verstecken.
+   - **Punkte:** pro richtiger Karte (Standard 10) plus Platzierung in % der Fragenpunkte (Standard 100 / 60 / 30). Der Editor rechnet ein Beispiel vor.
+3. **Spielen:** Frage öffnen, dann **🎲 Spiel starten**. Der Zufall bestimmt, wer anfängt. Wer dran ist, zieht auf dem Handy eine Karte an eine Stelle (oder tippt Karte und ＋ an) und bestätigt. Das System prüft sofort. Falsch heißt: Die Karte geht zurück in den Pool und der Spieler verliert ein Leben.
+4. **Ende:**
+   - Bleibt nur einer übrig, muss er noch **eine Karte richtig legen**, um zu gewinnen.
+   - Vergibt er, gibt es ein **Stechen** mit dem zuletzt Ausgeschiedenen: abwechselnd, und wer vergibt, während der andere trifft, verliert.
+   - Gehen die Karten aus, entscheidet die Rangfolge.
+   - Danach **👁 Aufdecken** (zeigt alle Werte) und **✨ Frage auflösen**.
 
 Hinweis: Wie beim Zeitduell führt das Moderator-Gerät den Spielstand und sollte während des Spiels geöffnet bleiben.
 

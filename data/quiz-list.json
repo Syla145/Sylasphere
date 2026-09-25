@@ -6,7 +6,7 @@
   },
   {
     "title": "Einordnen – Demo",
-    "description": "Länder nach Einwohnern und nach Fläche einordnen: reihum, mit Leben und Nachzieh-Regel.",
+    "description": "Länder nach Einwohnern (Werte erst am Ende) und nach Fläche (Werte sofort, 30 s pro Zug) einordnen – mit Leben und Stechen.",
     "file": "quiz-einordnen-demo.json"
   },
   {

@@ -32,7 +32,7 @@
     return out;
   }
   function parsePlaces(value) {
-    const list = (Array.isArray(value) ? value : String(value ?? '').split(/[,;\s]+/)).map(Number).filter(n => Number.isFinite(n) && n >= 0).map(n => Math.min(100, n));
+    const list = (Array.isArray(value) ? value : String(value ?? '').split(/[,;\s]+/).filter(Boolean)).map(Number).filter(n => Number.isFinite(n) && n >= 0).map(n => Math.min(100, n));
     return list.length ? list : DEFAULT_PLACES.slice();
   }
   const clockMs = q => Math.round(Math.max(5, Math.min(600, toNumber(q.clockSeconds, 30))) * 1000);

@@ -442,14 +442,12 @@
             "type": "ranking",
             "category": "Geografie",
             "text": "Ordne die Länder nach Einwohnern ein!",
-            "points": 50,
+            "points": 100,
             "timer": 0,
             "scale": "Einwohner",
             "unit": "Mio.",
             "lives": 2,
             "turnSeconds": 0,
-            "scoring": "fixed",
-            "growth": 1.5,
             "anchor": 0,
             "items": [
               {
@@ -492,7 +490,15 @@
                 "value": 0.4,
                 "image": "./assets/flaggen/island.svg"
               }
-            ]
+            ],
+            "cardPoints": 10,
+            "placePoints": [
+              100,
+              60,
+              30
+            ],
+            "revealValues": "end",
+            "showAnchor": true
           }
         ]
       }

@@ -2,7 +2,7 @@
   "quiz": {
     "id": "quiz_einordnen_demo",
     "title": "Einordnen – Demo",
-    "description": "Länder nach Einwohnern und nach Fläche einordnen: reihum, mit Leben und Nachzieh-Regel.",
+    "description": "Länder nach Einwohnern (Werte erst am Ende) und nach Fläche (Werte sofort, 30 s pro Zug) einordnen – mit Leben und Stechen.",
     "settings": {
       "defaultTimer": 30,
       "defaultPoints": 50,
@@ -20,14 +20,12 @@
             "type": "ranking",
             "category": "Geografie",
             "text": "Ordne die Länder nach Einwohnern ein!",
-            "points": 50,
+            "points": 100,
             "timer": 0,
             "scale": "Einwohner",
             "unit": "Mio.",
             "lives": 3,
             "turnSeconds": 0,
-            "scoring": "fixed",
-            "growth": 1.5,
             "anchor": 0,
             "items": [
               {
@@ -120,21 +118,27 @@
                 "value": 0.4,
                 "image": "./assets/flaggen/island.svg"
               }
-            ]
+            ],
+            "cardPoints": 10,
+            "placePoints": [
+              100,
+              60,
+              30
+            ],
+            "revealValues": "end",
+            "showAnchor": true
           },
           {
             "id": "rank_area",
             "type": "ranking",
             "category": "Geografie",
-            "text": "Und jetzt nach Fläche – mit Zeitlimit und steigenden Punkten!",
-            "points": 30,
+            "text": "Und jetzt nach Fläche – mit 30 Sekunden pro Zug, die Werte werden sofort gezeigt!",
+            "points": 100,
             "timer": 0,
             "scale": "Fläche",
             "unit": "Tsd. km²",
             "lives": 3,
             "turnSeconds": 30,
-            "scoring": "growing",
-            "growth": 1.5,
             "anchor": 0,
             "items": [
               {
@@ -227,7 +231,15 @@
                 "value": 103.0,
                 "image": "./assets/flaggen/island.svg"
               }
-            ]
+            ],
+            "cardPoints": 10,
+            "placePoints": [
+              100,
+              60,
+              30
+            ],
+            "revealValues": "instant",
+            "showAnchor": true
           }
         ]
       }
