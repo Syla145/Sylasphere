@@ -9,6 +9,7 @@
       this.code = String(code || '').toUpperCase();
       this.key = `${STORAGE_PREFIX}${this.code}`;
       this.listeners = new Set();
+      this.reactionListeners = new Set(); // v27: Emoji-Reaktionen (nur Nachrichten, nicht im Spielstand)
       this.channel = null;
       this.storageHandler = null;
       this.poll = null;
@@ -60,7 +61,10 @@
         this.channel = new BroadcastChannel(`schmobin:${this.code}`);
         // v25: immer den aktuellen Stand aus dem Speicher lesen – die mitgeschickte Kopie kann schon veraltet sein
         // (sonst überschreibt eine späte Nachricht eines Spielers den neueren Stand des Moderators im Speicher)
-        this.channel.onmessage = () => this.emit(this.load());
+        this.channel.onmessage = event => {
+          if (event.data?.type === 'reaction') { this.dispatchReaction(event.data); return; }
+          this.emit(this.load());
+        };
       } catch (_) { this.channel = null; }
       this.storageHandler = event => { if (event.key === this.key) this.emit(this.load()); };
       window.addEventListener('storage', this.storageHandler);
@@ -118,6 +122,16 @@
       if (!state) return;
       this.listeners.forEach(fn => { try { fn(state); } catch (error) { console.error(error); } });
     }
+    /** v27: Emoji-Reaktion senden (lokal über BroadcastChannel an andere Tabs) */
+    sendReaction(playerId, emoji) {
+      const msg = { type: 'reaction', playerId: String(playerId || ''), emoji: String(emoji || '').slice(0, 16), at: Date.now() };
+      if (!msg.emoji) return false;
+      this.dispatchReaction(msg);
+      try { this.channel?.postMessage(msg); } catch (_) {}
+      return true;
+    }
+    onReaction(callback) { this.reactionListeners.add(callback); return () => this.reactionListeners.delete(callback); }
+    dispatchReaction(msg) { this.reactionListeners.forEach(fn => { try { fn({ playerId: msg.playerId, emoji: msg.emoji, at: msg.at }); } catch (error) { console.error(error); } }); }
     getCurrent(state = this.load()) {
       const quiz = state?.quiz?.quiz;
       const round = quiz?.rounds?.[state.currentRoundIndex];
@@ -409,7 +423,7 @@
         state.currentQuestionIndex = qi;
       });
     }
-    finish() { this.mutate(state => { state.status = 'finished'; state.questionOpen = false; state.questionEndsAt = null; state.finishedAt = Date.now(); }); }
+    finish(extra = {}) { this.mutate(state => { state.status = 'finished'; state.questionOpen = false; state.questionEndsAt = null; state.finishedAt = Date.now(); state.highlights = Array.isArray(extra.highlights) ? Quiz.clone(extra.highlights) : null; }); }
     resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }
   }
 

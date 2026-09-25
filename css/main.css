@@ -834,3 +834,37 @@ button.grid9-cell:not(.is-filled) .grid9-text{color:var(--muted);font-size:1.2re
 .settings-slider b{min-width:3.4em;text-align:right;font-variant-numeric:tabular-nums}
 .settings-section .btn{justify-self:start}
 .settings-soon{opacity:.75}
+
+/* ---------------------------------------------------------------- v27: Emoji-Reaktionen */
+.reaction-bar{display:grid;grid-template-columns:repeat(8,minmax(0,46px));justify-content:center;gap:5px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.reaction-bar[hidden]{display:none}
+.reaction-btn{position:relative;width:100%;aspect-ratio:1;min-height:34px;padding:0;border-radius:50%;border:1px solid var(--line);background:rgba(var(--overlay-rgb),.05);font-size:1.35rem;line-height:1;cursor:pointer;transition:transform .12s ease,opacity .2s ease}
+.reaction-btn:active{transform:scale(.88)}
+.reaction-bar.is-cooling .reaction-btn{opacity:.45}
+.reaction-burst{position:absolute;left:50%;top:0;transform:translate(-50%,0);font-size:1.4rem;pointer-events:none;animation:reaction-burst .7s ease-out forwards}
+@keyframes reaction-burst{to{transform:translate(-50%,-46px) scale(1.4);opacity:0}}
+.reaction-stage{position:fixed;inset:0;pointer-events:none;z-index:400;overflow:hidden}
+.reaction-fly{position:absolute;left:var(--x);bottom:-60px;display:grid;justify-items:center;gap:2px;animation:reaction-fly var(--dur,3s) cubic-bezier(.25,.7,.4,1) forwards}
+.reaction-emoji{font-size:clamp(2rem,4vw,3.4rem);filter:drop-shadow(0 4px 10px rgba(var(--shadow-rgb),.4))}
+.reaction-name{font-size:.78rem;font-weight:800;padding:2px 8px;border-radius:999px;background:rgba(var(--bg-rgb),.75);color:var(--text);white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
+@keyframes reaction-fly{0%{transform:translate(0,0) scale(.6);opacity:0}10%{opacity:1;transform:translate(0,-8vh) scale(1)}80%{opacity:1}100%{transform:translate(var(--drift),-78vh) scale(1.1);opacity:0}}
+@media (prefers-reduced-motion:reduce){.reaction-fly{animation-duration:1.4s}}
+
+/* ---------------------------------------------------------------- v27: Aufstieg in der Rangliste + Highlights */
+.leader-row{position:relative}
+.leader-row.is-climb{animation:climb-flash 2.2s ease}
+.leader-row.is-climb::after{content:attr(data-climb);position:absolute;right:-4px;top:-8px;padding:1px 7px;border-radius:999px;background:var(--success);color:var(--on-success);font-size:.72rem;font-weight:900;animation:climb-badge 2.2s ease forwards}
+@keyframes climb-flash{0%,60%{background:rgba(var(--success-rgb),.18)}100%{background:transparent}}
+@keyframes climb-badge{0%{opacity:0;transform:translateY(6px)}12%,75%{opacity:1;transform:none}100%{opacity:0}}
+.highlights{display:grid;gap:10px;margin-top:22px;text-align:left}
+.highlight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.highlight-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;padding:12px 14px;border-radius:14px;border:1px solid rgba(var(--accent-rgb),.35);background:rgba(var(--accent-rgb),.08);opacity:0;animation:highlight-in .5s ease forwards;animation-delay:calc(.6s + var(--i) * .25s)}
+.highlight-icon{font-size:1.9rem}
+.highlight-card div{display:grid;gap:1px;min-width:0}
+.highlight-card small{color:var(--accent-text);font-weight:800;text-transform:uppercase;letter-spacing:.08em;font-size:.68rem}
+.highlight-card strong{font-size:1.05rem;overflow-wrap:anywhere}
+.highlight-card span{color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}
+.presenter .highlight-card strong{font-size:1.3rem}
+.presenter .highlight-card span{font-size:.95rem}
+@keyframes highlight-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.highlight-card{animation:none;opacity:1}.leader-row.is-climb{animation:none}}

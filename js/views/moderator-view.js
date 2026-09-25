@@ -126,7 +126,7 @@
     });
     els['btn-prev']?.addEventListener('click', () => safe(() => engine.move(-1)));
     els['btn-next']?.addEventListener('click', () => safe(() => engine.move(1)));
-    els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden?')) safe(() => engine.finish()); });
+    els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden?')) safe(() => engine.finish({ highlights: window.SylasphereHighlights?.compute(state) || [] })); });
     els['btn-new-session']?.addEventListener('click', async () => {
       try { await engine?.destroy?.(); } catch (_) {}
       engine = null; state = null; timer?.stop(); transport = 'local';
@@ -201,6 +201,7 @@
     els['setup-panel'].hidden = true; els['session-panel'].hidden = false;
     window.SylasphereJoin?.keepAwake(true); // Bildschirm des Moderator-Geräts bleibt an (Uhr beim Zeitduell!)
     engine.subscribe(render);
+    engine.onReaction?.(reaction => window.SylasphereReactions?.show(reaction, id => (state?.players || []).find(p => p.id === id)?.name || '')); // v27
   }
 
   async function loadQuizList() {
@@ -319,6 +320,7 @@
     const total = Quiz.allQuestions(state.quiz).length;
     App.setText(els['round-progress'], current.round ? `${current.round.title} · Frage ${qIndexGlobal + 1}/${total}` : 'Keine Frage');
     renderPlayers(); renderQuestion(current); renderTimer(); renderButtons(current);
+    window.SylasphereSfx?.observe(state, { current }); // v27 (auf der Moderator-Seite standardmäßig aus)
     // QR-Code zum Beitreten (nur neu zeichnen, wenn sich Raum oder Modus ändert)
     const qrBox = document.getElementById('join-qr-small');
     const qrKey = `${state.code}|${transport}`;
@@ -680,7 +682,7 @@
       const rank = ranked.findIndex(p => p.id === player.id) + 1;
       return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
     }).join('');
-    return `<div class="final-screen"><span class="eyebrow">Spiel beendet</span><h2>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!'}</h2><div class="podium">${podium}</div></div>`;
+    return `<div class="final-screen"><span class="eyebrow">Spiel beendet</span><h2>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!'}</h2><div class="podium">${podium}</div>${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
   }
 
   async function copyJoinLink(kind) {
@@ -709,6 +711,7 @@
     const total = Math.max(1, state.questionEndsAt - (state.questionStartedAt || Date.now()));
     timer = new Timer((seconds, ms) => {
       App.setText(els['timer-number'], String(seconds ?? '–'));
+      window.SylasphereSfx?.countdown(seconds);
       const progress = ms == null ? 0 : App.clamp(ms / total, 0, 1) * 360;
       els['timer-ring']?.style.setProperty('--timer-progress', `${progress}deg`);
       els['timer-ring']?.classList.toggle('is-critical', seconds != null && seconds <= 5);

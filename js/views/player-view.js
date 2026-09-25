@@ -89,6 +89,8 @@
       window.SylasphereJoin?.keepAwake(true); // Handy geht während des Quiz nicht in den Standby
       history.replaceState(null,'',`?code=${code}&mode=${transport}`);
       engine.subscribe(render);
+      // v27: Emoji-Reaktionen (Leiste unter der Frage)
+      window.SylasphereReactions?.attachBar(document.getElementById('reaction-bar'), emoji => Promise.resolve(engine.sendReaction?.(playerId, emoji)));
     } catch(error) {
       els['join-error'].textContent = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Beitritt fehlgeschlagen.');
       identity?.destroy(); identity = null;
@@ -112,6 +114,7 @@
     if (els['game-mode']) { els['game-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['game-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['game-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
     renderLeaderboard(); renderStatus(current); renderTimer(current);
+    window.SylasphereSfx?.observe(state, { current, playerId }); // v27: Soundeffekte + Vibration
   }
 
   function renderStatus(current) {
@@ -296,7 +299,7 @@
       return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
     }).join('');
     const me = ranked.find(p => p.id === playerId);
-    return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}</div>`;
+    return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
   }
 
   // Automatisches Speichern (kurz verzögert, damit Tippen/Regler nicht jede Millisekunde senden)
@@ -353,10 +356,10 @@
     const current = engine?.getCurrent(state);
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     const gains = resolved ? (state.answers[current.question.id] || {}) : {};
-    els['leaderboard'].innerHTML = ranked.map((p, i) => {
+    App.renderRanking(els['leaderboard'], ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
-      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
-    }).join('');
+      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
+    }).join(''));
   }
 
   function renderTimer(current){
@@ -364,7 +367,7 @@
     els['player-timer'].classList.remove('is-critical');
     if (current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id)) { App.setText(els['player-timer'],'⚡'); return; }
     if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
-    timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
+    timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); window.SylasphereSfx?.countdown(seconds); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
   }
 
   async function disconnect(message){

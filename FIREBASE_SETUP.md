@@ -9,6 +9,10 @@ Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Proj
 3. Den kompletten Inhalt aus `firebase-database.rules.json` einfügen.
 4. **Publish / Veröffentlichen**.
 
+## Neu in v27: Emoji-Reaktionen
+
+Die Regeln haben einen neuen Bereich `reactions` bekommen. Realtime Database → *Regeln* → Inhalt von `firebase-database.rules.json` einfügen → *Veröffentlichen*. Sonst funktionieren Reaktionen nur im lokalen Testmodus.
+
 ## Neu in v25.1: Datei-Upload (Firebase Storage)
 
 Bilder und Musik lassen sich jetzt direkt im Editor hochladen (⬆ neben jedem Medienfeld, in der Dateiauswahl unter „☁️ Meine Uploads“ und als „⬆ Bilder hochladen“ beim Zeitduell und bei Einordnen). Dafür braucht das Projekt den **Blaze-Tarif**. Der Gratis-Anteil bleibt: 5 GB Speicher und 100 GB Abruf pro Monat, wenn der Speicher in einem US-Standort liegt.

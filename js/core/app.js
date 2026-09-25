@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 'v26';
+  const APP_VERSION = 'v27';
 
   const App = {
     version: APP_VERSION,
@@ -82,6 +82,27 @@
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyVersion);
   else applyVersion();
+
+  /**
+   * v27: Rangliste neu zeichnen und Plätze sanft verschieben (FLIP).
+   * Zeilen brauchen data-pid (Spieler) und data-rank. Wer aufsteigt, bekommt kurz „▲n“.
+   */
+  App.renderRanking = function (container, html) {
+    if (!container || container.dataset.html === html) return;
+    const before = new Map(Array.from(container.querySelectorAll('[data-pid]')).map(el => [el.dataset.pid, { top: el.getBoundingClientRect().top, rank: Number(el.dataset.rank) }]));
+    container.dataset.html = html;
+    container.innerHTML = html;
+    if (!before.size) return;
+    const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    container.querySelectorAll('[data-pid]').forEach(el => {
+      const prev = before.get(el.dataset.pid);
+      if (!prev) return;
+      const dy = prev.top - el.getBoundingClientRect().top;
+      if (!calm && Math.abs(dy) > 1 && el.animate) el.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], { duration: 650, easing: 'cubic-bezier(.2,.8,.2,1)' });
+      const up = prev.rank - Number(el.dataset.rank);
+      if (up > 0) { el.dataset.climb = `▲${up}`; el.classList.add('is-climb'); setTimeout(() => el.classList.remove('is-climb'), 2400); }
+    });
+  };
 
   window.SchmobinApp = App;
 })();

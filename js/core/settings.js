@@ -7,12 +7,16 @@
    * ⚙️ oben rechts auf Spieler-, Zuschauer- und Moderator-Seite:
    *  - Design: wie im Quiz (Standard) oder ein eigenes Design für dieses Gerät
    *  - Musik: an/aus und Lautstärke (Song-Enthüllung, Audio-Quiz)
-   * Soundeffekte folgen mit dem nächsten Schritt (Spielerlebnis) und bekommen hier einen eigenen Regler.
+   *  - v27: Soundeffekte an/aus (pro Seite) + Lautstärke, Vibration an/aus, Emoji-Reaktionen an/aus
    * Gespeichert wird im Browser (localStorage) – nichts davon geht an andere Geräte.
    */
   const App = () => window.SchmobinApp;
   const Themes = () => window.SylasphereThemes;
   const Media = () => window.SylasphereMedia;
+  const Sfx = () => window.SylasphereSfx;
+  const REACTIONS_KEY = 'sylasphere:reactions';
+  function reactionsOn() { try { return localStorage.getItem(REACTIONS_KEY) !== '0'; } catch (_) { return true; } }
+  function setReactions(on) { try { localStorage.setItem(REACTIONS_KEY, on ? '1' : '0'); } catch (_) {} document.dispatchEvent(new CustomEvent('sylasphere:settings', { detail: { reactions: on } })); }
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
 
   function button() {
@@ -24,6 +28,23 @@
     btn.setAttribute('aria-label', 'Einstellungen');
     btn.addEventListener('click', open);
     return btn;
+  }
+
+  const roleOf = () => Sfx()?.role() || 'player';
+  function sfxSection() {
+    const sfx = Sfx();
+    if (!sfx) return '';
+    const page = { player: 'Spieler-Seite', spectator: 'Zuschauer-Seite', moderator: 'Moderator-Seite' }[sfx.role()] || 'diese Seite';
+    const vib = sfx.role() === 'player'
+      ? `<label class="settings-switch"><input type="checkbox" data-vibrate ${sfx.vibrationEnabled() ? 'checked' : ''} ${sfx.vibrationSupported() ? '' : 'disabled'}><span>Vibrieren (z. B. wenn du dran bist)</span></label>${sfx.vibrationSupported() ? '' : '<p class="microcopy">Dieses Gerät oder dieser Browser kann nicht vibrieren (z. B. iPhone).</p>'}`
+      : '';
+    return `<section class="settings-section"><h3>🔔 Soundeffekte & Vibration</h3>
+        <label class="settings-switch"><input type="checkbox" data-sfx-on ${sfx.enabled() ? 'checked' : ''}><span>Soundeffekte auf der ${page}</span></label>
+        <div class="settings-slider"><span aria-hidden="true">🔈</span><input type="range" min="0" max="100" step="5" value="${sfx.volume()}" data-sfx-volume aria-label="Lautstärke der Soundeffekte"><span aria-hidden="true">🔊</span><b data-sfx-value>${sfx.volume()} %</b></div>
+        <button type="button" class="btn btn--small" data-sfx-test>▶ Probe</button>
+        ${vib}
+        <p class="microcopy">Countdown, richtig/falsch, Buzzer und Tusch bei der Auflösung. Auf der Moderator-Seite standardmäßig aus, damit es am Beamer-Rechner nicht doppelt klingt.</p>
+      </section>`;
   }
 
   function open() {
@@ -51,7 +72,10 @@
         <button type="button" class="btn btn--small" data-music-test>▶ Probehören</button>
         <p class="microcopy">Gilt für Song-Enthüllung und Audio-Fragen. Tipp für Streams: Auf dem Moderator-Rechner ausschalten, wenn der Ton schon über den Beamer läuft.</p>` : '<p class="microcopy">Auf dieser Seite wird keine Musik abgespielt.</p>'}
       </section>
-      <section class="settings-section settings-soon"><h3>🔔 Soundeffekte</h3><p class="microcopy">Kommen mit dem nächsten Update – dann mit eigenem Regler hier.</p></section>`;
+      ${sfxSection()}
+      <section class="settings-section"><h3>😀 Emoji-Reaktionen</h3>
+        <label class="settings-switch"><input type="checkbox" data-reactions ${reactionsOn() ? 'checked' : ''}><span>${roleOf() === 'player' ? 'Reaktions-Leiste unter der Frage zeigen' : 'Reaktionen der Spieler auf dem Bildschirm zeigen'}</span></label>
+      </section>`;
     backdrop.append(box);
     document.body.append(backdrop);
     const $ = sel => box.querySelector(sel);
@@ -75,6 +99,15 @@
         if (!ok) App()?.toast('Ton konnte nicht abgespielt werden.', 'error');
       });
     }
+    const sfx = Sfx();
+    if (sfx) {
+      $('[data-sfx-on]')?.addEventListener('change', e => sfx.setEnabled(e.target.checked));
+      $('[data-sfx-volume]')?.addEventListener('input', e => { const v = sfx.setVolume(e.target.value); $('[data-sfx-value]').textContent = `${v} %`; });
+      $('[data-sfx-volume]')?.addEventListener('change', () => sfx.play('correct'));
+      $('[data-sfx-test]')?.addEventListener('click', () => { if (!sfx.enabled()) { sfx.setEnabled(true); $('[data-sfx-on]').checked = true; } setTimeout(() => sfx.play('reveal'), 60); });
+      $('[data-vibrate]')?.addEventListener('change', e => { sfx.setVibration(e.target.checked); if (e.target.checked) sfx.vibrate('turn'); });
+    }
+    $('[data-reactions]')?.addEventListener('change', e => setReactions(e.target.checked));
     setTimeout(() => $('[data-close]').focus(), 30);
   }
 
@@ -87,5 +120,5 @@
   }
   document.addEventListener('DOMContentLoaded', mount);
 
-  window.SylasphereSettings = { open, mount };
+  window.SylasphereSettings = { open, mount, reactionsOn, setReactions };
 })();

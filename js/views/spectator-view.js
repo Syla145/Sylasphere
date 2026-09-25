@@ -51,6 +51,7 @@
       window.SylasphereJoin?.keepAwake(true); // Beamer-Laptop bleibt an
       history.replaceState(null, '', `?code=${code}&mode=${transport}`);
       engine.subscribe(render);
+      engine.onReaction?.(reaction => window.SylasphereReactions?.show(reaction, id => (state?.players || []).find(p => p.id === id)?.name || '')); // v27
     } catch (error) {
       els['spectator-error'].textContent = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Verbindung fehlgeschlagen.');
     } finally {
@@ -77,6 +78,7 @@
     let idx = 0; for (let i = 0; i < state.currentRoundIndex; i++) idx += state.quiz.quiz.rounds[i].questions.length; idx += state.currentQuestionIndex;
     App.setText(els['spectator-progress'], current.round ? `${current.round.title} · Frage ${Math.min(idx + 1, total)}/${total}` : '');
     renderQuestion(current); renderLeaderboard(); renderTimer();
+    window.SylasphereSfx?.observe(state, { current }); // v27
   }
 
   function renderQuestion(current) {
@@ -137,7 +139,7 @@
       const rank = ranked.findIndex(p => p.id === player.id) + 1;
       return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
     }).join('');
-    return `<div class="final-screen presenter"><span class="eyebrow">Finale</span><h1>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Quiz beendet'}</h1><div class="podium">${podium}</div></div>`;
+    return `<div class="final-screen presenter"><span class="eyebrow">Finale</span><h1>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Quiz beendet'}</h1><div class="podium">${podium}</div>${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
   }
 
   function renderLeaderboard() {
@@ -145,16 +147,16 @@
     const current = engine.getCurrent(state);
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     const gains = resolved ? (state.answers[current.question.id] || {}) : {};
-    els['spectator-leaderboard'].innerHTML = ranked.map((p, i) => {
+    App.renderRanking(els['spectator-leaderboard'], ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
-      return `<div class="leader-row presenter-row"><span>${i + 1}</span><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
-    }).join('');
+      return `<div class="leader-row presenter-row" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
+    }).join(''));
   }
 
   function renderTimer() {
     timer?.stop();
     if (!state.questionOpen || !state.questionEndsAt) { App.setText(els['spectator-timer'], '–'); return; }
-    timer = new Timer(seconds => App.setText(els['spectator-timer'], String(seconds ?? '–')), () => {});
+    timer = new Timer(seconds => { App.setText(els['spectator-timer'], String(seconds ?? '–')); window.SylasphereSfx?.countdown(seconds); }, () => {});
     timer.start(state.questionEndsAt);
   }
 })();

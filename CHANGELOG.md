@@ -1,5 +1,16 @@
 # Sylasphere – Changelog
 
+## v27 – Spielerlebnis
+- **Soundeffekte:** Frage geht auf, Countdown in den letzten 5 Sekunden, Antworten geschlossen, richtig/falsch, Buzzer, „Du bist dran“, Tusch bei der Auflösung und eine Fanfare am Ende. Alle Töne entstehen im Browser, es gibt keine Dateien und keine Lizenzfragen.
+  - Auf Spieler- und Zuschauer-Seite standardmäßig **an**, auf der Moderator-Seite **aus**, damit es am Beamer-Rechner nicht doppelt klingt.
+- **Vibration** am Handy: Buzzer, „Du bist dran“, richtig/falsch, 3 Sekunden vor Schluss und am Spielende. Funktioniert auf Android. iPhones unterstützen Vibration im Browser leider nicht.
+- **⚙️ Einstellungen erweitert:** Soundeffekte an/aus und Lautstärke (mit Probe), **Vibration an/aus**, Emoji-Reaktionen an/aus. Alles gilt nur für das jeweilige Gerät.
+- **Emoji-Reaktionen:** Unter der Frage gibt es am Handy eine Leiste mit 8 Emojis. Tippen lässt das Emoji mit dem Namen auf dem Beamer und beim Moderator aufsteigen. Höchstens etwa eine Reaktion pro Sekunde, online zusätzlich vom Server begrenzt.
+- **Show-Ende mit Highlights:** Unter dem Siegerpodest erscheinen Auszeichnungen, wo sie zutreffen: 🎯 Treffsicher, ⚡ Buzzer-König, 📏 Knappste Schätzung, 🚀 Punkte-Rakete, 🍀 Pechvogel des Abends.
+- **Rangliste mit Aufstiegs-Animation:** Plätze gleiten an ihre neue Position, wer aufsteigt, bekommt kurz „▲1“.
+- **Firebase-Regeln ergänzt** (`reactions`): Bitte die neue `firebase-database.rules.json` in der Realtime Database veröffentlichen, sonst funktionieren Reaktionen nur im lokalen Modus.
+- Neue Dateien: `js/core/sfx.js`, `js/core/reactions.js`, `js/core/highlights.js`.
+
 ## v26 – Neuer Spielmodus „3×3-Grid“ und Einstellungen
 - **3×3-Grid:** 3 Begriffe links, 3 oben (Text und/oder Bild). Jedes Feld braucht eine Antwort, die zu Zeile und Spalte passt. Alle tippen gleichzeitig, bis die Zeit um ist (Standard 3 Minuten), und alles wird automatisch gespeichert.
   - **Am Handy:** Feld antippen und unten eintippen. Enter springt zum nächsten freien Feld.

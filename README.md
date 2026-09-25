@@ -226,7 +226,16 @@ Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geö
 Oben rechts auf der Spieler-, Zuschauer- und Moderator-Seite:
 - **Design:** „Wie im Quiz“ (Standard) oder ein eigenes Design nur für dieses Gerät.
 - **Musik:** an/aus und Lautstärke, mit „Probehören“. Das ist praktisch, wenn der Ton am Moderator-Rechner stören würde.
-- Soundeffekte folgen mit dem nächsten Update.
+- **Soundeffekte:** an/aus und Lautstärke. Auf der Moderator-Seite standardmäßig aus.
+- **Vibration:** an/aus (Android-Handys, iPhones können im Browser nicht vibrieren).
+- **Emoji-Reaktionen:** Leiste am Handy bzw. Anzeige auf dem Beamer an/aus.
+
+## Spielerlebnis
+
+- **Soundeffekte** für Frage-Start, Countdown, Schließen, richtig/falsch, Buzzer, „Du bist dran“, Auflösung und Finale. Sie werden im Browser erzeugt, es gibt keine Audiodateien.
+- **Emoji-Reaktionen:** Spieler tippen unter der Frage auf ein Emoji, es fliegt mit ihrem Namen über den Beamer.
+- **Highlights am Ende:** Treffsicher, Buzzer-König, Knappste Schätzung, Punkte-Rakete, Pechvogel des Abends.
+- **Aufstiegs-Animation** in der Rangliste.
 
 ## Designs
 
@@ -270,7 +279,10 @@ js/core/
   account.js / account-ui.js    Konten, Rollen, Login-Oberfläche
   cloud-quizzes.js              „Meine Quizze“ (Online-Speicher)
   cloud-media.js                Datei-Upload (Firebase Storage) + Upload-Freigaben
-  settings.js                   ⚙️ Einstellungen pro Gerät (Design, Musik-Lautstärke)
+  settings.js                   ⚙️ Einstellungen pro Gerät (Design, Musik, Soundeffekte, Vibration, Reaktionen)
+  sfx.js                        Soundeffekte (im Browser erzeugt) und Vibration
+  reactions.js                  Emoji-Reaktionen (Leiste am Handy, Flug-Animation)
+  highlights.js                 Highlights am Show-Ende
   moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)
   session-engine.js             lokaler Spielablauf (Testmodus)
   online-session-engine.js      Online-Spielablauf über Firebase

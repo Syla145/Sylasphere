@@ -96,6 +96,13 @@
             ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid"
           }
         },
+        "reactions": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && ((auth.uid === $uid && root.child('rooms').child($code).child('profiles').child($uid).exists() && (!data.exists() || now - data.child('at').val() >= 700)) || root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid)",
+            ".validate": "!newData.exists() || (newData.hasChildren(['e','at']) && newData.child('e').isString() && newData.child('e').val().length >= 1 && newData.child('e').val().length <= 16 && newData.child('at').val() === now)"
+          }
+        },
         "host": {
           ".read": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid",
           ".write": "auth != null && root.child('rooms').child($code).child('meta').child('ownerUid').val() === auth.uid"

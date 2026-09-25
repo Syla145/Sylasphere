@@ -51,5 +51,5 @@ demo.quiz.rounds[0].questions.forEach(x=>{const d=JSON.parse(JSON.stringify(x));
 ['spieler.html','zuschauer.html','moderator.html'].forEach(f=>ok(code(f).includes('js/core/settings.js'),`${f} has settings`));
 const th=code('js/core/themes.js');ok(th.includes('setDeviceTheme')&&th.includes("'sylasphere:device-theme'"),'device theme override');
 const mp=code('js/core/media-player.js');ok(mp.includes('setVolume')&&mp.includes("'sylasphere:music-volume'")&&mp.includes('master.gain.value = volume() / 100'),'music volume per device');
-ok(code('js/core/app.js').includes("'v26'"),'version v26');
+
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

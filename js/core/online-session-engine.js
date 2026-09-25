@@ -91,6 +91,8 @@
       this.userId = context.auth.currentUser?.uid || '';
       this.roomRef = this.modules.database.ref(this.db, `rooms/${this.code}`);
       this.listeners = new Set();
+      this.reactionListeners = new Set(); // v27: Emoji-Reaktionen
+      this.reactionsWatched = false;
       this.unsubscribers = [];
       this.cachedState = null;
       this.raw = { meta: null, public: null, outline: null, profiles: {}, scores: {}, answers: {}, buzzerClaims: {}, buzzerBlocked: {}, hostQuiz: null };
@@ -337,6 +339,7 @@
         scoredQuestionIds: resolved,
         roundSummaries: Array.isArray(pub.roundSummaries) ? clone(pub.roundSummaries) : [],
         finishedAt: pub.finishedAt == null ? null : Firebase.toLocalTime(this.context, pub.finishedAt),
+        highlights: pub.highlights ? clone(pub.highlights) : null,
         publicStats: pub.publicStats ? clone(pub.publicStats) : null,
         scoreDeltas: pub.scoreDeltas ? clone(pub.scoreDeltas) : null
       };
@@ -775,8 +778,9 @@
       });
     }
 
-    async finish() {
-      await this.patchPublic({ status: 'finished', questionOpen: false, questionEndsAt: null, finishedAt: Firebase.serverNow(this.context) });
+    async finish(extra = {}) {
+      const highlights = Array.isArray(extra.highlights) && extra.highlights.length ? clean(extra.highlights) : null; // v27: Show-Ende
+      await this.patchPublic({ status: 'finished', questionOpen: false, questionEndsAt: null, finishedAt: Firebase.serverNow(this.context), highlights });
     }
 
     async resetScores() {
@@ -784,6 +788,35 @@
       const updates = { 'public/resolved': {}, 'public/roundSummaries': [], 'public/questionResult': null, 'public/publicStats': null, 'public/scoreDeltas': null, 'host/resolveLocks': null };
       Object.keys(this.raw.profiles || {}).forEach(uid => { updates[`scores/${uid}`] = 0; updates[`answers/${uid}`] = null; });
       await this.modules.database.update(this.roomRef, updates);
+    }
+
+    /** v27: Emoji-Reaktion eines Spielers (rooms/<code>/reactions/<uid>, Server begrenzt auf ca. 1 pro Sekunde) */
+    async sendReaction(playerId, emoji) {
+      const e = String(emoji || '').slice(0, 16);
+      if (!e || this.role !== 'player') return false;
+      const dbm = this.modules.database;
+      try { await dbm.set(dbm.ref(this.db, `rooms/${this.code}/reactions/${this.userId}`), { e, at: dbm.serverTimestamp() }); return true; }
+      catch (_) { return false; } // zu schnell hintereinander → Server lehnt ab, einfach ignorieren
+    }
+    onReaction(callback) {
+      this.reactionListeners.add(callback);
+      if (!this.reactionsWatched) {
+        this.reactionsWatched = true;
+        const dbm = this.modules.database;
+        const ref = dbm.ref(this.db, `rooms/${this.code}/reactions`);
+        const handle = snapshot => {
+          const value = snapshot.val();
+          if (!value?.e) return;
+          const at = Firebase.toLocalTime(this.context, Number(value.at) || 0);
+          if (Date.now() - at > 10000) return; // alte Reaktionen (z. B. beim Neuladen) nicht zeigen
+          const msg = { playerId: snapshot.key, emoji: String(value.e), at };
+          this.reactionListeners.forEach(fn => { try { fn(msg); } catch (error) { console.error(error); } });
+        };
+        const offAdded = dbm.onChildAdded(ref, handle);
+        const offChanged = dbm.onChildChanged(ref, handle);
+        this.unsubscribers.push(offAdded, offChanged);
+      }
+      return () => this.reactionListeners.delete(callback);
     }
 
     async destroy() {
