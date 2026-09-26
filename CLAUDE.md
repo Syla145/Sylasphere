@@ -27,10 +27,16 @@ Alle Texte, Commits und Antworten auf **Deutsch**.
 - Versionen in Schritten (zuletzt **v28**). Pro Version: `APP_VERSION` in `js/core/app.js` hochzählen, Eintrag in `CHANGELOG.md`, README bei Bedarf, einen Test `tests/v<NN>-<thema>.js` ergänzen, alle Tests laufen lassen.
 - Einfach, robust, gut erweiterbar; Darstellung, Daten und Spiellogik getrennt halten. Muss auf Handy **und** Desktop gut bedienbar sein.
 - UI im Browser prüfen (Playwright/Chromium ist in der Cloud-Umgebung vorhanden): lokalen Server starten (`python3 -m http.server`), Handy-Breite 390 px und Desktop ansehen. Namen dürfen nie von Avataren/Emojis verdeckt werden.
-- **Keine geschützten Marken**, Namen, Logos, Figuren oder Grafiken. Themes/Spielmodi nur „im Stil von“ mit eigenen Namen.
+- **Themes dürfen den Originalnamen ihres Vorbilds tragen** (z. B. „Mario Kart“), weil die Seite nur im privaten Kreis genutzt wird.
+  **Wird die Seite öffentlich, müssen diese Themes umbenannt werden** (eigene Namen „im Stil von“).
+  Weiterhin verboten (das Repo ist öffentlich): Logos, Figuren, Original-Grafiken, Original-Schriften und Original-Sounds der Vorbilder.
+  Erlaubt: Farbwelt, Formen, Muster, Animationen und selbst erzeugte Sounds im Stil davon.
+- Schriften nur frei lizenziert (z. B. OFL) und lokal in `assets/fonts/` (mit Lizenzdatei), keine externen Ressourcen (kein Google-Fonts-Link, kein CDN).
+- Spielmodi weiterhin mit eigenen Namen (keine geschützten Namen).
 - Kosten: kostenlos bzw. nahe null halten (Firebase-Freikontingente).
 - Einstellungen pro Gerät in localStorage mit Präfix `sylasphere:`; alles, was stört (Sound, Vibration, Reaktionen), muss in ⚙️ abschaltbar sein.
-- Änderungen als **Pull Request nach `main`** (Titel „vNN: …“, kurze deutsche Beschreibung, was Josef testen soll). Josef merged selbst.
+- **Kein Pull Request mehr:** Fertige Versionen direkt auf `main` committen und pushen (Commit-Titel „vNN: …“) und Josef danach eine kurze Testanleitung (mit Screenshots) schicken.
+  **Ausnahme Firebase-Regeln:** Ändert eine Version `firebase-database.rules.json`, `storage.rules` oder `firestore.rules`, Josef **vor dem Push** Bescheid geben und warten, bis er die Regeln veröffentlicht hat.
 
 ## Roadmap
 Die ausführliche Roadmap liegt im claude.ai-Projekt „Sylasphere“ (`claude/ideen-roadmap.md`). Kurz:
