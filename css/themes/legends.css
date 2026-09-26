@@ -1,0 +1,68 @@
+/* =====================================================================
+   Theme „League of Legends“ (id: legends) – v29
+   Dunkles Blau, Gold, magisches Türkis: Sechseck-Muster, aufsteigende Funken,
+   goldene Eckverzierungen aus CSS-Linien. Keine Original-Grafiken, -Logos, -Wappen oder -Schriften.
+   Schrift: Cinzel (SIL OFL 1.1, assets/fonts/LICENSE-cinzel.txt) für Überschriften
+   ===================================================================== */
+@font-face{font-family:"Cinzel";src:url("../../assets/fonts/cinzel-variable.woff2") format("woff2");font-weight:400 900;font-display:swap}
+
+html[data-theme="legends"]{
+  --bg:#070d18;--bg-deep:#050910;--bg2:#0b1424;--panel:#0c1626;--panel2:#111e33;--surface:#0e1829;--surface-hi:#18263d;--input-bg:#08101d;
+  --text:#f0e6d2;--text-soft:#ddd1b8;--muted:#a9a293;--line:rgba(200,170,110,.24);
+  --accent:#c8aa6e;--accent-hi:#dcc28a;--accent-soft:#e6cf9c;--accent-text:#e8cd8e;--accent-grad-end:#8a6a2f;
+  --accent2:#0bc4e3;--accent2-text:#8be9f7;
+  --success:#3fcf9a;--success-text:#a4f0d2;--warning:#e8b94a;--warning-text:#f5d68e;--danger:#e84057;--danger-text:#ff9fad;
+  --on-accent:#0a0f18;--on-success:#04180f;--cat-text-l:84%;
+  --accent-rgb:200,170,110;--accent-soft-rgb:230,207,156;--accent2-rgb:11,196,227;--success-rgb:63,207,154;--danger-rgb:232,64,87;--warning-rgb:232,185,74;
+  --overlay-rgb:240,230,210;--shadow-rgb:0,0,0;--bg-rgb:7,13,24;--surface-rgb:14,24,41;
+  --shadow:0 20px 60px rgba(0,0,0,.55),inset 0 0 0 1px rgba(200,170,110,.08);
+  --page-bg:radial-gradient(ellipse at 50% -10%,rgba(11,196,227,.16),transparent 50%),radial-gradient(ellipse at 50% 120%,rgba(200,170,110,.14),transparent 50%),linear-gradient(180deg,#0a1322 0%,#070d18 60%,#04070d 100%);
+  --font-body:"Nunito",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Cinzel",Georgia,"Times New Roman",serif;--font-title:"Nunito",ui-sans-serif,system-ui,sans-serif;--display-spacing:.04em;
+  --radius:6px;--radius-sm:4px;
+}
+html[data-theme="legends"] .panel{border:1px solid rgba(200,170,110,.45);box-shadow:var(--shadow)}
+html[data-theme="legends"] h1,html[data-theme="legends"] h2,html[data-theme="legends"] .final-screen h1,html[data-theme="legends"] .final-screen h2{font-weight:700;letter-spacing:.04em;color:var(--accent-soft)}
+html[data-theme="legends"] .question-title{font-weight:800}
+html[data-theme="legends"] .brand-mark{background:linear-gradient(135deg,#f0d38d,#8a6a2f);color:#0a0f18;border-radius:3px;font-family:"Cinzel",serif;box-shadow:0 0 16px rgba(200,170,110,.4)}
+html[data-theme="legends"] .btn--primary{background:linear-gradient(180deg,#dcc28a,#a8864a);border:1px solid #f0d38d;color:#0a0f18;border-radius:3px;text-transform:uppercase;letter-spacing:.08em;font-weight:900}
+html[data-theme="legends"] .btn--primary:hover{box-shadow:0 0 18px rgba(11,196,227,.45)}
+html[data-theme="legends"] .answer-btn{border-color:rgba(200,170,110,.35);border-radius:3px}
+html[data-theme="legends"] .answer-btn:hover{border-color:#0bc4e3;box-shadow:0 0 14px rgba(11,196,227,.3)}
+
+/* ---------- Bühne: Sechseck-Muster, Leuchten, Funken ---------- */
+html[data-theme="legends"] .theme-layer--1{opacity:.5;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='97' viewBox='0 0 56 97'%3E%3Cpath d='M28 1 55 16.5v31L28 63 1 47.5v-31zM28 63v34M1 16.5 0 16M55 16.5l1-.5' fill='none' stroke='%23c8aa6e' stroke-opacity='.18' stroke-width='1'/%3E%3C/svg%3E") 0 0/56px 97px}
+html[data-theme="legends"] .theme-layer--2{background:radial-gradient(circle at 20% 30%,rgba(11,196,227,.14),transparent 30%),radial-gradient(circle at 80% 70%,rgba(200,170,110,.12),transparent 32%);animation:legends-glow 9s ease-in-out infinite alternate}
+html[data-theme="legends"] .theme-layer--3{inset:0 0 -100% 0;background:
+  radial-gradient(circle,rgba(240,211,141,.9) 0 1.5px,transparent 2.5px) 10% 20%/190px 230px,
+  radial-gradient(circle,rgba(240,211,141,.6) 0 1px,transparent 2px) 60% 70%/260px 310px,
+  radial-gradient(circle,rgba(139,233,247,.6) 0 1px,transparent 2px) 35% 50%/330px 280px;animation:legends-sparks 26s linear infinite}
+@keyframes legends-glow{from{opacity:.6;transform:scale(1)}to{opacity:1;transform:scale(1.08)}}
+@keyframes legends-sparks{to{transform:translateY(-50%)}}
+/* goldene Eckverzierungen */
+html[data-theme="legends"] .theme-deco--tl,html[data-theme="legends"] .theme-deco--tr,html[data-theme="legends"] .theme-deco--bl,html[data-theme="legends"] .theme-deco--br{width:120px;height:120px;border:2px solid rgba(200,170,110,.55);opacity:.8}
+html[data-theme="legends"] .theme-deco--tl{left:14px;top:14px;border-right:0;border-bottom:0}
+html[data-theme="legends"] .theme-deco--tr{right:14px;top:14px;border-left:0;border-bottom:0}
+html[data-theme="legends"] .theme-deco--bl{left:14px;bottom:14px;border-right:0;border-top:0}
+html[data-theme="legends"] .theme-deco--br{right:14px;bottom:14px;border-left:0;border-top:0}
+html[data-theme="legends"] .theme-deco--tl::after,html[data-theme="legends"] .theme-deco--tr::after,html[data-theme="legends"] .theme-deco--bl::after,html[data-theme="legends"] .theme-deco--br::after{content:"";position:absolute;width:12px;height:12px;background:#c8aa6e;transform:rotate(45deg);box-shadow:0 0 12px rgba(200,170,110,.8)}
+html[data-theme="legends"] .theme-deco--tl::after{left:-7px;top:-7px}
+html[data-theme="legends"] .theme-deco--tr::after{right:-7px;top:-7px}
+html[data-theme="legends"] .theme-deco--bl::after{left:-7px;bottom:-7px}
+html[data-theme="legends"] .theme-deco--br::after{right:-7px;bottom:-7px}
+
+/* ---------- Übergang: goldener Ring ---------- */
+.theme-transition--legends{background:radial-gradient(circle,rgba(5,9,16,.4),rgba(5,9,16,.85))}
+.legends-ring{position:absolute;width:min(70vmin,460px);aspect-ratio:1;border-radius:50%;border:2px solid rgba(200,170,110,.85);box-shadow:0 0 30px rgba(200,170,110,.5),inset 0 0 30px rgba(11,196,227,.35);animation:legends-ring var(--tt-duration) ease-out both}
+.legends-ring::before{content:"";position:absolute;inset:14px;border-radius:50%;border:1px dashed rgba(11,196,227,.7)}
+@keyframes legends-ring{0%{transform:scale(.2) rotate(-90deg);opacity:0}30%{opacity:1}100%{transform:scale(1.15) rotate(40deg);opacity:0}}
+.legends-card{position:relative;display:grid;gap:6px;justify-items:center;padding:20px 34px;background:rgba(12,22,38,.96);border:1px solid #c8aa6e;border-radius:4px;box-shadow:0 0 30px rgba(0,0,0,.6);max-width:min(560px,100%);text-align:center;animation:tt-pop var(--tt-duration) ease both}
+.legends-card small{color:#8be9f7;font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:.78rem}
+.legends-card strong{font:700 clamp(1.9rem,7vw,3.2rem)/1.05 "Cinzel",Georgia,serif;color:#e6cf9c;letter-spacing:.05em;overflow-wrap:anywhere}
+.legends-card span{color:#ddd1b8;font-weight:700}
+
+/* ---------- Siegerehrung: goldenes Banner ---------- */
+.ceremony--legends .legends-banner{display:table;margin:6px auto 0;padding:6px 44px;font:700 1rem/1.4 "Cinzel",Georgia,serif;letter-spacing:.3em;color:#0a0f18;background:linear-gradient(180deg,#f0d38d,#a8864a);clip-path:polygon(0 0,100% 0,94% 50%,100% 100%,0 100%,6% 50%)}
+.ceremony--legends .podium-place{border-radius:4px;border-color:rgba(200,170,110,.45)}
+.ceremony--legends .podium-place--1{border:2px solid #c8aa6e;background:linear-gradient(180deg,rgba(200,170,110,.28),rgba(11,196,227,.06));box-shadow:0 0 30px rgba(200,170,110,.25)}
+.ceremony--legends .podium-place>b{font-family:"Cinzel",serif;color:#c8aa6e;opacity:.6}

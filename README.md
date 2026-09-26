@@ -239,6 +239,7 @@ Oben rechts auf der Spieler-, Zuschauer- und Moderator-Seite:
 - **Soundeffekte:** an/aus und Lautstärke. Auf der Moderator-Seite standardmäßig aus.
 - **Vibration:** an/aus (Android-Handys, iPhones können im Browser nicht vibrieren).
 - **Emoji-Reaktionen:** Leiste am Handy bzw. Anzeige auf dem Beamer an/aus.
+- **Animationen reduzieren:** Der Hintergrund steht still, Übergänge werden zu einer kurzen Überblendung, es gibt kein Konfetti. Ohne eigene Wahl folgt es der Systemeinstellung des Geräts („Bewegung reduzieren“).
 
 ## Spielerlebnis
 
@@ -249,11 +250,16 @@ Oben rechts auf der Spieler-, Zuschauer- und Moderator-Seite:
 
 ## Designs
 
-Es gibt vier Designs: **Neon Arena**, **Retro-Show**, **Clean Light** (gut für Beamer) und **Pub Quiz**.
+Es gibt acht Designs: **Neon Arena**, **Retro-Show**, **Clean Light** (gut für Beamer), **Pub Quiz** und seit v29 **Mario Kart**, **League of Legends**, **GeoGuessr** und **Valorant**.
 
-- Du wählst das Design pro Quiz im Editor. Der Moderator kann es für eine Sitzung ändern.
+- Du wählst das Design pro Quiz im Editor, auf Wunsch auch **pro Runde** (Feld „Design“ im Rundenkopf). Beim Rundenwechsel wechseln alle Geräte mit.
 - Spieler und Zuschauer übernehmen das Design automatisch.
-- Zum Ausprobieren `?theme=retro` (oder `light`, `pub`) an eine Adresse anhängen.
+- Die neuen Designs bringen mit: eigenen Hintergrund mit Animationen, Deko am Rand, eigene Soundeffekte, einen kurzen **Übergang** zwischen den Fragen und eine eigene **Siegerehrung**.
+- **Vorschau:** Im Editor unter dem Design „👁 Vorschau zeigen“, oder direkt `vorschau.html?theme=geo` öffnen. Dort gibt es Knöpfe für Frage, Siegerehrung, Übergang und Sounds.
+- Zum Ausprobieren `?theme=kart` (oder `retro`, `light`, `pub`, `legends`, `geo`, `tactical`) an eine Adresse anhängen.
+- Die Themes tragen die Namen ihrer Vorbilder, weil die Seite nur privat genutzt wird. Sie enthalten keine Logos, Figuren, Original-Grafiken, Original-Schriften oder Original-Sounds. **Wird die Seite öffentlich, müssen sie umbenannt werden.** Die IDs (`kart`, `legends`, `geo`, `tactical`) sind neutral, damit gespeicherte Quizze beim Umbenennen weiter funktionieren.
+
+**Neues Theme anlegen:** Eintrag in `THEMES` in `js/core/themes.js`, Aussehen in `css/themes/<id>.css` (in `css/themes/index.css` eintragen), optional Effekte in `js/themes/<id>.js` (Deko, Übergang, Siegerehrung, Sound-Paket). Schriften nur frei lizenziert und lokal in `assets/fonts/`.
 
 ## Update einspielen
 
@@ -279,8 +285,10 @@ Alles läuft **kostenlos**:
 ## Projektstruktur
 
 ```
-index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html
-css/main.css                    Gestaltung aller Seiten und die 4 Designs
+index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html · vorschau.html
+css/main.css                    Gestaltung aller Seiten und die 4 ersten Designs
+css/themes/                     Designs ab v29 (eine Datei pro Theme, Liste in index.css)
+js/themes/                      Effekte der Themes ab v29 (Deko, Übergang, Siegerehrung, Sound-Paket)
 data/                           Beispiel-Quizze (JSON) + quiz-list.json
 assets/                         Bilder, Musik, Schriften (hier eigene Mediendateien ablegen)
 js/core/

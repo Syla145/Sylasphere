@@ -176,7 +176,7 @@ function fakeContext(dbState,uid,anonymous=false){
 })().catch(e=>{ok(false,'async '+e.stack);finish()});
 
 // ---------- Einbindung ----------
-ok(code('js/core/app.js').includes("APP_VERSION = 'v28'"),'version v28');
+ok(/APP_VERSION = 'v(2[89]|[3-9][0-9])'/.test(code('js/core/app.js')),'version v28 or later');
 ok(fs.existsSync(path.join(root,'profil.html'))&&['progress.js','progress-store.js','profile-view.js','account-ui.js'].every(f=>code('profil.html').includes(f)),'profil.html');
 ok(['progress.js','progress-store.js','account-ui.js'].every(f=>code('spieler.html').includes(f))&&code('spieler.html').includes('id="join-account"'),'player page: account + XP');
 ok(code('moderator.html').includes('progress-store.js')&&code('zuschauer.html').includes('progress.js')&&code('admin.html').includes('progress-store.js')&&code('admin.html').includes('id="cleanup-rooms"'),'other pages load v28 modules');

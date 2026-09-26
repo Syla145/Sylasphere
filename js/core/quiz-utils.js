@@ -54,6 +54,7 @@
     r.id = String(r.id || `round_${index + 1}`);
     r.title = String(r.title || `Runde ${index + 1}`);
     r.pointsMultiplier = numberOr(r.pointsMultiplier, 1);
+    if (r.theme) r.theme = String(r.theme); else delete r.theme; // v29: eigenes Theme für diese Runde (leer = wie das Quiz)
     r.questions = Array.isArray(r.questions) ? r.questions.map((q, qIndex) => normalizeQuestion(q, qIndex, settings)) : [];
     return r;
   }

@@ -1,0 +1,16 @@
+<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#0a1020"><meta name="robots" content="noindex"><title>Design-Vorschau · Sylasphere</title><link rel="icon" href="./assets/jh-quiz-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="./css/main.css?v=29"><link rel="stylesheet" href="./css/themes/index.css?v=29"><script src="./js/core/themes.js?v=29"></script><script defer src="./js/core/app.js?v=29"></script><script defer src="./js/core/topics.js?v=29"></script><script defer src="./js/core/sfx.js?v=29"></script><script defer src="./js/question-types/registry.js?v=29"></script><script defer src="./js/core/quiz-utils.js?v=29"></script><script defer src="./js/question-types/renderers.js?v=29"></script><script defer src="./js/core/progress.js?v=29"></script><script defer src="./js/views/preview-view.js?v=29"></script></head><body data-role="spectator">
+<header class="container app-header preview-head"><a class="brand" href="./"><span class="brand-mark">SY</span><span>Sylasphere<small>Quiz Arena <span class="version-tag">v29</span> · Design-Vorschau</small></span></a><div class="top-actions"><select id="preview-theme" class="select" aria-label="Design wählen"></select></div></header>
+<main class="container preview-shell">
+  <div class="preview-controls" role="toolbar" aria-label="Vorschau steuern">
+    <button type="button" class="btn btn--small" data-view="question">❓ Frage</button>
+    <button type="button" class="btn btn--small" data-view="ceremony">🏆 Siegerehrung</button>
+    <button type="button" class="btn btn--small" data-action="transition">▶ Übergang</button>
+    <button type="button" class="btn btn--small" data-action="sounds">🔊 Sounds</button>
+  </div>
+  <p id="preview-desc" class="microcopy preview-desc"></p>
+  <section id="preview-question" class="preview-grid">
+    <div class="panel panel-pad player-question-card"><div class="preview-meta"><span class="pill">Runde 2 · Frage 5 / 12</span><span class="pill">⏱ <b>12</b></span></div><div id="preview-q"></div><div class="reveal-box"><span>Lösung</span><strong>Canberra</strong></div></div>
+    <aside class="panel panel-pad"><div class="section-title"><div><span class="eyebrow">Live</span><h2>Rangliste</h2></div></div><div id="preview-ranking" class="leaderboard"></div></aside>
+  </section>
+  <section id="preview-ceremony" hidden></section>
+</main></body></html>

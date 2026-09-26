@@ -1,0 +1,67 @@
+/* =====================================================================
+   Theme „GeoGuessr“ (id: geo) – v29
+   Landkarten-Look: Höhenlinien, Längen-/Breitengrade, Kartennadeln, Kompassrose.
+   Alles eigene Zeichnungen (CSS/SVG), keine Original-Grafiken oder -Logos.
+   Schrift: Rubik (SIL OFL 1.1, assets/fonts/LICENSE-rubik.txt)
+   ===================================================================== */
+@font-face{font-family:"Rubik";src:url("../../assets/fonts/rubik-variable.woff2") format("woff2");font-weight:300 900;font-display:swap}
+
+html[data-theme="geo"]{
+  --bg:#160f33;--bg-deep:#100a27;--bg2:#1c1440;--panel:#1e1646;--panel2:#271d57;--surface:#1f1748;--surface-hi:#2c2163;--input-bg:#140d30;
+  --text:#f4f1ff;--text-soft:#dcd6f5;--muted:#b6aedb;--line:rgba(220,214,245,.16);
+  --accent:#7ee36b;--accent-hi:#98ec87;--accent-soft:#b2f2a5;--accent-text:#a8f09a;--accent-grad-end:#3fbf6a;
+  --accent2:#ffd23f;--accent2-text:#ffe58a;
+  --success:#6fe0a0;--success-text:#b4f2cf;--warning:#ffd23f;--warning-text:#ffe58a;--danger:#ff6b6b;--danger-text:#ffabab;
+  --on-accent:#10240b;--on-success:#06200f;--cat-text-l:86%;
+  --accent-rgb:126,227,107;--accent-soft-rgb:178,242,165;--accent2-rgb:255,210,63;--success-rgb:111,224,160;--danger-rgb:255,107,107;--warning-rgb:255,210,63;
+  --overlay-rgb:244,241,255;--shadow-rgb:0,0,0;--bg-rgb:22,15,51;--surface-rgb:31,23,72;
+  --shadow:0 20px 55px rgba(4,2,16,.5);
+  --page-bg:radial-gradient(ellipse at 15% 10%,rgba(126,227,107,.12),transparent 40%),radial-gradient(ellipse at 85% 90%,rgba(255,210,63,.10),transparent 45%),linear-gradient(160deg,#241a55 0%,#160f33 55%,#0e0924 100%);
+  --font-body:"Rubik",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Rubik",ui-sans-serif,system-ui,sans-serif;--font-title:"Rubik",ui-sans-serif,system-ui,sans-serif;--display-spacing:-.01em;
+  --radius:18px;--radius-sm:12px;
+}
+html[data-theme="geo"] h1,html[data-theme="geo"] h2,html[data-theme="geo"] .final-screen h1,html[data-theme="geo"] .final-screen h2{font-weight:900;font-style:italic}
+html[data-theme="geo"] .question-title{font-weight:700}
+html[data-theme="geo"] .btn--primary{background:linear-gradient(180deg,#98ec87,#5cc94a);color:#10240b;border-radius:999px;font-weight:800;box-shadow:0 4px 0 #2f8a2a}
+html[data-theme="geo"] .brand-mark{background:linear-gradient(135deg,#7ee36b,#ffd23f);color:#10240b;border-radius:50% 50% 50% 8px}
+html[data-theme="geo"] .answer-btn{border-radius:14px}
+
+/* ---------- Bühne: Höhenlinien, Gradnetz, Leuchten ---------- */
+html[data-theme="geo"] .theme-layer--1{inset:-20%;opacity:.9;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='420' viewBox='0 0 420 420' fill='none' stroke='%23b6aedb' stroke-opacity='.13' stroke-width='1.2'%3E%3Cpath d='M210 60c70 0 140 40 140 110s-50 150-140 150S60 260 70 180 140 60 210 60z'/%3E%3Cpath d='M210 95c50 0 105 30 105 80s-40 110-105 110-110-45-102-100 52-90 102-90z'/%3E%3Cpath d='M212 130c35 0 70 20 70 50s-25 72-70 72-72-28-66-64 31-58 66-58z'/%3E%3Cpath d='M214 162c18 0 36 10 36 24s-14 36-36 36-36-14-33-32 15-28 33-28z'/%3E%3Cpath d='M-20 400c60-40 120-30 170 0s120 40 200 10 90-30 90-30'/%3E%3Cpath d='M-20 30c50 30 110 25 160 5s100-30 160-5 140 10 140 10'/%3E%3C/svg%3E") 0 0/420px 420px;animation:geo-drift 60s linear infinite}
+html[data-theme="geo"] .theme-layer--2{background:
+  repeating-linear-gradient(0deg,rgba(220,214,245,.05) 0 1px,transparent 1px 120px),
+  repeating-linear-gradient(90deg,rgba(220,214,245,.05) 0 1px,transparent 1px 120px)}
+html[data-theme="geo"] .theme-layer--3{background:linear-gradient(90deg,transparent 0 30%,rgba(255,210,63,.35) 30% 32%,transparent 32% 36%,rgba(255,210,63,.35) 36% 38%,transparent 38%) 0 70%/60px 2px repeat-x;opacity:.7;animation:geo-route 6s linear infinite}
+@keyframes geo-drift{to{transform:translate(-420px,-210px)}}
+@keyframes geo-route{to{background-position:60px 70%}}
+/* Kartennadeln + Kompassrose */
+html[data-theme="geo"] .theme-deco--pin1,html[data-theme="geo"] .theme-deco--pin2{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#ff6b6b;box-shadow:inset 0 0 0 9px #ff6b6b,inset 0 0 0 16px #fff;opacity:.85;animation:geo-drop 5s ease-in-out infinite}
+html[data-theme="geo"] .theme-deco--pin1{left:10px;bottom:90px}
+html[data-theme="geo"] .theme-deco--pin2{left:44%;bottom:-8px;background:#7ee36b;box-shadow:inset 0 0 0 9px #7ee36b,inset 0 0 0 16px #fff;animation-delay:-2.4s}
+@keyframes geo-drop{0%,70%,100%{translate:0 0}80%{translate:0 -16px}90%{translate:0 0}}
+html[data-theme="geo"] .theme-deco--compass{right:-24px;bottom:-24px;width:120px;height:120px;opacity:.35;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%23dcd6f5' stroke-width='2'/%3E%3Cpath d='M50 6 58 50 50 94 42 50z' fill='%23dcd6f5'/%3E%3Cpath d='M50 6 58 50H42z' fill='%23ff6b6b'/%3E%3Cpath d='M6 50 50 44 94 50 50 56z' fill='%23dcd6f5' opacity='.6'/%3E%3C/svg%3E") center/contain no-repeat;animation:geo-compass 20s ease-in-out infinite alternate}
+@keyframes geo-compass{from{rotate:-12deg}to{rotate:14deg}}
+
+/* ---------- Übergang: Nadel fällt auf die Karte ---------- */
+.theme-transition--geo{background:rgba(14,9,36,.55)}
+.geo-drop{display:grid;justify-items:center;gap:8px;padding:22px 34px 20px;border-radius:22px;background:rgba(31,23,72,.97);border:2px solid rgba(126,227,107,.5);box-shadow:0 20px 50px rgba(0,0,0,.45);max-width:min(560px,100%);text-align:center;animation:tt-pop var(--tt-duration) ease both}
+.geo-pin{position:relative;width:40px;height:40px;margin-bottom:4px;animation:geo-pin var(--tt-duration) cubic-bezier(.3,1.4,.5,1) both}
+.geo-pin::before{content:"";position:absolute;inset:0;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:#ff6b6b;box-shadow:inset 0 0 0 10px #ff6b6b,inset 0 0 0 20px #fff}
+.geo-pin::after{content:"";position:absolute;left:50%;bottom:-10px;width:40px;height:10px;margin-left:-20px;border-radius:50%;border:2px solid rgba(126,227,107,.8);animation:geo-ripple var(--tt-duration) ease-out both}
+@keyframes geo-pin{0%{transform:translateY(-140px);opacity:0}25%{opacity:1}45%,100%{transform:none}}
+@keyframes geo-ripple{0%,40%{transform:scale(.2);opacity:0}50%{opacity:1}100%{transform:scale(2.2);opacity:0}}
+.geo-drop small{color:#a8f09a;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:.78rem}
+.geo-drop strong{font:900 italic clamp(1.9rem,7vw,3.1rem)/1.05 "Rubik",sans-serif;color:#f4f1ff;overflow-wrap:anywhere}
+.geo-drop span{color:#ffe58a;font-weight:700}
+
+/* ---------- Siegerehrung: Ergebnis-Balken ---------- */
+.ceremony--geo .geo-bars{display:grid;gap:8px;max-width:560px;margin:0 auto 6px;text-align:left}
+.ceremony--geo .geo-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.ceremony--geo .geo-bar strong{min-width:0;overflow-wrap:anywhere}
+.ceremony--geo .geo-bar b{color:#ffe58a;white-space:nowrap}
+.ceremony--geo .geo-track{grid-column:1/-1;height:10px;border-radius:999px;background:rgba(244,241,255,.1);overflow:hidden}
+.ceremony--geo .geo-track span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#3fbf6a,#7ee36b,#ffd23f);width:var(--w);animation:geo-bar 1.4s ease-out both}
+@keyframes geo-bar{from{width:0}}
+.ceremony--geo .podium-place--1{border:2px solid #7ee36b;background:linear-gradient(180deg,rgba(126,227,107,.22),rgba(126,227,107,.05))}
+.ceremony--geo .ceremony-fx--confetti i{border-radius:50% 50% 50% 0}

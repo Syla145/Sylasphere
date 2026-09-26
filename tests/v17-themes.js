@@ -7,7 +7,7 @@ const crypto=require('crypto').webcrypto;const base={crypto,console,JSON,Math,Da
 const ctx=vm.createContext(base);const load=f=>vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx,{filename:f});
 load('js/core/app.js');load('js/core/themes.js');load('js/question-types/registry.js');load('js/question-types/kit.js');ctx.window.SylasphereTypes.files.forEach(f=>load(`js/question-types/types/${f}.js`));load('js/core/topics.js');load('js/core/quiz-utils.js');load('js/core/quiz-validator.js');
 const Th=ctx.window.SylasphereThemes,Q=ctx.window.SchmobinQuiz,V=ctx.window.SchmobinValidator;
-ok(JSON.stringify(Th.list().map(t=>t.id))==='["neon","retro","light","pub"]','four designs available');
+ok(JSON.stringify(Th.list().map(t=>t.id).slice(0,4))==='["neon","retro","light","pub"]','four original designs available (more since v29)');
 ok(!('data-theme' in attrs),'default neon = no data-theme attribute');
 Th.apply('retro');ok(attrs['data-theme']==='retro'&&ctx.localStorage.getItem('sylasphere:last-theme')==='retro','apply sets attribute and remembers');
 Th.apply('neon');ok(!('data-theme' in attrs),'neon removes attribute');

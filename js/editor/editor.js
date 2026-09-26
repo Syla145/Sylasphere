@@ -353,8 +353,27 @@
     box.replaceChildren(window.SylasphereThemes.picker(state.quiz.settings.theme, id => {
       state.quiz.settings.theme = id;
       window.SylasphereThemes.apply(id);
+      showThemePreview(id);
       queueSave();
     }));
+    // v29: Vorschau (Beispielfrage, Rangliste, Übergang, Sounds, Siegerehrung) – vorschau.html im Rahmen
+    const toggle = document.createElement('button');
+    toggle.type = 'button'; toggle.className = 'btn btn--small btn--ghost theme-preview-toggle';
+    toggle.textContent = '👁 Vorschau zeigen';
+    toggle.addEventListener('click', () => {
+      const open = !box.querySelector('.theme-preview-frame');
+      toggle.textContent = open ? '👁 Vorschau ausblenden' : '👁 Vorschau zeigen';
+      if (open) showThemePreview(state.quiz.settings.theme, true); else box.querySelector('.theme-preview-frame')?.remove();
+    });
+    box.append(toggle);
+  }
+  function showThemePreview(id, create = false) {
+    const box = document.getElementById('edit-theme');
+    let frame = box?.querySelector('.theme-preview-frame');
+    if (!box || (!frame && !create)) return;
+    if (!frame) { frame = document.createElement('iframe'); frame.className = 'theme-preview-frame'; frame.title = 'Vorschau des Designs'; box.append(frame); }
+    const src = `./vorschau.html?theme=${encodeURIComponent(id || 'neon')}&embed=1`;
+    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
   }
   // ---------- Themen (v15) ----------
   const Topics = window.SylasphereTopics;
@@ -457,7 +476,15 @@
     const up = button('↑', 'icon-btn', () => moveRound(ri, -1)); up.title = 'Runde nach oben'; up.disabled = ri === 0;
     const down = button('↓', 'icon-btn', () => moveRound(ri, 1)); down.title = 'Runde nach unten'; down.disabled = ri === state.quiz.rounds.length - 1;
     actions.append(addButton, up, down,button('Duplizieren', 'btn btn--small btn--ghost', () => duplicateRound(ri)), button('Löschen', 'btn btn--small btn--danger', () => deleteRound(ri)));
-    head.append(title, multWrap, actions); card.append(head);
+    // v29: eigenes Theme für diese Runde (leer = wie das Quiz)
+    const themeSelect = document.createElement('select');
+    themeSelect.className = 'select round-theme';
+    themeSelect.setAttribute('aria-label', 'Design dieser Runde');
+    themeSelect.innerHTML = `<option value="">wie das Quiz</option>${(window.SylasphereThemes?.list() || []).map(t => `<option value="${App.escapeHTML(t.id)}">${App.escapeHTML(t.name)}</option>`).join('')}`;
+    themeSelect.value = round.theme || '';
+    themeSelect.addEventListener('change', e => { if (e.target.value) round.theme = e.target.value; else delete round.theme; showThemePreview(e.target.value || state.quiz.settings.theme); queueSave(); });
+    const themeWrap = labelField('Design', themeSelect);
+    head.append(title, multWrap, themeWrap, actions); card.append(head);
 
     const body = div('');
     round.questions.forEach((q, qi) => { body.append(renderQuestionEditor(q, ri, qi)); body.append(insertBar(ri, qi + 1, q)); });

@@ -301,7 +301,8 @@
   function render(next) {
     state = next;
     window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
-    window.SylasphereThemes?.applyQuiz(state.quiz); // Design des Quiz
+    window.SylasphereThemes?.applyQuiz(state.quiz, state.currentRoundIndex); // Design des Quiz (v29: optional pro Runde)
+    window.SylasphereThemes?.observe(state); // v29: Übergang zwischen Fragen (auch auf dem Beamer-Rechner)
     const current = engine.getCurrent(state);
     App.setText(els['session-code'], state.code);
     App.setText(els['session-status'], statusLabel(state));
@@ -678,13 +679,10 @@
   }
 
   function finalPodium(ranked) {
-    const top = ranked.slice(0, 3); const order = [top[1], top[0], top[2]].filter(Boolean);
-    const podium = order.map(player => {
-      const rank = ranked.findIndex(p => p.id === player.id) + 1;
-      return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
-    }).join('');
-    return `<div class="final-screen"><span class="eyebrow">Spiel beendet</span><h2>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!'}</h2><div class="podium">${podium}</div>${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
+    // v29: Siegerehrung im Stil des Themes (js/core/themes.js)
+    return window.SylasphereThemes.ceremony(ranked, { role: 'moderator', eyebrow: 'Spiel beendet', title: ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!', after: window.SylasphereHighlights?.html(state.highlights) || '' });
   }
+
 
   // ---------- v28: Ergebnisse speichern (XP, Spieler- und Moderator-Statistik) ----------
   const saving = { code: '', status: 'idle', summary: null };

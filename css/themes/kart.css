@@ -1,0 +1,73 @@
+/* =====================================================================
+   Theme „Mario Kart“ (id: kart) – v29
+   Rennstrecke: Zielflaggen-Karos, bunte Streckenstreifen, Speed-Linien,
+   „?“-Würfel in eigener Zeichnung. Keine Original-Grafiken, -Logos oder -Figuren.
+   Schrift: Luckiest Guy (Apache 2.0, assets/fonts/LICENSE-luckiest-guy.txt)
+   ===================================================================== */
+@font-face{font-family:"Luckiest Guy";src:url("../../assets/fonts/luckiest-guy-400.woff2") format("woff2");font-weight:400;font-display:swap}
+
+html[data-theme="kart"]{
+  --bg:#0f1a44;--bg-deep:#0a1234;--bg2:#15225a;--panel:#14205a;--panel2:#1b2a6b;--surface:#16235f;--surface-hi:#223479;--input-bg:#0d1740;
+  --text:#ffffff;--text-soft:#e6ecff;--muted:#bcc7ef;--line:rgba(255,255,255,.16);
+  --accent:#ffd21f;--accent-hi:#ffde52;--accent-soft:#ffe47a;--accent-text:#ffe066;--accent-grad-end:#ff9f1c;
+  --accent2:#ff4b3e;--accent2-text:#ffa39b;
+  --success:#35d45f;--success-text:#9ff0b2;--warning:#ffd21f;--warning-text:#ffe066;--danger:#ff4b3e;--danger-text:#ffa39b;
+  --on-accent:#1a1300;--on-success:#06200e;--cat-text-l:86%;
+  --accent-rgb:255,210,31;--accent-soft-rgb:255,228,122;--accent2-rgb:255,75,62;--success-rgb:53,212,95;--danger-rgb:255,75,62;--warning-rgb:255,210,31;
+  --overlay-rgb:255,255,255;--shadow-rgb:0,0,0;--bg-rgb:15,26,68;--surface-rgb:22,35,95;
+  --shadow:0 18px 0 -8px rgba(0,0,0,.35),0 24px 50px rgba(0,0,0,.35);
+  --page-bg:radial-gradient(ellipse at 50% 120%,rgba(43,179,74,.35),transparent 55%),linear-gradient(180deg,#1b3aa8 0%,#13205a 42%,#0a1234 100%);
+  --font-body:"Nunito",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Luckiest Guy","Arial Black",Impact,sans-serif;--font-title:"Nunito",ui-sans-serif,system-ui,sans-serif;--display-spacing:.02em;
+  --radius:20px;--radius-sm:12px;
+}
+html[data-theme="kart"] .question-title{font-weight:900;letter-spacing:-.01em}
+html[data-theme="kart"] .panel{border:3px solid rgba(255,255,255,.18)}
+html[data-theme="kart"] .brand-mark{background:conic-gradient(#fff 0 25%,#111 0 50%,#fff 0 75%,#111 0) 0 0/50% 50%;color:#e8302a;text-shadow:0 1px 0 #fff,0 -1px 0 #fff,1px 0 0 #fff,-1px 0 0 #fff}
+html[data-theme="kart"] .btn--primary{box-shadow:0 5px 0 #b88a00;border-radius:14px}
+html[data-theme="kart"] .btn--primary:active{transform:translateY(3px);box-shadow:0 2px 0 #b88a00}
+html[data-theme="kart"] .answer-btn{border-width:2px;border-bottom-width:5px}
+html[data-theme="kart"] h1,html[data-theme="kart"] h2,html[data-theme="kart"] .final-screen h2,html[data-theme="kart"] .final-screen h1{letter-spacing:.02em;text-shadow:0 3px 0 rgba(0,0,0,.35)}
+
+/* ---------- Bühne: Karos oben/unten, Streckenstreifen, Speed-Linien ---------- */
+html[data-theme="kart"] .theme-layer--1{background:
+  repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/28px 28px;height:28px;opacity:.55;inset:0 0 auto 0}
+html[data-theme="kart"] .theme-layer--1::after{content:"";position:fixed;left:0;right:0;bottom:0;height:28px;background:repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/28px 28px;opacity:.55}
+html[data-theme="kart"] .theme-layer--2{inset:-50%;background:repeating-linear-gradient(115deg,rgba(232,48,42,.10) 0 60px,rgba(255,210,31,.08) 60px 120px,rgba(43,179,74,.08) 120px 180px,rgba(30,144,255,.10) 180px 240px);animation:kart-road 14s linear infinite}
+html[data-theme="kart"] .theme-layer--3{background:
+  linear-gradient(90deg,transparent 0 40%,rgba(255,255,255,.22) 50%,transparent 60%) 0 22%/320px 2px no-repeat,
+  linear-gradient(90deg,transparent 0 40%,rgba(255,255,255,.18) 50%,transparent 60%) 0 58%/420px 2px no-repeat,
+  linear-gradient(90deg,transparent 0 40%,rgba(255,255,255,.16) 50%,transparent 60%) 0 81%/260px 2px no-repeat;animation:kart-speed 2.8s linear infinite}
+@keyframes kart-road{to{transform:translateX(254px)}}
+@keyframes kart-speed{from{background-position:120% 22%,130% 58%,125% 81%}to{background-position:-40% 22%,-50% 58%,-45% 81%}}
+/* „?“-Würfel (eigene Zeichnung) */
+html[data-theme="kart"] .theme-deco--box1,html[data-theme="kart"] .theme-deco--box2,html[data-theme="kart"] .theme-deco--box3{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,rgba(255,255,255,.5),rgba(255,255,255,.1) 45%),linear-gradient(135deg,#ffd21f,#ff9f1c);border:3px solid rgba(255,255,255,.75);box-shadow:0 6px 0 rgba(0,0,0,.25);opacity:.8;animation:kart-bob 3.4s ease-in-out infinite}
+html[data-theme="kart"] .theme-deco--box1::after,html[data-theme="kart"] .theme-deco--box2::after,html[data-theme="kart"] .theme-deco--box3::after{content:"?";position:absolute;inset:0;display:grid;place-items:center;font:400 32px/1 "Luckiest Guy",sans-serif;color:#fff;text-shadow:0 2px 0 #b35b00}
+/* nur am unteren Rand (dort steht kein freier Text), halb aus dem Bild */
+html[data-theme="kart"] .theme-deco--box1{left:-16px;bottom:70px}
+html[data-theme="kart"] .theme-deco--box2{right:-14px;bottom:110px;animation-delay:-1.2s;transform:rotate(8deg)}
+html[data-theme="kart"] .theme-deco--box3{left:46%;bottom:-20px;animation-delay:-2.3s;width:44px;height:44px}
+@keyframes kart-bob{0%,100%{translate:0 0}50%{translate:0 -12px}}
+
+/* ---------- Übergang: Startampel ---------- */
+.theme-transition--kart{background:rgba(10,18,52,.55)}
+.kart-start{display:grid;justify-items:center;gap:14px;padding:22px 30px;border-radius:24px;background:rgba(22,35,95,.97);border:3px solid rgba(255,255,255,.3);box-shadow:0 10px 0 rgba(0,0,0,.35);max-width:min(560px,100%);text-align:center;animation:tt-pop var(--tt-duration) ease both}
+.kart-lights{display:flex;gap:12px;padding:10px 14px;border-radius:40px;background:#111;border:3px solid #333}
+.kart-lights i{width:34px;height:34px;border-radius:50%;background:#3a1010;animation:kart-light-1 var(--tt-duration) linear both}
+.kart-lights i:nth-child(2){animation-name:kart-light-2}
+.kart-lights i:nth-child(3){animation-name:kart-light-3}
+@keyframes kart-light-1{0%{background:#3a1010}18%{background:#ff2a1f;box-shadow:0 0 16px #ff2a1f}62%,100%{background:#2bd65a;box-shadow:0 0 18px #2bd65a}}
+@keyframes kart-light-2{0%{background:#3a1010}36%{background:#ff2a1f;box-shadow:0 0 16px #ff2a1f}62%,100%{background:#2bd65a;box-shadow:0 0 18px #2bd65a}}
+@keyframes kart-light-3{0%{background:#3a1010}54%{background:#ff2a1f;box-shadow:0 0 16px #ff2a1f}62%,100%{background:#2bd65a;box-shadow:0 0 18px #2bd65a}}
+.kart-start small{color:#ffe066;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.kart-start strong{font:400 clamp(2rem,8vw,3.4rem)/1 "Luckiest Guy",sans-serif;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.4);overflow-wrap:anywhere}
+.kart-start span{color:#e6ecff;font-weight:800}
+.kart-go{opacity:0;animation:kart-go var(--tt-duration) steps(1) both}
+@keyframes kart-go{0%,61%{opacity:0}62%,100%{opacity:1}}
+
+/* ---------- Siegerehrung: Zielflagge ---------- */
+.ceremony--kart .kart-finish{height:22px;max-width:620px;margin:0 auto 6px;border-radius:6px;background:repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/22px 22px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.ceremony--kart .podium-place--1{background:linear-gradient(180deg,rgba(255,210,31,.35),rgba(255,210,31,.08));border:3px solid #ffd21f}
+.ceremony--kart .podium-place>b{font-family:"Luckiest Guy",sans-serif;opacity:.55}
+.ceremony--kart .ceremony-fx--confetti i:nth-child(4n){background:#e8302a}
+.ceremony--kart .ceremony-fx--confetti i:nth-child(4n+2){background:#2bb34a}

@@ -1,5 +1,24 @@
 # Sylasphere – Changelog
 
+## v29 – Themes: Grundlage + vier neue Designs
+- **Vier neue Designs:** 🏁 **Mario Kart** (Startampel, Zielflagge, „?“-Würfel), ⚔️ **League of Legends** (Gold, Sechsecke, goldener Ring, Sieges-Banner), 🌍 **GeoGuessr** (Höhenlinien, Kartennadeln, Kompass, Ergebnis-Balken), 🎯 **Valorant** (Signalrot, kantige Formen, diagonaler Wisch, MVP-Karte). Alles eigene Zeichnungen und selbst erzeugte Töne, keine Logos, Figuren oder Original-Sounds.
+- **Theme-Technik:** Jedes Theme kann jetzt Folgendes mitbringen:
+  - einen eigenen Hintergrund mit Animationen und Deko am Rand. Die Deko liegt immer hinter den Inhalten und nie unter Text.
+  - ein **Sound-Paket**
+  - einen **Übergang** zwischen den Fragen (ca. 1,5 Sekunden, blockiert nichts)
+  - eine eigene **Siegerehrung**
+  Die alten vier Designs sehen aus wie bisher.
+- **Design pro Runde:** Im Editor hat jede Runde das Feld „Design“ (Standard: wie das Quiz). Beim Rundenwechsel wechseln alle Geräte mit Übergang.
+- **Vorschau im Editor:** „👁 Vorschau zeigen“ unter der Design-Auswahl, mit Beispielfrage, Rangliste mit langen Namen, Übergang, Sounds und Siegerehrung. Auch direkt als `vorschau.html?theme=…`.
+- **⚙️ Animationen reduzieren:** Hintergrund steht still, Übergang wird eine kurze Überblendung, kein Konfetti. Ohne eigene Wahl gilt die Systemeinstellung des Geräts.
+- **Lesbarkeit:**
+  - Ein Test prüft den Kontrast aller neuen Designs: Text mindestens 7:1, alles andere mindestens 4,5:1.
+  - Namen auf dem Podest werden nicht mehr abgeschnitten, sondern umbrochen.
+  - Die Browser-Prüfung kontrolliert, dass Deko und Avatare keine Namen verdecken.
+- **Schriften:** Luckiest Guy (Apache 2.0), Cinzel, Rubik und Teko (SIL OFL), lokal in `assets/fonts/` mit Lizenzdateien.
+- Neue Dateien: `vorschau.html`, `css/themes/` (`index.css`, `kart.css`, `legends.css`, `geo.css`, `tactical.css`), `js/themes/` (vier Dateien), `js/views/preview-view.js`, `tests/v29-themes.js`, vier Schriften mit Lizenzen.
+- Keine Änderung an den Firebase-Regeln nötig.
+
 ## v28 – Statistiken + XP & Stufen
 - **Mit Konto spielen:** Auf der Spielerseite kann man sich mit Google oder E-Mail anmelden (ohne Freischaltung). Wer angemeldet ist, sammelt XP. Gäste spielen weiter wie bisher, nur ohne XP. Wer im Konto schon in einem anderen Tab spielt oder den eigenen Raum betritt, spielt automatisch als Gast.
 - **XP pro Spiel:** 20 fürs Mitspielen (mindestens die Hälfte der Fragen beantwortet), 5 pro richtiger Antwort, 50 / 30 / 15 für Platz 1 / 2 / 3, 10 pro Highlight. Höchstens 250 XP pro Spiel und 600 XP pro Tag.

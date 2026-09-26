@@ -12,6 +12,9 @@
    *  - Vibration an/aus (nur Handys mit Vibrations-Unterstützung, z. B. Android; iPhones unterstützen das im Browser nicht)
    *
    * Aufruf: SylasphereSfx.play('correct'), SylasphereSfx.vibrate('turn').
+   *
+   * v29: Themes können eigene Töne mitbringen (Sound-Paket, siehe js/core/themes.js).
+   * Fehlt ein Ton im Paket, klingt der Standard-Ton unten.
    */
   const VOLUME_KEY = 'sylasphere:sfx-volume';
   const VIBRATE_KEY = 'sylasphere:vibrate';
@@ -81,18 +84,25 @@
     turn: c => { tone(c, { f: 880, d: 0.1, type: 'sine', v: 0.4 }); tone(c, { f: 1175, at: 0.12, d: 0.2, type: 'sine', v: 0.4 }); },
     join: c => tone(c, { f: 740, d: 0.12, type: 'sine', v: 0.3, to: 990 }),
     pop: c => tone(c, { f: 600, d: 0.08, type: 'sine', v: 0.2, to: 900 }),
+    transition: c => { noise(c, { d: 0.35, v: 0.08, hp: 1800 }); tone(c, { f: 420, d: 0.3, type: 'sine', v: 0.12, to: 840 }); },
     fanfare: c => { const notes = [523, 523, 523, 659, 784, 659, 784]; const times = [0, 0.12, 0.24, 0.36, 0.6, 0.78, 0.9]; notes.forEach((f, i) => tone(c, { f, at: times[i], d: i === notes.length - 1 ? 0.8 : 0.16, type: 'triangle', v: 0.35 })); noise(c, { at: 0.9, d: 0.6, v: 0.1, hp: 4000 }); }
   };
   const lastPlayed = new Map();
   function play(name) {
-    if (!enabled() || !SOUNDS[name]) return false;
+    const pack = window.SylasphereThemes?.sounds?.() || null;
+    const custom = pack && typeof pack[name] === 'function' ? pack[name] : null;
+    if (!enabled() || (!SOUNDS[name] && !custom)) return false;
     const c = audio();
     if (!c) return false;
     if (c.state !== 'running') { c.resume().catch(() => {}); if (c.state !== 'running') return false; }
     const now = Date.now();
     if (now - (lastPlayed.get(name) || 0) < 80) return false; // doppelte Auslöser zusammenfassen
     lastPlayed.set(name, now);
-    try { SOUNDS[name](c); return true; } catch (_) { return false; }
+    try {
+      if (custom) custom({ tone: o => tone(c, o), noise: o => noise(c, o), c });
+      else SOUNDS[name](c);
+      return true;
+    } catch (_) { return false; }
   }
 
   // ---------------------------------------------------------------- Vibration

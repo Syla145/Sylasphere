@@ -8,6 +8,7 @@
    *  - Design: wie im Quiz (Standard) oder ein eigenes Design für dieses Gerät
    *  - Musik: an/aus und Lautstärke (Song-Enthüllung, Audio-Quiz)
    *  - v27: Soundeffekte an/aus (pro Seite) + Lautstärke, Vibration an/aus, Emoji-Reaktionen an/aus
+   *  - v29: Animationen reduzieren (ohne eigene Wahl wie die Systemeinstellung des Geräts)
    * Gespeichert wird im Browser (localStorage) – nichts davon geht an andere Geräte.
    */
   const App = () => window.SchmobinApp;
@@ -47,6 +48,12 @@
       </section>`;
   }
 
+  function motionNote() {
+    const setting = Themes()?.motionSetting?.() || '';
+    const base = 'Hintergrund steht still, Übergänge werden zu einer kurzen Überblendung, kein Konfetti.';
+    return setting ? `${base} Eigene Wahl für dieses Gerät.` : `${base} Folgt gerade der Systemeinstellung des Geräts.`;
+  }
+
   function open() {
     const themes = Themes()?.list() || [];
     const media = Media();
@@ -65,6 +72,11 @@
           ${themes.map(t => `<button type="button" class="theme-option${device === t.id ? ' is-selected' : ''}" data-theme-choice="${esc(t.id)}" role="radio" aria-checked="${device === t.id}" title="${esc(t.description)}"><span class="theme-swatch" style="background:${esc(t.swatch[0])}">${t.swatch.slice(1).map(c => `<i style="background:${esc(c)}"></i>`).join('')}</span><strong>${esc(t.name)}</strong></button>`).join('')}
         </div>
         <p class="microcopy">„Wie im Quiz“ übernimmt das Design, das der Moderator gewählt hat.</p>
+      </section>
+      <section class="settings-section"><h3>🎞️ Animationen</h3>
+        <label class="settings-switch"><input type="checkbox" data-motion-toggle ${Themes()?.reducedMotion?.() ? 'checked' : ''}><span>Animationen reduzieren</span></label>
+        <p class="microcopy" data-motion-note>${motionNote()}</p>
+        <button type="button" class="link-btn" data-motion-system ${Themes()?.motionSetting?.() ? '' : 'hidden'}>Wie die Systemeinstellung</button>
       </section>
       <section class="settings-section"><h3>🎵 Musik</h3>
         ${media ? `<label class="settings-switch"><input type="checkbox" data-music-on ${media.enabled() ? 'checked' : ''}><span>Musik auf diesem Gerät abspielen</span></label>
@@ -108,6 +120,9 @@
       $('[data-vibrate]')?.addEventListener('change', e => { sfx.setVibration(e.target.checked); if (e.target.checked) sfx.vibrate('turn'); });
     }
     $('[data-reactions]')?.addEventListener('change', e => setReactions(e.target.checked));
+    const syncMotion = () => { $('[data-motion-toggle]').checked = Boolean(Themes()?.reducedMotion()); $('[data-motion-note]').textContent = motionNote(); $('[data-motion-system]').hidden = !Themes()?.motionSetting(); };
+    $('[data-motion-toggle]')?.addEventListener('change', e => { Themes()?.setMotion(e.target.checked ? 'reduced' : 'full'); syncMotion(); });
+    $('[data-motion-system]')?.addEventListener('click', () => { Themes()?.setMotion(''); syncMotion(); });
     setTimeout(() => $('[data-close]').focus(), 30);
   }
 

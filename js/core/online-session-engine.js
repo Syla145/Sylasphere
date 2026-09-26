@@ -41,6 +41,7 @@
         id: round.id,
         title: round.title,
         pointsMultiplier: Number(round.pointsMultiplier),
+        ...(round.theme ? { theme: String(round.theme) } : {}), // v29: Theme der Runde
         questions: round.questions.map(previewQuestion)
       }))
     };

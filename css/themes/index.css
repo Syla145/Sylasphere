@@ -1,0 +1,6 @@
+/* v29: Themes mit eigener Datei. Neues Theme: Datei css/themes/<id>.css anlegen und hier eintragen
+   (dazu Eintrag in THEMES in js/core/themes.js und optional js/themes/<id>.js). */
+@import url("kart.css?v=29");
+@import url("legends.css?v=29");
+@import url("geo.css?v=29");
+@import url("tactical.css?v=29");

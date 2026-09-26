@@ -62,7 +62,8 @@
   function render(next) {
     state = next;
     window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
-    window.SylasphereThemes?.applyQuiz(state.quiz); // Design des Quiz
+    window.SylasphereThemes?.applyQuiz(state.quiz, state.currentRoundIndex); // Design des Quiz (v29: optional pro Runde)
+    window.SylasphereThemes?.observe(state); // v29: Übergang zwischen Fragen
     const current = engine.getCurrent(state);
     App.setText(els['spectator-code'], state.code);
     if (els['spectator-mode']) { els['spectator-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['spectator-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['spectator-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
@@ -134,13 +135,10 @@
   }
 
   function finalPodium(ranked) {
-    const top = ranked.slice(0, 3); const order = [top[1], top[0], top[2]].filter(Boolean);
-    const podium = order.map(player => {
-      const rank = ranked.findIndex(p => p.id === player.id) + 1;
-      return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
-    }).join('');
-    return `<div class="final-screen presenter"><span class="eyebrow">Finale</span><h1>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Quiz beendet'}</h1><div class="podium">${podium}</div>${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
+    // v29: Siegerehrung im Stil des Themes (js/core/themes.js)
+    return window.SylasphereThemes.ceremony(ranked, { role: 'spectator', className: 'presenter', eyebrow: 'Finale', title: ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Quiz beendet', after: window.SylasphereHighlights?.html(state.highlights) || '' });
   }
+
 
   function renderLeaderboard() {
     const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 10);

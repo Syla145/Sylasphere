@@ -27,6 +27,7 @@
       if (!round.title.trim()) warnings.push({ path: `${rp}.title`, message: 'Rundentitel ist leer.' });
       if (!Number.isFinite(Number(round.pointsMultiplier)) || Number(round.pointsMultiplier) < 0) errors.push({ path: `${rp}.pointsMultiplier`, message: 'Punkte-Multiplikator muss eine Zahl ≥ 0 sein.' });
       if (!round.questions.length) warnings.push({ path: `${rp}.questions`, message: 'Runde enthält keine Fragen.' });
+      if (round.theme && window.SylasphereThemes && !window.SylasphereThemes.isValid(round.theme)) warnings.push({ path: `${rp}.theme`, message: `Unbekanntes Design „${round.theme}“ – die Runde nutzt das Design des Quiz.` });
 
       round.questions.forEach((q, qi) => {
         const p = `${rp}.questions[${qi}]`;
