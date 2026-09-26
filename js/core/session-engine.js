@@ -423,6 +423,9 @@
         state.currentQuestionIndex = qi;
       });
     }
+    /** v28: XP und Statistiken gibt es nur online (lokal haben Spieler kein Konto) */
+    saveResults() { return Promise.resolve({ local: true, eligible: false, reason: 'Im lokalen Modus gibt es keine XP.', saved: [], skipped: 0, errors: 0 }); }
+
     finish(extra = {}) { this.mutate(state => { state.status = 'finished'; state.questionOpen = false; state.questionEndsAt = null; state.finishedAt = Date.now(); state.highlights = Array.isArray(extra.highlights) ? Quiz.clone(extra.highlights) : null; }); }
     resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }
   }

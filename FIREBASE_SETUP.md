@@ -9,6 +9,37 @@ Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Proj
 3. Den kompletten Inhalt aus `firebase-database.rules.json` einfügen.
 4. **Publish / Veröffentlichen**.
 
+## Neu in v28: XP, Stufen und Statistiken
+
+**Was du tun musst (einmalig, ca. 2 Minuten):**
+
+1. **Realtime Database** → *Regeln*: den kompletten Inhalt von `firebase-database.rules.json` einfügen → *Veröffentlichen*.
+2. `admin.html` einmal öffnen (als Admin angemeldet). Die Seite trägt die Emote-Liste automatisch in Firebase ein. Unter „🧹 Aufräumen & XP“ muss „✓ Liste in Firebase aktualisiert“ bzw. „✓ Liste ist aktuell“ stehen.
+
+Sonst ist nichts nötig. Storage- und Firestore-Regeln bleiben unverändert, und du musst keine neue Anmeldeart aktivieren: Spieler melden sich mit Google oder E-Mail an, wie Moderatoren, nur ohne Freischaltung.
+
+**Neue Bereiche in der Realtime Database:**
+
+| Pfad | Inhalt | Wer schreibt | Wer liest |
+|---|---|---|---|
+| `players/<uid>/profile` | Spielername, „in der Bestenliste zeigen“ | der Spieler selbst (nur mit Konto) | der Spieler selbst |
+| `players/<uid>/games/<Raum>` | Ergebnis eines Spiels (Platz, Richtige, XP, Treffer pro Fragetyp und Thema) | nur der Besitzer dieses Raums, genau einmal, nur für Spieler im Raum, nicht für sich selbst, höchstens 250 XP | der Spieler selbst, Admin |
+| `players/<uid>/xp` | Gesamt-XP und XP des Tages | der Raumbesitzer, nur zusammen mit einem neuen Spielergebnis; die Regel prüft, dass die Summe genau stimmt, und das Tageslimit von 600 XP | alle Angemeldeten |
+| `leaderboard/<uid>` | Name + XP (nur wer „in der Bestenliste zeigen“ einschaltet) | der Spieler selbst, XP muss dem echten Stand entsprechen | alle Angemeldeten |
+| `modStats/<uid>/<Quiz>` | wie oft jede Frage gestellt und richtig beantwortet wurde | der Moderator selbst | der Moderator selbst |
+| `userRooms/<uid>/<Raum>` | eigene Räume (zum automatischen Aufräumen) | der Moderator selbst | der Moderator selbst |
+| `emotes/<Emoji>` | ab wie vielen XP ein Emote freigeschaltet ist | Admin (automatisch über `admin.html`) | alle Angemeldeten |
+
+**Geänderte Regeln bei den Räumen:**
+- Ein ganzer Raum darf jetzt gelöscht werden, vom Besitzer und vom Admin (für das Aufräumen). Nur der Admin darf die Liste aller Räume lesen.
+- Spielerprofile im Raum dürfen `account` (Spieler mit Konto) und `xp` enthalten. `xp` darf nicht höher sein als der echte XP-Stand, damit niemand eine falsche Stufe zeigt.
+- Reaktionen: Emotes aus `emotes` gehen nur, wenn der Spieler genug XP hat. Die 8 Grund-Emojis gehen immer.
+
+**Gut zu wissen:**
+- Admins dürfen `players/<uid>` von Hand korrigieren, zum Beispiel XP zurücksetzen, falls jemand geschummelt hat.
+- Alte Räume: Beim Erstellen eines neuen Raums löscht jeder Moderator automatisch seine eigenen Räume, die älter als 24 Stunden sind. Ältere Räume von vor v28 räumst du auf `admin.html` mit „Jetzt aufräumen“ ab (alles älter als 2 Tage). Ergebnisse, XP und Statistiken bleiben dabei erhalten.
+- Datenmenge: ungefähr 1 KB pro Spieler und Spiel, weit innerhalb der kostenlosen Grenze.
+
 ## Neu in v27: Emoji-Reaktionen
 
 Die Regeln haben einen neuen Bereich `reactions` bekommen. Realtime Database → *Regeln* → Inhalt von `firebase-database.rules.json` einfügen → *Veröffentlichen*. Sonst funktionieren Reaktionen nur im lokalen Testmodus.

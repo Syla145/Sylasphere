@@ -9,8 +9,8 @@
    * Höchstens etwa eine Reaktion pro Sekunde und Spieler (online zusätzlich vom Server begrenzt).
    * Ein- und ausschaltbar in ⚙️ (Leiste am Handy bzw. Anzeige auf dem Bildschirm).
    *
-   * Später (Roadmap „XP & Stufen“): weitere Emotes werden mit höherer Stufe freigeschaltet –
-   * dafür ist EMOJIS die Grundausstattung, zusätzliche kommen dann pro Konto dazu.
+   * v28: EMOJIS ist die Grundausstattung (auch für Gäste). Weitere Emotes schaltet man mit
+   * höherer Stufe frei (Liste in js/core/progress.js) – setExtra() fügt sie der Leiste hinzu.
    */
   const EMOJIS = ['👏', '😂', '😮', '🔥', '😭', '🤯', '🎉', '👀'];
   const COOLDOWN_MS = 1200;
@@ -24,7 +24,7 @@
     host.dataset.ready = '1';
     host.className = 'reaction-bar';
     host.setAttribute('aria-label', 'Reaktionen');
-    host.innerHTML = EMOJIS.map(e => `<button type="button" class="reaction-btn" data-emoji="${esc(e)}" aria-label="Reaktion ${esc(e)}">${esc(e)}</button>`).join('');
+    renderButtons(host);
     let busy = false;
     host.addEventListener('click', async event => {
       const button = event.target.closest('[data-emoji]');
@@ -42,6 +42,19 @@
     const sync = () => { host.hidden = !on(); };
     document.addEventListener('sylasphere:settings', sync);
     sync();
+  }
+
+  function renderButtons(host) {
+    const extra = (host._extraEmotes || []).filter(e => !EMOJIS.includes(e));
+    host.innerHTML = EMOJIS.concat(extra).map(e => `<button type="button" class="reaction-btn${EMOJIS.includes(e) ? '' : ' is-unlocked'}" data-emoji="${esc(e)}" aria-label="Reaktion ${esc(e)}">${esc(e)}</button>`).join('');
+  }
+  /** v28: freigeschaltete Emotes eines Kontos zusätzlich anzeigen */
+  function setExtra(host, list) {
+    if (!host) return;
+    const next = Array.isArray(list) ? list.slice() : [];
+    if (JSON.stringify(next) === JSON.stringify(host._extraEmotes || [])) return;
+    host._extraEmotes = next;
+    if (host.dataset.ready) renderButtons(host);
   }
 
   /** Bühne für fliegende Reaktionen (Beamer, Moderator). nameOf(playerId) → Name */
@@ -62,5 +75,5 @@
     setTimeout(() => node.remove(), 5000);
   }
 
-  window.SylasphereReactions = { EMOJIS, attachBar, show, COOLDOWN_MS };
+  window.SylasphereReactions = { EMOJIS, attachBar, setExtra, show, COOLDOWN_MS };
 })();

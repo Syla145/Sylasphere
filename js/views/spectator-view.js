@@ -149,7 +149,7 @@
     const gains = resolved ? (state.answers[current.question.id] || {}) : {};
     App.renderRanking(els['spectator-leaderboard'], ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
-      return `<div class="leader-row presenter-row" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
+      return `<div class="leader-row presenter-row" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
     }).join(''));
   }
 

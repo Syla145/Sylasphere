@@ -53,5 +53,5 @@ const set=code('js/core/settings.js');ok(set.includes('data-vibrate')&&set.inclu
 ok(code('spieler.html').includes('id="reaction-bar"'),'reaction bar on player page');
 ok(code('js/views/moderator-view.js').includes('SylasphereHighlights?.compute(state)'),'moderator computes highlights on finish');
 ok(code('js/core/app.js').includes('renderRanking')&&code('js/views/spectator-view.js').includes('App.renderRanking')&&code('js/views/player-view.js').includes('App.renderRanking'),'ranking climb animation');
-ok(code('js/core/app.js').includes("'v27'"),'version v27');
+ok(/const APP_VERSION = 'v(2[7-9]|[3-9][0-9])/.test(code('js/core/app.js')),'version v27 or later');
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

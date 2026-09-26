@@ -25,10 +25,16 @@
     async reusablePlayerId(timeout = 180) {
       const candidate = this.storedPlayerId();
       if (!candidate) return '';
-
       // Without BroadcastChannel we prefer safety for local multiplayer: a manual join
       // becomes a new player instead of risking that another tab is overwritten.
       if (typeof BroadcastChannel !== 'function') return '';
+      return (await this.inUseElsewhere(candidate, timeout)) ? '' : candidate;
+    }
+
+    /** v28: Ist diese Spieler-ID (z. B. ein Konto) gerade in einem anderen Tab aktiv? */
+    async inUseElsewhere(candidate, timeout = 180) {
+      if (!candidate) return false;
+      if (typeof BroadcastChannel !== 'function') return false; // kein Abgleich möglich
 
       const requestId = uid('probe');
       const probe = new BroadcastChannel(`${CHANNEL_PREFIX}${this.code}`);
@@ -49,7 +55,7 @@
             msg.requestId === requestId &&
             msg.playerId === candidate &&
             msg.tabId !== this.tabId
-          ) finish('');
+          ) finish(true);
         };
 
         try {
@@ -60,12 +66,12 @@
             tabId: this.tabId
           });
         } catch (_) {
-          finish('');
+          finish(true);
           return;
         }
 
         // No other live tab claimed the id: treat it as a reload/reconnect of this player.
-        setTimeout(() => finish(candidate), timeout);
+        setTimeout(() => finish(false), timeout);
       });
     }
 
