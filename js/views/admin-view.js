@@ -52,6 +52,31 @@
     const dbm = context.modules.database;
     dbm.onValue(dbm.ref(context.db, 'moderatorRequests'), snap => renderRequests(snap.val() || {}), error => showListError('request-list', error));
     dbm.onValue(dbm.ref(context.db, 'moderators'), snap => { renderModerators(snap.val() || {}); syncStorage(snap.val() || {}); }, error => showListError('moderator-list', error));
+    startUpkeep(context);
+  }
+
+  // v28: Alte Räume löschen, Emote-Liste für die Firebase-Regeln abgleichen
+  function startUpkeep(context) {
+    const Store = window.SylasphereProgressStore;
+    if (!Store) return;
+    const emoteStatus = $('emote-status');
+    const sync = async () => {
+      emoteStatus.textContent = 'Gleiche ab …';
+      try { const changed = await Store.syncEmotes(context); emoteStatus.textContent = changed ? '✓ Liste in Firebase aktualisiert.' : '✓ Liste ist aktuell.'; }
+      catch (error) { emoteStatus.textContent = `Fehler: ${Account.errorText(error)} – sind die Regeln für v28 veröffentlicht?`; }
+    };
+    sync();
+    $('sync-emotes')?.addEventListener('click', sync);
+    $('cleanup-rooms')?.addEventListener('click', async event => {
+      const button = event.currentTarget;
+      if (!confirm('Alle Online-Räume löschen, die älter als 2 Tage sind?')) return;
+      button.disabled = true; button.textContent = 'Räume werden geprüft …';
+      try {
+        const result = await Store.cleanupAllRooms(context);
+        App.toast(`${result.removed} von ${result.checked} Räumen gelöscht.`, 'success');
+      } catch (error) { App.toast(Account.errorText(error), 'error'); }
+      finally { button.disabled = false; button.textContent = 'Jetzt aufräumen'; }
+    });
   }
 
   // v25.1: Upload-Freigaben (Firestore uploaders/<uid>) an Admin + Moderatoren angleichen

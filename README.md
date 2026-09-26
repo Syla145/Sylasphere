@@ -15,7 +15,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 
 1. [Seiten und Rollen](#seiten-und-rollen)
 2. [So läuft ein Quizabend](#so-läuft-ein-quizabend)
-3. [Konten und Moderator-Freigabe](#konten-und-moderator-freigabe)
+3. [Konten und Moderator-Freigabe](#konten-und-moderator-freigabe) · [XP und Stufen](#xp-und-stufen)
 4. [Quizze erstellen und speichern](#quizze-erstellen-und-speichern)
 5. [Bilder, Musik und Videos](#bilder-musik-und-videos)
 6. [Fragetypen](#fragetypen)
@@ -32,11 +32,12 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 | Seite | Für wen | Wofür |
 |---|---|---|
 | `index.html` | alle | Startseite: erst **Anmelden** oder **Als Gast fortfahren**, dann nur die passenden Bereiche |
-| `spieler.html` | Spieler | Mit Raumcode beitreten und antworten. Kein Konto nötig, man tritt als Gast bei |
+| `spieler.html` | Spieler | Mit Raumcode beitreten und antworten. Als Gast ohne Konto oder angemeldet, dann mit XP |
 | `moderator.html` | Moderatoren | Quiz auswählen, Raum erstellen, Fragen öffnen, schließen, auflösen und Punkte vergeben |
 | `zuschauer.html` | Beamer/TV | Große Anzeige mit Frage, Timer, Statistik und Rangliste |
 | `editor.html` | Moderatoren | Quizze erstellen und bearbeiten, online in „Meine Quizze“ speichern (nur mit Moderator-Konto) |
-| `admin.html` | Admin | Moderator-Anfragen freischalten und Rechte entziehen |
+| `profil.html` | Angemeldete | Stufe, XP, Statistik, Emotes, Bestenliste; für Moderatoren die schwersten Fragen |
+| `admin.html` | Admin | Moderator-Anfragen freischalten, Rechte entziehen, alte Räume aufräumen |
 
 ## So läuft ein Quizabend
 
@@ -50,7 +51,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 
 ## Konten und Moderator-Freigabe
 
-- **Spieler** brauchen nie ein Konto.
+- **Spieler** brauchen kein Konto. Mit Konto (Google oder E-Mail, ohne Freischaltung) sammeln sie XP, siehe [XP und Stufen](#xp-und-stufen).
 - **Moderatoren** melden sich mit **Google** oder **E-Mail + Passwort** an. Eine Anmeldung allein gibt **keine** Moderator-Rechte. Neue Konten tippen auf „Moderator-Zugang anfragen“.
 - Der **Admin** schaltet Anfragen auf `admin.html` frei, lehnt sie ab oder entzieht Rechte später wieder. Beim Anfragenden geht es nach der Freigabe sofort weiter.
 - Admins trägst du einmalig von Hand in der Firebase-Konsole ein, unter `admins/<Konto-ID>: true`.
@@ -60,13 +61,22 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 
 | Wer | Bereiche |
 |---|---|
-| Moderator oder Admin (angemeldet) | Moderieren, Mitspielen, Zuschauen, Quiz-Editor (Admins zusätzlich: Verwaltung) |
-| Angemeldet ohne Moderator-Rechte | Mitspielen, Zuschauen, dazu der Hinweis „Moderator-Zugang anfragen“ |
+| Moderator oder Admin (angemeldet) | Moderieren, Mitspielen, Zuschauen, Quiz-Editor (Admins zusätzlich: Verwaltung), Link zum Profil |
+| Angemeldet ohne Moderator-Rechte | Mitspielen, Zuschauen, Link zum Profil, dazu der Hinweis „Moderator-Zugang anfragen“ |
 | Gast (nicht angemeldet) | Mitspielen, Zuschauen |
 
 - Die Wahl „Als Gast fortfahren“ merkt sich der Browser. Oben rechts gibt es jederzeit **Anmelden**.
 - **Einladungslinks** wie `spieler.html?code=ABC234` führen immer direkt zum Beitritt, ohne Auswahl.
-- Angemeldete Spieler bekommen ihren Namen beim Beitreten vorausgefüllt. **Geplant:** eigene Statistiken für angemeldete Konten.
+- Angemeldete Spieler bekommen ihren Namen beim Beitreten vorausgefüllt und sammeln XP.
+
+## XP und Stufen
+
+- **XP pro Online-Spiel:** 20 fürs Mitspielen (mindestens die Hälfte der Fragen beantwortet), 5 pro richtiger Antwort, 50 / 30 / 15 für Platz 1 / 2 / 3, 10 pro Highlight. Höchstens 250 XP pro Spiel und 600 XP pro Tag.
+- XP gibt es nur ab **3 Spielern** und **5 gewerteten Fragen**, nie im eigenen Raum und im lokalen Testmodus gar nicht.
+- **Stufen:** Von Stufe n auf n+1 braucht man 50 × n XP (Stufe 2: 50, 5: 500, 10: 2.250, 20: 9.500). Die Stufe steht als ⭐ neben dem Namen.
+- **Emotes:** Höhere Stufen schalten zusätzliche Reaktionen frei (🥳 ab Stufe 2 bis 🐐 ab Stufe 20). Die Liste steht in `js/core/progress.js`.
+- **Profil** (`profil.html`): Statistik pro Fragetyp und Thema, letzte Spiele und die **Bestenliste**. Dort erscheint man nur, wenn man es selbst einschaltet, und nur mit dem gewählten Spielernamen.
+- Die Ergebnisse speichert das Moderator-Gerät automatisch beim Spielende. Die Firebase-Regeln prüfen die Grenzen.
 
 Die Einrichtung in Firebase steht Schritt für Schritt in **`FIREBASE_SETUP.md`**.
 
@@ -259,7 +269,7 @@ Alles läuft **kostenlos**:
 |---|---|---|
 | GitHub Pages | Website, Bilder, Musik | 1 GB Repo, ca. 100 GB Abruf pro Monat |
 | Firebase Authentication | Anmeldung (Google, E-Mail, Gäste) | für diese Nutzung praktisch unbegrenzt |
-| Firebase Realtime Database | Räume, Antworten, „Meine Quizze“, Dateiliste | 1 GB Speicher, ca. 360 MB Abruf pro Tag (Blaze) |
+| Firebase Realtime Database | Räume, Antworten, „Meine Quizze“, Dateiliste, XP und Statistiken (ca. 1 KB pro Spieler und Spiel) | 1 GB Speicher, ca. 360 MB Abruf pro Tag (Blaze) |
 | Firebase Cloud Storage (ab v25.1) | hochgeladene Bilder und Musik | 5 GB Speicher, 100 GB Abruf pro Monat (nur US-Standorte, Blaze-Tarif) |
 | Cloud Firestore (ab v25.1) | Liste, wer hochladen darf | 1 GB, 50.000 Lesevorgänge pro Tag |
 
@@ -269,7 +279,7 @@ Alles läuft **kostenlos**:
 ## Projektstruktur
 
 ```
-index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html
+index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html
 css/main.css                    Gestaltung aller Seiten und die 4 Designs
 data/                           Beispiel-Quizze (JSON) + quiz-list.json
 assets/                         Bilder, Musik, Schriften (hier eigene Mediendateien ablegen)
@@ -283,17 +293,19 @@ js/core/
   sfx.js                        Soundeffekte (im Browser erzeugt) und Vibration
   reactions.js                  Emoji-Reaktionen (Leiste am Handy, Flug-Animation)
   highlights.js                 Highlights am Show-Ende
+  progress.js                   XP, Stufen, Emotes, Statistik (reine Rechenlogik)
+  progress-store.js             XP & Statistik in Firebase, Bestenliste, Räume aufräumen
   moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)
   session-engine.js             lokaler Spielablauf (Testmodus)
   online-session-engine.js      Online-Spielablauf über Firebase
   quiz-utils.js · quiz-validator.js · timer-engine.js · topics.js · themes.js · media-player.js
 js/question-types/              ein Modul pro Fragetyp (+ README zum Erweitern)
 js/editor/                      Editor, Themenauswahl, Medien-Auswahl
-js/views/                       Startseite, Moderator-, Spieler-, Zuschauer- und Verwaltungsansicht
+js/views/                       Startseite, Moderator-, Spieler-, Zuschauer-, Profil- und Verwaltungsansicht
 firebase-database.rules.json    Sicherheitsregeln (in Firebase veröffentlichen)
 storage.rules                   Regeln für den Dateispeicher (ab v25.1)
 firestore.rules                 Regeln für die Upload-Freigaben (ab v25.1, Admin-ID eintragen)
-tests/                          automatische Tests
+tests/                          automatische Tests (tests/lib/: Hilfen, z. B. Regel-Auswerter)
 ```
 
 ## Tests

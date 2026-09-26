@@ -320,6 +320,7 @@
     const total = Quiz.allQuestions(state.quiz).length;
     App.setText(els['round-progress'], current.round ? `${current.round.title} · Frage ${qIndexGlobal + 1}/${total}` : 'Keine Frage');
     renderPlayers(); renderQuestion(current); renderTimer(); renderButtons(current);
+    if (state.status === 'finished') saveResults(); // v28: XP & Statistiken beim Spielende
     window.SylasphereSfx?.observe(state, { current }); // v27 (auf der Moderator-Seite standardmäßig aus)
     // QR-Code zum Beitreten (nur neu zeichnen, wenn sich Raum oder Modus ändert)
     const qrBox = document.getElementById('join-qr-small');
@@ -349,7 +350,7 @@
     els['players-list'].innerHTML = players.map((p, i) => `
       <div class="player-row" data-player="${App.escapeHTML(p.id)}">
         <div class="player-rank">${i + 1}</div><div class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</div>
-        <div class="player-name"><strong>${App.escapeHTML(p.name)}</strong><span>${App.formatPoints(p.score)}${transport === 'online' && p.active === false ? ' · offline' : ''}</span></div>
+        <div class="player-name"><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span>${App.formatPoints(p.score)}${transport === 'online' && p.active === false ? ' · offline' : ''}</span></div>
         <div class="score-controls score-controls--precise" aria-label="Punkte von ${App.escapeHTML(p.name)} anpassen">
           <button type="button" class="score-step" data-delta="-10" title="10 Punkte abziehen">−10</button>
           <button type="button" class="score-step score-step--one" data-delta="-1" title="1 Punkt abziehen">−1</button>
@@ -383,7 +384,7 @@
     els['question-area'].dataset.key = '';
     if (state.status === 'finished') {
       const winners = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
-      els['question-area'].innerHTML = finalPodium(winners); els['answer-status'].innerHTML = ''; return;
+      els['question-area'].innerHTML = finalPodium(winners); els['answer-status'].innerHTML = resultsNotice(); return;
     }
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
     if (!state.questionStartedAt) {
@@ -683,6 +684,30 @@
       return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
     }).join('');
     return `<div class="final-screen"><span class="eyebrow">Spiel beendet</span><h2>${ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!'}</h2><div class="podium">${podium}</div>${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
+  }
+
+  // ---------- v28: Ergebnisse speichern (XP, Spieler- und Moderator-Statistik) ----------
+  const saving = { code: '', status: 'idle', summary: null };
+  async function saveResults() {
+    if (!engine?.saveResults || saving.code === state.code) return;
+    saving.code = state.code; saving.status = 'busy'; saving.summary = null;
+    try {
+      // Spielende über „Weiter“ statt „Beenden“: Highlights nachträglich berechnen, damit alle sie sehen
+      if (!state.highlights) { const cards = window.SylasphereHighlights?.compute(state) || []; if (cards.length) await engine.finish({ highlights: cards }); }
+      saving.summary = await engine.saveResults(state); saving.status = 'done';
+    }
+    catch (error) { console.warn('Ergebnisse nicht gespeichert', error); saving.status = 'error'; saving.code = ''; }
+    if (state?.status === 'finished') els['answer-status'].innerHTML = resultsNotice();
+  }
+  function resultsNotice() {
+    if (transport !== 'online') return '<div class="notice">💻 Lokaler Modus: XP und Statistiken werden nur bei Online-Spielen gespeichert.</div>';
+    if (saving.status === 'busy' || saving.status === 'idle') return '<div class="notice">💾 Ergebnisse werden gespeichert …</div>';
+    if (saving.status === 'error' || !saving.summary) return '<div class="notice notice--warning">Ergebnisse konnten nicht gespeichert werden. Sind die neuen Firebase-Regeln (v28) veröffentlicht?</div>';
+    const s = saving.summary;
+    const list = s.saved.map(p => `${App.escapeHTML(p.name)} +${p.xp} XP`).join(' · ');
+    const head = !s.saved.length ? 'Keine Spieler mit Konto – es wurden keine XP vergeben.'
+      : s.eligible ? `⭐ XP vergeben: ${list}` : `💾 Ergebnisse gespeichert (ohne XP): ${s.saved.map(p => App.escapeHTML(p.name)).join(' · ')}`;
+    return `<div class="notice ${s.errors ? 'notice--warning' : 'notice--success'} results-notice">${head}${s.eligible ? '' : `<br><small>${App.escapeHTML(s.reason)}</small>`}${s.skipped ? `<br><small>${s.skipped} Gast${s.skipped === 1 ? '' : 'e'} ohne Konto.</small>` : ''}${s.errors ? `<br><small>Bei ${s.errors} Spieler${s.errors === 1 ? '' : 'n'} hat das Speichern nicht geklappt.</small>` : ''}<br><small>Schwerste Fragen und Statistik: <a href="./profil.html">Profil ↗</a></small></div>`;
   }
 
   async function copyJoinLink(kind) {

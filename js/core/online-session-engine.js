@@ -98,6 +98,7 @@
       this.raw = { meta: null, public: null, outline: null, profiles: {}, scores: {}, answers: {}, buzzerClaims: {}, buzzerBlocked: {}, hostQuiz: null };
       this.playerDisconnect = null;
       this.destroyed = false;
+      this.isAccount = false; // v28: Spieler mit Konto
     }
 
     static generateCode() {
@@ -174,23 +175,36 @@
       }
 
       localStorage.setItem(LAST_ONLINE_SESSION_KEY, code);
+      // v28: Raum merken und eigene Räume löschen, die älter als 24 h sind (läuft im Hintergrund)
+      window.SylasphereProgressStore?.rememberRoom(context, code, now).catch(() => {});
       const engine = new OnlineSessionEngine(code, 'moderator', context);
       await engine.attach();
       return engine;
     }
 
-    static async connect(code, role = 'player') {
+    /**
+     * options.account: Firebase-Kontext eines angemeldeten Kontos (v28, nur Spieler).
+     * Dann tritt der Spieler mit seiner Konto-ID bei und sammelt XP. Gehört ihm der Raum
+     * selbst, spielt er als Gast (im eigenen Raum gibt es keine XP).
+     */
+    static async connect(code, role = 'player', options = {}) {
       const normalizedCode = roomCode(code);
       if (normalizedCode.length !== 6) throw new Error('Bitte einen gültigen 6-stelligen Raumcode eingeben.');
-      const context = await Firebase.ready(role);
-      const dbm = context.modules.database;
-      const metaSnap = await dbm.get(dbm.ref(context.db, `rooms/${normalizedCode}/meta`));
+      let context = role === 'player' && options.account?.auth?.currentUser && !options.account.auth.currentUser.isAnonymous ? options.account : await Firebase.ready(role);
+      let dbm = context.modules.database;
+      let metaSnap = await dbm.get(dbm.ref(context.db, `rooms/${normalizedCode}/meta`));
       if (!metaSnap.exists()) throw new Error('Online-Sitzung nicht gefunden.');
+      if (context === options.account && metaSnap.val()?.ownerUid === context.auth.currentUser.uid) {
+        context = await Firebase.ready(role);
+        dbm = context.modules.database;
+        metaSnap = await dbm.get(dbm.ref(context.db, `rooms/${normalizedCode}/meta`));
+      }
       const meta = metaSnap.val();
       if (role === 'moderator' && meta.ownerUid !== context.auth.currentUser.uid) {
         throw new Error('Diese Online-Sitzung gehört zu einer anderen Moderator-Identität. Öffne sie im ursprünglichen Moderator-Browser.');
       }
       const engine = new OnlineSessionEngine(normalizedCode, role, context);
+      engine.isAccount = role === 'player' && context === options.account;
       engine.raw.meta = meta;
       await engine.attach();
       if (role === 'moderator') localStorage.setItem(LAST_ONLINE_SESSION_KEY, normalizedCode);
@@ -263,6 +277,8 @@
         joinedAt: Number(profile?.joinedAt) || 0,
         active: profile?.active !== false,
         score: Math.round(Number(scores[id]) || 0),
+        account: profile?.account === true, // v28: Spieler mit Konto (sammelt XP)
+        xp: Math.max(0, Number(profile?.xp) || 0),
         lastAnsweredQuestionId: String(profile?.lastAnsweredQuestionId || '')
       })).sort(playerSort);
 
@@ -379,7 +395,8 @@
       return { quiz, round, question };
     }
 
-    async joinPlayer(name, avatar = '🦊') {
+    /** extra (v28): { xp } – aktueller XP-Stand eines angemeldeten Spielers (für das Stufen-Abzeichen) */
+    async joinPlayer(name, avatar = '🦊', extra = {}) {
       if (this.role !== 'player') throw new Error('Nur die Spieleransicht kann einem Raum beitreten.');
       const cleanName = String(name || '').trim().slice(0, 28);
       if (!cleanName) throw new Error('Bitte einen Spielernamen eingeben.');
@@ -411,7 +428,9 @@
           joinedAt: Number(existing?.joinedAt) || now,
           active: true,
           updatedAt: now,
-          lastAnsweredQuestionId: String(existing?.lastAnsweredQuestionId || '')
+          lastAnsweredQuestionId: String(existing?.lastAnsweredQuestionId || ''),
+          ...(this.isAccount ? { account: true } : {}),
+          ...(this.isAccount && Number(extra.xp) > 0 ? { xp: Math.round(Number(extra.xp)) } : {})
         });
         await dbm.runTransaction(dbm.ref(this.db, `rooms/${this.code}/scores/${this.userId}`), current => current == null ? 0 : undefined, { applyLocally: false });
       } catch (error) {
@@ -420,6 +439,14 @@
         throw error;
       }
       return this.userId;
+    }
+
+    /** v28: neuen XP-Stand ins eigene Profil im Raum übernehmen (Stufen-Abzeichen nach dem Spiel) */
+    async updateOwnXp(total) {
+      const xp = Math.round(Number(total) || 0);
+      if (!this.isAccount || xp <= 0 || !this.raw.profiles?.[this.userId] || Number(this.raw.profiles[this.userId].xp) === xp) return false;
+      try { await this.modules.database.update(this.modules.database.ref(this.db, `rooms/${this.code}/profiles/${this.userId}`), { xp }); return true; }
+      catch (_) { return false; }
     }
 
     async removePlayer(playerId) {
@@ -781,6 +808,13 @@
     async finish(extra = {}) {
       const highlights = Array.isArray(extra.highlights) && extra.highlights.length ? clean(extra.highlights) : null; // v27: Show-Ende
       await this.patchPublic({ status: 'finished', questionOpen: false, questionEndsAt: null, finishedAt: Firebase.serverNow(this.context), highlights });
+    }
+
+    /** v28: Ergebnisse, XP und Moderator-Statistik speichern (Spielende, nur Moderator) */
+    async saveResults(state = this.load()) {
+      this.assertModerator();
+      if (!window.SylasphereProgressStore || !state || state.status !== 'finished') return null;
+      return window.SylasphereProgressStore.saveGame(this, state);
     }
 
     async resetScores() {

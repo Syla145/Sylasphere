@@ -3,7 +3,7 @@
 
   /*
    * Konto-Oberfläche (v19): Login-Karte, Status/Anfrage-Karte, Konto-Knopf im Kopf.
-   * Wird von moderator.html, editor.html und admin.html genutzt.
+   * Wird von moderator.html, editor.html, admin.html, profil.html, spieler.html und index.html genutzt.
    */
   const Account = () => window.SylasphereAccount;
   const esc = value => String(value ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[c]);
@@ -132,6 +132,7 @@
       if (!user) { menu.hidden = true; return; }
       menu.innerHTML = `<div class="account-who">${avatar(user)}<div><strong>${esc(user.name)}</strong><span>${esc(user.email)}</span></div></div>
         <span class="pill account-role account-role--${esc(state.role || 'none')}">${esc(ROLE_LABEL[state.role] || '…')}</span>
+        <a class="btn btn--ghost" href="./profil.html">⭐ Mein Profil</a>
         ${state.role === 'admin' ? '<a class="btn btn--ghost" href="./admin.html">🛡️ Moderatoren verwalten</a>' : ''}
         <button type="button" class="btn btn--ghost" data-signout>Abmelden</button>`;
       menu.querySelector('[data-signout]').addEventListener('click', async () => {

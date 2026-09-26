@@ -10,6 +10,9 @@
   const PlayerIdentity = window.JHQuizPlayerIdentity;
 
   let engine = null, identity = null, state = null, playerId = '', currentQuestionId = '', draftAnswer = null, timer = null, joining = false, transport = 'local';
+  // v28: XP & Stufen – Konto-Stand (accountXp) und Live-Ergebnis des Raums (progress)
+  let accountXp = 0, progress = { xp: null, game: null }, stopProgress = null, lastBoardSync = null;
+  const Progress = window.SylasphereProgress, Store = window.SylasphereProgressStore;
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
 
@@ -21,10 +24,12 @@
     renderAvatars();
     els['join-btn'].addEventListener('click', join);
     els['room-code'].addEventListener('input', () => els['room-code'].value = els['room-code'].value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6));
-    // v21: Angemeldete Spieler – Name aus dem Konto vorausfüllen (Verknüpfung mit Statistiken folgt später)
+    // v21: Angemeldete Spieler – Name aus dem Konto vorausfüllen; v28: mit Konto XP sammeln
     window.SylasphereAccount?.init().then(state => {
       const user = state?.user;
       if (user && !user.isAnonymous && !els['player-name'].value.trim()) els['player-name'].value = String(user.name || '').slice(0, 28);
+      window.SylasphereAccount.onChange(renderJoinAccount);
+      renderJoinAccount();
     }).catch(() => {});
     [els['room-code'], els['player-name']].forEach(input => input.addEventListener('keydown', e => { if (e.key === 'Enter') join(); }));
     els['submit-answer'].addEventListener('click', submit);
@@ -36,6 +41,75 @@
     els['avatar-options'].addEventListener('click', e => {
       const b=e.target.closest('.avatar-choice'); if(!b)return; els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x=>x.classList.toggle('is-selected',x===b));
     });
+  }
+
+  // ---------- v28: Konto beim Beitreten ----------
+  function accountUser() {
+    const user = window.SylasphereAccount?.state()?.user;
+    return user && !user.isAnonymous ? user : null;
+  }
+  const useAccount = () => Boolean(accountUser() && document.getElementById('use-account')?.checked !== false);
+  let accountKey = '';
+  async function renderJoinAccount() {
+    const box = document.getElementById('join-account');
+    if (!box || !window.SylasphereAccount) return;
+    const user = accountUser();
+    const key = user ? user.uid : '-';
+    if (key === accountKey) return;
+    accountKey = key;
+    box.hidden = false;
+    if (!user) {
+      accountXp = 0;
+      box.innerHTML = '<div class="join-account-row"><span>⭐ Mit Konto spielen, XP sammeln und Emotes freischalten</span><button type="button" class="link-btn" data-login>Anmelden</button></div>';
+      box.querySelector('[data-login]').addEventListener('click', openLogin);
+      return;
+    }
+    box.innerHTML = `<label class="join-account-row"><input type="checkbox" id="use-account" checked><span>Als <strong>${App.escapeHTML(user.name)}</strong> spielen <span data-level></span></span></label><a class="link-btn" href="./profil.html">Profil ↗</a>`;
+    try { accountXp = Number((await Store?.readXp(window.SylasphereAccount.context(), user.uid))?.total) || 0; } catch (_) { accountXp = 0; }
+    const level = box.querySelector('[data-level]');
+    if (level && Progress) level.innerHTML = `· <span class="level-badge">⭐${Progress.levelFor(accountXp)}</span>`;
+  }
+  function openLogin() {
+    const UI = window.SylasphereAccountUI;
+    if (!UI) { location.href = './profil.html'; return; }
+    const dialog = UI.dialog(UI.loginCard({ title: 'Anmelden', intro: 'Mit Konto sammelst du XP, steigst Stufen auf und schaltest neue Emotes frei. Spielen geht auch weiter als Gast.' }), { onClose: () => off() });
+    const off = window.SylasphereAccount.onChange(st => { if (st.user && !st.user.isAnonymous) { dialog.close(); App.toast(`Angemeldet als ${st.user.name}.`, 'success'); } });
+  }
+
+  function startProgress(code) {
+    stopProgress?.(); stopProgress = null; progress = { xp: null, game: null };
+    const bar = document.getElementById('reaction-bar');
+    if (!engine?.isAccount || !Store || !Progress) { window.SylasphereReactions?.setExtra(bar, []); return; }
+    const context = window.SylasphereAccount.context();
+    window.SylasphereReactions?.setExtra(bar, Progress.unlockedEmotes(accountXp));
+    stopProgress = Store.watchPlayer(context, playerId, code, data => {
+      progress = data;
+      const total = Number(data.xp?.total) || 0;
+      window.SylasphereReactions?.setExtra(bar, Progress.unlockedEmotes(total));
+      if (data.xp && lastBoardSync !== total) { lastBoardSync = total; Store.syncLeaderboard(context, playerId); engine?.updateOwnXp?.(total); }
+      renderXpResult();
+    });
+  }
+
+  /** Kasten „+110 XP“ unter dem Podest (nur online, nach Spielende) */
+  function renderXpResult() {
+    const box = els['game-question']?.querySelector('[data-xp-result]');
+    if (!box || !Progress) return;
+    let html = '';
+    if (transport !== 'online') html = '';
+    else if (!engine?.isAccount) html = accountUser() ? '<div class="notice">Du hast als Gast gespielt – dafür gibt es keine XP.</div>' : '<a class="notice xp-hint" href="./profil.html">⭐ Mit Konto sammelst du XP und schaltest Emotes frei. <strong>Anmelden →</strong></a>';
+    else if (!progress.game) html = '<div class="notice xp-pending">⭐ XP werden gespeichert …</div>';
+    else {
+      const g = progress.game, info = Progress.levelInfo(progress.xp?.total), p = g.parts || {};
+      const parts = [[p.play, 'Mitspielen'], [p.correct, 'richtige Antworten'], [p.place, `Platz ${g.rank}`], [p.highlights, 'Highlights']].filter(([v]) => Number(v) > 0).map(([v, t]) => `+${v} ${t}`).join(' · ');
+      const capped = Number(g.xpEarned) > Number(g.xp) ? '<small>Tageslimit erreicht – der Rest zählt nicht.</small>' : '';
+      const none = Number(g.xpEarned) === 0 && Number(g.players) < Progress.RULES.MIN_PLAYERS ? `<small>XP gibt es erst ab ${Progress.RULES.MIN_PLAYERS} Spielern.</small>` : Number(g.xpEarned) === 0 && Number(g.questions) < Progress.RULES.MIN_QUESTIONS ? `<small>XP gibt es erst ab ${Progress.RULES.MIN_QUESTIONS} gewerteten Fragen.</small>` : '';
+      html = `<div class="xp-result-card"><div class="xp-gain">+${Math.round(Number(g.xp) || 0)} XP</div><span>${App.escapeHTML(parts || 'Diesmal keine XP')}</span>${capped}${none}${levelBar(info)}<a class="link-btn" href="./profil.html">Statistik ansehen ↗</a></div>`;
+    }
+    if (box.innerHTML !== html) box.innerHTML = html;
+  }
+  function levelBar(info) {
+    return `<div class="level-row"><span class="level-badge">⭐${info.level}</span><div class="xp-track"><span style="width:${Math.round(info.progress * 100)}%"></span></div><small>${info.xp - info.from} / ${info.to - info.from} XP bis Stufe ${info.level + 1}</small></div>`;
   }
 
   async function resolveTransport(code) {
@@ -67,15 +141,22 @@
       if (selected === 'online') {
         joinButton.textContent = '🌐 Online beitreten …';
         identity = new PlayerIdentity(`ONLINE${code}`);
-        const stored = identity.storedPlayerId();
-        const reusable = await identity.reusablePlayerId();
-        const context = await Firebase.ready('player');
-        if (stored && !reusable && context.auth.currentUser?.uid === stored) await Firebase.rotateAnonymous('player');
-        engine = await Online.connect(code, 'player');
+        // v28: Mit Konto beitreten (XP). Spielt das Konto schon in einem anderen Tab, geht es hier als Gast weiter.
+        let account = useAccount() ? window.SylasphereAccount.context() : null;
+        if (account && await identity.inUseElsewhere(accountUser().uid)) { account = null; App.toast('Dein Konto spielt schon in einem anderen Tab – hier trittst du als Gast bei.', 'info'); }
+        if (!account) {
+          const stored = identity.storedPlayerId();
+          const reusable = await identity.reusablePlayerId();
+          const context = await Firebase.ready('player');
+          if (stored && !reusable && context.auth.currentUser?.uid === stored) await Firebase.rotateAnonymous('player');
+        }
+        engine = await Online.connect(code, 'player', { account });
+        if (account && !engine.isAccount) App.toast('Das ist dein eigener Raum – du spielst als Gast (ohne XP).', 'info');
         await engine.waitForState();
-        playerId = await engine.joinPlayer(name, avatar);
+        playerId = await engine.joinPlayer(name, avatar, { xp: accountXp });
         identity.activate(playerId);
         transport = 'online';
+        startProgress(code);
       } else {
         engine = new Session(code);
         identity = new PlayerIdentity(code);
@@ -83,6 +164,7 @@
         playerId = engine.joinPlayer(name,avatar,previous);
         identity.activate(playerId);
         transport = 'local';
+        startProgress(code);
       }
 
       els['join-panel'].hidden=true; els['game-panel'].hidden=false;
@@ -134,7 +216,9 @@
       App.setText(els['game-status'], 'Beendet');
       const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
       const place = ranked.findIndex(p => p.id === playerId) + 1;
-      els['game-question'].innerHTML = finalPodium(ranked, place);
+      const podium = finalPodium(ranked, place);
+      if (els['game-question'].dataset.finalKey !== podium || !els['game-question'].querySelector('.final-screen')) { els['game-question'].innerHTML = podium; els['game-question'].dataset.finalKey = podium; }
+      renderXpResult();
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
     if (!current.question) { els['game-question'].innerHTML = '<div class="empty-state">Warte auf die nächste Frage.</div>'; return; }
@@ -299,7 +383,7 @@
       return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${App.escapeHTML(App.avatar(player.avatar))}</div><strong>${App.escapeHTML(player.name)}</strong><span>${App.formatPoints(player.score)}</span><b>${rank}</b></div>`;
     }).join('');
     const me = ranked.find(p => p.id === playerId);
-    return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
+    return `<div class="final-screen"><span class="eyebrow">Finale</span><h2>${place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`}</h2><div class="podium">${podium}</div>${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}<div class="xp-result" data-xp-result></div>${window.SylasphereHighlights?.html(state.highlights) || ''}</div>`;
   }
 
   // Automatisches Speichern (kurz verzögert, damit Tippen/Regler nicht jede Millisekunde senden)
@@ -358,7 +442,7 @@
     const gains = resolved ? (state.answers[current.question.id] || {}) : {};
     App.renderRanking(els['leaderboard'], ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
-      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
+      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
     }).join(''));
   }
 
@@ -371,6 +455,7 @@
   }
 
   async function disconnect(message){
+    stopProgress?.(); stopProgress = null;
     identity?.destroy(); identity=null; try { await engine?.destroy?.(); } catch (_) {} engine=null;
     els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message;
   }

@@ -1,5 +1,17 @@
 # Sylasphere – Changelog
 
+## v28 – Statistiken + XP & Stufen
+- **Mit Konto spielen:** Auf der Spielerseite kann man sich mit Google oder E-Mail anmelden (ohne Freischaltung). Wer angemeldet ist, sammelt XP. Gäste spielen weiter wie bisher, nur ohne XP. Wer im Konto schon in einem anderen Tab spielt oder den eigenen Raum betritt, spielt automatisch als Gast.
+- **XP pro Spiel:** 20 fürs Mitspielen (mindestens die Hälfte der Fragen beantwortet), 5 pro richtiger Antwort, 50 / 30 / 15 für Platz 1 / 2 / 3, 10 pro Highlight. Höchstens 250 XP pro Spiel und 600 XP pro Tag.
+- **Schutz gegen XP-Farmen:** XP gibt es nur online, ab 3 Spielern und 5 gewerteten Fragen, nie im eigenen Raum und pro Raum nur einmal. Die Firebase-Regeln prüfen Obergrenzen, Tageslimit und dass die Summe stimmt.
+- **Stufen:** Von Stufe n auf n+1 braucht man 50 × n XP (Stufe 2: 50, 5: 500, 10: 2.250, 20: 9.500). Die Stufe steht als ⭐-Abzeichen neben dem Namen in allen Ranglisten, ohne ihn zu verdecken.
+- **Emotes freischalten:** Zu den 8 Grund-Emojis kommen 🥳 (Stufe 2), 🤔 (3), 😎 (4), 💯 (5), 🙈 (7), 👑 (10), 🌈 (15) und 🐐 (20). Freigeschaltete erscheinen automatisch in der Reaktionsleiste. Gesperrte lehnen die Firebase-Regeln ab.
+- **Spielende:** Spieler sehen unter dem Podest „+110 XP“ mit Aufschlüsselung und Stufenbalken. Der Moderator sieht, wer wie viele XP bekommen hat. Endet das Quiz über „Weiter“ statt „Beenden“, werden die Highlights jetzt ebenfalls berechnet.
+- **Neue Seite `profil.html`:** Stufe mit XP-Balken, Spiele, Siege, Podestplätze, Trefferquote, Trefferquote pro Fragetyp und pro Thema, letzte Spiele, Emotes und die **Bestenliste (Top 50, nur mit Opt-in** und selbst gewähltem Spielernamen). Moderatoren sehen zusätzlich die **schwersten Fragen** ihrer Quizze. Erreichbar über die Startseite, das Konto-Menü und die Spielerseite.
+- **Alte Räume aufräumen:** Moderatoren löschen beim Erstellen eines Raums automatisch ihre eigenen Räume, die älter als 24 Stunden sind. Auf `admin.html` gibt es „Jetzt aufräumen“ für alle Räume, die älter als 2 Tage sind.
+- **Firebase-Regeln erweitert:** Bitte die neue `firebase-database.rules.json` veröffentlichen und danach einmal `admin.html` öffnen. Details in `FIREBASE_SETUP.md` → „Neu in v28“.
+- Neue Dateien: `profil.html`, `js/core/progress.js` (Rechenlogik), `js/core/progress-store.js` (Firebase), `js/views/profile-view.js`, `tests/v28-xp-stats.js`, `tests/lib/rules-eval.js`, `CLAUDE.md`.
+
 ## v27 – Spielerlebnis
 - **Soundeffekte:** Frage geht auf, Countdown in den letzten 5 Sekunden, Antworten geschlossen, richtig/falsch, Buzzer, „Du bist dran“, Tusch bei der Auflösung und eine Fanfare am Ende. Alle Töne entstehen im Browser, es gibt keine Dateien und keine Lizenzfragen.
   - Auf Spieler- und Zuschauer-Seite standardmäßig **an**, auf der Moderator-Seite **aus**, damit es am Beamer-Rechner nicht doppelt klingt.

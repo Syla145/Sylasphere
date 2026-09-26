@@ -10,7 +10,7 @@
    *    Angemeldet ohne Moderator-Rechte → Mitspielen, Zuschauen (+ „Moderator werden“)
    *    Gast → Mitspielen, Zuschauen
    * Direkte Links (z. B. spieler.html?code=…) funktionieren weiterhin ohne diese Auswahl.
-   * Später: Angemeldete sehen hier ihre Statistiken.
+   * v28: Angemeldete sehen ihre Stufe und einen Link zum Profil (XP, Statistik, Bestenliste).
    */
   const App = window.SchmobinApp;
   const Account = window.SylasphereAccount;
@@ -44,7 +44,7 @@
   function renderChoice() {
     content().innerHTML = `
       <div class="home-choice">
-        <button type="button" class="role-card home-choice-card" data-choice="login"><div class="role-icon">🔑</div><h2>Anmelden</h2><p>Mit Google oder E-Mail. Moderatoren brauchen ein Konto – bald gibt es hier auch deine Statistiken.</p><span class="role-arrow">→</span></button>
+        <button type="button" class="role-card home-choice-card" data-choice="login"><div class="role-icon">🔑</div><h2>Anmelden</h2><p>Mit Google oder E-Mail. Mit Konto sammelst du XP, steigst Stufen auf und siehst deine Statistik. Moderatoren brauchen ein Konto.</p><span class="role-arrow">→</span></button>
         <button type="button" class="role-card home-choice-card" data-choice="guest"><div class="role-icon">👋</div><h2>Als Gast fortfahren</h2><p>Ohne Konto direkt mitspielen oder zuschauen.</p><span class="role-arrow">→</span></button>
       </div>`;
     content().querySelector('[data-choice="login"]').addEventListener('click', () => { view = 'login'; render(); });
@@ -78,8 +78,22 @@
     let extra = '';
     if (user && role === 'pending') extra = '<div class="notice home-note">⏳ Deine Moderator-Anfrage wartet auf Freigabe durch den Admin.</div>';
     else if (user && role === 'none') extra = '<a class="notice home-note home-note--link" href="./moderator.html">Du möchtest selbst ein Quiz moderieren? <strong>Moderator-Zugang anfragen →</strong></a>';
-    content().innerHTML = `${greeting}<div class="role-grid home-roles home-roles--${keys.length}">${keys.map(card).join('')}</div>${extra}`;
+    const profile = user ? '<a class="notice home-note home-note--link home-profile" href="./profil.html"><span data-home-level>⭐</span> <strong>Dein Profil</strong> – Stufe, XP, Statistik und Bestenliste →</a>' : '';
+    content().innerHTML = `${greeting}${profile}<div class="role-grid home-roles home-roles--${keys.length}">${keys.map(card).join('')}</div>${extra}`;
     content().querySelector('[data-login]')?.addEventListener('click', () => { view = 'login'; render(); });
+    if (user) showLevel(user.uid);
+  }
+
+  // v28: Stufe neben dem Profil-Link
+  let levelCache = null;
+  async function showLevel(uid) {
+    const Store = window.SylasphereProgressStore, Progress = window.SylasphereProgress;
+    if (!Store || !Progress) return;
+    if (levelCache?.uid !== uid) {
+      try { levelCache = { uid, xp: Number((await Store.readXp(Account.context(), uid))?.total) || 0 }; } catch (_) { return; }
+    }
+    const slot = content().querySelector('[data-home-level]');
+    if (slot) slot.innerHTML = `<span class="level-badge">⭐${Progress.levelFor(levelCache.xp)}</span>`;
   }
 
   function render() {
