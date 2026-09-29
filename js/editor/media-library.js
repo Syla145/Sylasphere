@@ -149,9 +149,19 @@
   function enhance(input, kind, options = {}) {
     if (!input || input.dataset.mediaEnhanced) return;
     input.dataset.mediaEnhanced = '1';
+    // v30: Bilder kompakt – kleines Vorschaubild statt Dateipfad, Pfad/Link nur auf Tipp (oder solange leer)
+    const compact = kind === 'image' && options.compact !== false;
     const row = document.createElement('div');
-    row.className = 'media-input-row';
+    row.className = `media-input-row${compact ? ' media-input-row--compact' : ''}`;
     input.replaceWith(row);
+    let thumb = null, linkBtn = null;
+    if (compact) {
+      thumb = document.createElement('button');
+      thumb.type = 'button';
+      thumb.className = 'media-thumb';
+      thumb.title = 'Pfad/Link anzeigen';
+      row.append(thumb);
+    }
     const pick = document.createElement('button');
     pick.type = 'button';
     pick.className = 'btn btn--small media-pick-btn';
@@ -166,6 +176,17 @@
     up.title = kind === 'image' ? 'Bild von deinem Gerät hochladen (wird automatisch verkleinert)' : 'Audiodatei von deinem Gerät hochladen';
     up.hidden = !Cloud()?.available();
     row.append(up);
+    if (compact) {
+      linkBtn = document.createElement('button');
+      linkBtn.type = 'button';
+      linkBtn.className = 'btn btn--small btn--ghost media-link-btn';
+      linkBtn.innerHTML = '🔗 <span>Pfad</span>';
+      linkBtn.title = 'Pfad oder Link bearbeiten';
+      row.append(linkBtn);
+      const showPath = open => { row.classList.toggle('is-path-open', open); if (open) input.focus(); };
+      linkBtn.addEventListener('click', () => showPath(!row.classList.contains('is-path-open')));
+      thumb.addEventListener('click', () => showPath(!row.classList.contains('is-path-open')));
+    }
     const status = document.createElement('div');
     status.className = 'media-status';
     status.setAttribute('aria-live', 'polite');
@@ -174,14 +195,24 @@
     let timer = null;
     let token = 0;
     const set = value => { input.value = value; input.dispatchEvent(new Event('input', { bubbles: true })); };
+    function renderThumb() {
+      if (!thumb) return;
+      const value = input.value.trim();
+      row.classList.toggle('is-empty', !value);
+      thumb.innerHTML = value ? `<img src="${esc(value)}" alt="" loading="lazy">` : '<span>🖼</span>';
+      const img = thumb.querySelector('img');
+      if (img) img.addEventListener('error', () => { thumb.innerHTML = '<span title="Bild nicht gefunden">⚠️</span>'; }, { once: true });
+    }
     async function run() {
       const mine = ++token;
       const value = input.value;
+      renderThumb();
       if (!value.trim()) { status.replaceChildren(); return; }
       status.innerHTML = '<span class="media-note is-info">Prüfe …</span>';
       const items = await check(value, kind, options);
       if (mine !== token) return;
-      status.replaceChildren(...items.map(item => {
+      // kompakt: nur Probleme zeigen (keine „gefunden · 120 KB“-Zeilen)
+      status.replaceChildren(...items.filter(item => !compact || item.level === 'error' || item.level === 'warn').map(item => {
         const line = document.createElement('span');
         line.className = `media-note is-${item.level}`;
         line.textContent = `${{ error: '✗', warn: '⚠', info: 'ℹ', ok: '✓' }[item.level] || ''} ${item.text}`;
@@ -204,6 +235,7 @@
       if (done[0]) set(done[0].url); else run();
     });
 
+    renderThumb();
     if (input.value.trim()) setTimeout(run, 150);
   }
 

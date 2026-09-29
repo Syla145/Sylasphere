@@ -29,10 +29,10 @@ html[data-theme="kart"] .btn--primary:active{transform:translateY(3px);box-shado
 html[data-theme="kart"] .answer-btn{border-width:2px;border-bottom-width:5px}
 html[data-theme="kart"] h1,html[data-theme="kart"] h2,html[data-theme="kart"] .final-screen h2,html[data-theme="kart"] .final-screen h1{letter-spacing:.02em;text-shadow:0 3px 0 rgba(0,0,0,.35)}
 
-/* ---------- Bühne: Karos oben/unten, Streckenstreifen, Speed-Linien ---------- */
+/* ---------- Bühne: schmale Karo-Streifen oben/unten (v30: schmaler, damit der Seitenkopf lesbar bleibt), Streckenstreifen, Speed-Linien ---------- */
 html[data-theme="kart"] .theme-layer--1{background:
-  repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/28px 28px;height:28px;opacity:.55;inset:0 0 auto 0}
-html[data-theme="kart"] .theme-layer--1::after{content:"";position:fixed;left:0;right:0;bottom:0;height:28px;background:repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/28px 28px;opacity:.55}
+  repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/10px 10px;height:10px;opacity:.55;inset:0 0 auto 0}
+html[data-theme="kart"] .theme-layer--1::after{content:"";position:fixed;left:0;right:0;bottom:0;height:10px;background:repeating-conic-gradient(#fff 0 25%,#141414 0 50%) 0 0/10px 10px;opacity:.55}
 html[data-theme="kart"] .theme-layer--2{inset:-50%;background:repeating-linear-gradient(115deg,rgba(232,48,42,.10) 0 60px,rgba(255,210,31,.08) 60px 120px,rgba(43,179,74,.08) 120px 180px,rgba(30,144,255,.10) 180px 240px);animation:kart-road 14s linear infinite}
 html[data-theme="kart"] .theme-layer--3{background:
   linear-gradient(90deg,transparent 0 40%,rgba(255,255,255,.22) 50%,transparent 60%) 0 22%/320px 2px no-repeat,

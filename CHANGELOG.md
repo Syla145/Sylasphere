@@ -1,5 +1,22 @@
 # Sylasphere – Changelog
 
+## v30 – Editor-Umbau
+- **Neuer Aufbau:**
+  - **Gliederung** links: „⚙️ Quiz“ (Titel, Beschreibung, Standard-Timer/-Punkte, Design mit Vorschau, Themen), Runden einklappbar, Fragen als kompakte Zeilen (Typ-Symbol, Nummer, Textanfang, Punkte, ⚠️ aus dem Quiz-Check).
+  - In der Mitte immer genau **eine** Frage, Runde oder „⚙️ Quiz“. Duplizieren und Löschen stehen nur noch einmal oben.
+  - Mit Showtime ist der Editor am Desktop jetzt ca. 1.000–3.100 px hoch statt 20.500 px. Die Fragen haben 5–29 Knöpfe statt ~290 im ganzen Fragenbereich, nur Zeitduell (88) und Einordnen (57) mit ihren Bilderlisten haben mehr.
+- **Sortieren:** Zeilen am Griff ⠿ ziehen (Maus und Finger), auch Fragen in eine andere Runde und ganze Runden. Tastenkürzel **Alt+↑/↓** (verschieben), **Strg+D** (duplizieren), **Strg+S** (speichern).
+- **Obere Leiste:** Titel, Speicherstatus, ‹ › vorige/nächste Frage, 👁 Vorschau, ✓ Prüfen mit Anzahl der Probleme. „Prüfen“ zeigt eine Liste, ein Tipp springt zur Stelle.
+- **„⋯“-Menü:** JSON importieren/exportieren, Neues Quiz, Anderes Quiz öffnen, Als Kopie speichern, Jetzt moderieren sowie Aktionen für die gewählte Frage oder Runde.
+- **„+ Frage“** öffnet eine Typ-Auswahl als Kacheln (Symbol und ein Satz). Die neue Frage landet hinter der gewählten. Typwechsel nur noch über „Typ ändern …“ mit Rückfrage.
+- **Automatisch online speichern:** Für freigeschaltete Moderatoren landen neue und bearbeitete Beispiel-Quizze bei der ersten Änderung in „Meine Quizze“. Der lokale Entwurf bleibt als Sicherung.
+- **Technisches ausgeblendet:** Antwort-Kennungen (a/b/c) vergibt der Editor automatisch, auch nach dem Löschen einzelner Antworten ohne Doppelte. Die Fragen-ID steht nur unter „Experten“.
+- **Bilder kompakt:** kleines Vorschaubild statt Pfad und Dateigröße, „🔗 Pfad“ zeigt den Pfad, Probleme erscheinen weiter sofort. Zeitduell- und Einordnen-Listen haben nur noch in der ersten Zeile Beschriftungen.
+- **Handy:** Die Gliederung ist der Startbildschirm (erste Runde bei ca. 290 px statt 2.440 px). Eine Frage öffnet sich bildschirmfüllend mit „← Übersicht“, ‹ › und „⋯“.
+- **Behoben:** „JSON exportieren“ war kaum lesbar.
+- **Unverändert:** Das Datenformat der Quizze und alle 17 Fragetyp-Editoren bleiben gleich.
+- Neue Dateien: `js/editor/editor-model.js` (Datenlogik, in Node getestet), `tests/v30-editor.js`.
+
 ## v29 – Themes: Grundlage + vier neue Designs
 - **Vier neue Designs:** 🏁 **Mario Kart** (Startampel, Zielflagge, „?“-Würfel), ⚔️ **League of Legends** (Gold, Sechsecke, goldener Ring, Sieges-Banner), 🌍 **GeoGuessr** (Höhenlinien, Kartennadeln, Kompass, Ergebnis-Balken), 🎯 **Valorant** (Signalrot, kantige Formen, diagonaler Wisch, MVP-Karte). Alles eigene Zeichnungen und selbst erzeugte Töne, keine Logos, Figuren oder Original-Sounds.
 - **Theme-Technik:** Jedes Theme kann jetzt Folgendes mitbringen:

@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 'v29';
+  const APP_VERSION = 'v30';
 
   const App = {
     version: APP_VERSION,

@@ -85,21 +85,28 @@ Die Einrichtung in Firebase steht Schritt für Schritt in **`FIREBASE_SETUP.md`*
 Im **Editor** (`editor.html`):
 
 - **Neues Quiz erstellen** oder ein vorhandenes öffnen. Möglich sind „Meine Quizze“, die Beispiel-Quizze aus `data/` und JSON-Dateien.
-- Runden, Fragen, Punkte, Timer, Themen (mit Icon und Farbe) und das Design festlegen.
+- **Aufbau (seit v30):**
+  - Links die **Gliederung** mit „⚙️ Quiz“ (Titel, Beschreibung, Standard-Timer/-Punkte, Design, Themen), den Runden (einklappbar) und den Fragen als kompakte Zeilen (Symbol, Textanfang, Punkte, ⚠️ bei Problemen).
+  - In der Mitte immer genau **eine** Frage, Runde oder „⚙️ Quiz“.
+  - Oben die Leiste mit Speicherstatus, ‹ › (vorige/nächste Frage), 👁 Vorschau, ✓ Prüfen und „⋯“ (JSON importieren/exportieren, Neues Quiz, Anderes Quiz öffnen, Als Kopie speichern, Moderieren).
+- **Sortieren:** Zeilen am Griff ⠿ ziehen, auch Fragen in eine andere Runde. Alternativ **Alt+↑/↓**. **Strg+D** dupliziert, **Strg+S** speichert sofort.
+- **„+ Frage“** öffnet eine Auswahl der Fragetypen als Kacheln. Die neue Frage landet hinter der gerade gewählten. Den Typ einer Frage wechselst du über „Typ ändern …“ (mit Rückfrage, weil Antworten und Lösung dabei verloren gehen).
+- **Am Handy** ist die Gliederung der Startbildschirm. Eine Frage öffnet sich bildschirmfüllend mit „← Übersicht“ und ‹ ›, weitere Aktionen stehen im „⋯“-Menü.
+- **Ausgeblendet:** Antwort-Kennungen (a/b/c) vergibt der Editor selbst, die Fragen-ID steht nur unter „Experten“. Bilder erscheinen als kleines Vorschaubild, den Pfad zeigt „🔗 Pfad“.
 - **👁 Vorschau** zeigt eine Frage so, wie Spieler sie sehen.
-- **Quiz prüfen** zeigt Fehler und Hinweise, zum Beispiel eine fehlende Lösung oder ein ungeeignetes Bildformat.
+- **✓ Prüfen** zeigt Fehler und Hinweise, zum Beispiel eine fehlende Lösung oder ein ungeeignetes Bildformat. Ein Tipp auf einen Eintrag springt zur Frage.
 
 **Speichern:**
 
 | Wo | Wie | Für wen |
 |---|---|---|
-| ☁️ **Meine Quizze** (online) | „☁️ Online speichern“. Danach wird jede Änderung automatisch gespeichert, Strg+S speichert sofort | angemeldete, freigeschaltete Moderatoren |
+| ☁️ **Meine Quizze** (online) | Automatisch: Neue Quizze und bearbeitete Beispiel-Quizze landen bei der ersten Änderung in „Meine Quizze“, danach wird jede Änderung gespeichert. Der Status steht oben („☁️ Gespeichert“ / „Speichere …“). Strg+S speichert sofort | angemeldete, freigeschaltete Moderatoren |
 | Dieses Gerät | Automatisch als Entwurf im Browser („Letzten Entwurf fortsetzen“) | alle |
 | JSON-Datei | „JSON exportieren“ oder importieren, gut als Sicherung oder zum Weitergeben | alle |
 
 - „Meine Quizze“ sind auf jedem Gerät verfügbar, auf dem du mit deinem Konto angemeldet bist.
 - Nur du kannst deine Quizze lesen, auch Admins nicht.
-- Beim Moderator stehen sie oben in der Quiz-Auswahl. Aus dem Editor geht es direkt mit **▶ Moderieren** los.
+- Beim Moderator stehen sie oben in der Quiz-Auswahl. Aus dem Editor geht es über „⋯“ → **▶ Jetzt moderieren** direkt los.
 - Wird dasselbe Quiz auf zwei Geräten gleichzeitig bearbeitet, gewinnt die zuletzt gespeicherte Änderung.
 
 > **Wichtig:** Online gespeichert wird nur der **Text** des Quiz. **Bilder und Musik werden nicht mit hochgeladen.** Im Quiz steht nur, wo die Datei liegt. Wie das geht, steht im nächsten Abschnitt.

@@ -26,7 +26,7 @@ ok(NEW.every(id=>Th.get(id).fx===true&&Th.get(id).swatch.length===4&&/^#[0-9a-f]
 // ---------- Dateien pro Theme ----------
 const index=code('css/themes/index.css');
 NEW.forEach(id=>{ok(exists(`css/themes/${id}.css`)&&index.includes(`@import url("${id}.css`),`${id}: CSS file imported`);ok(exists(`js/themes/${id}.js`),`${id}: effect file`);load(`js/themes/${id}.js`);});
-ok(['index.html','moderator.html','spieler.html','zuschauer.html','editor.html','admin.html','profil.html','vorschau.html'].every(f=>code(f).includes('css/themes/index.css?v=29')),'all pages load theme CSS');
+ok(['index.html','moderator.html','spieler.html','zuschauer.html','editor.html','admin.html','profil.html','vorschau.html'].every(f=>/css\/themes\/index\.css\?v=\d+/.test(code(f))),'all pages load theme CSS');
 // ---------- Effekte ----------
 const SOUND_NAMES=new Set(Sfx.SOUNDS);
 NEW.forEach(id=>{const fx=Th.fx(id);
@@ -108,7 +108,7 @@ ok(/Open Font License/.test(code('assets/fonts/LICENSE-cinzel.txt'))&&/Apache Li
 // Bühne liegt hinter dem Inhalt, Übergang blockiert nichts
 ok(/\.theme-stage\{position:fixed;inset:0;z-index:-1;[^}]*pointer-events:none/.test(main)&&/\.theme-transition\{[^}]*pointer-events:none/.test(main),'stage behind content, transition not clickable');
 // Version + Doku
-ok(code('js/core/app.js').includes("APP_VERSION = 'v29'"),'version v29');
+ok(/APP_VERSION = 'v(29|[3-9][0-9])'/.test(code('js/core/app.js')),'version v29 or later');
 ok(code('CHANGELOG.md').includes('## v29')&&code('README.md').includes('vorschau.html'),'docs updated');
 if(process.env.VERBOSE)console.log(report.join('\n'));
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

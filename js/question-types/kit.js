@@ -156,14 +156,12 @@
         radio.addEventListener('change', () => { q.correctAnswer = opt.id; ui.queueSave(); });
         row.append(radio);
       } else row.append(div('option-kind', mode === 'survey' ? `${i + 1}.` : '•'));
-      const id = input('text', opt.id, 'input'); id.maxLength = 12;
-      id.addEventListener('change', e => {
-        const old = opt.id; opt.id = e.target.value.trim() || String.fromCharCode(97 + i);
-        if (String(q.correctAnswer) === String(old)) q.correctAnswer = opt.id;
-        ui.structuralChange();
-      });
+      // v30: Kennung (a, b, c …) wird automatisch vergeben – hier nur der Buchstabe zur Orientierung
+      const badge = div('option-letter', String.fromCharCode(65 + (i % 26)));
+      badge.title = 'Antwort ' + String.fromCharCode(65 + (i % 26));
       const txt = input('text', opt.text, 'input'); txt.addEventListener('input', e => { opt.text = e.target.value; ui.queueSave(); });
-      row.append(id, txt);
+      txt.setAttribute('aria-label', `Antwort ${String.fromCharCode(65 + (i % 26))}`);
+      row.append(badge, txt);
       if (mode === 'survey') {
         const value = input('number', opt.value ?? 0, 'input'); value.min = '0'; value.max = '100'; value.step = '0.1'; value.title = 'Anteil in Prozent';
         value.addEventListener('input', e => { opt.value = Number(e.target.value) || 0; ui.queueSave(); });
@@ -177,13 +175,20 @@
       list.append(row);
     });
     box.append(list, button('+ Antwort', 'btn btn--small', () => {
-      const id = String.fromCharCode(97 + (q.options?.length || 0)); q.options = q.options || [];
-      const option = { id, text: `Antwort ${id.toUpperCase()}` };
+      q.options = q.options || [];
+      const id = nextOptionId(q.options); // v30: freie Kennung, auch nach dem Löschen einzelner Antworten
+      const option = { id, text: `Antwort ${String.fromCharCode(65 + (q.options.length % 26))}` };
       if (mode === 'survey') option.value = 0;
       q.options.push(option);
       if (mode === 'correct') q.correctAnswer ||= id;
       ui.structuralChange();
     }));
+  }
+  /** Nächste freie Antwort-Kennung (a, b, c … z, a2 …) */
+  function nextOptionId(options) {
+    const used = new Set((options || []).map(o => String(o.id)));
+    for (let n = 1; n < 50; n++) for (let i = 0; i < 26; i++) { const id = String.fromCharCode(97 + i) + (n > 1 ? n : ''); if (!used.has(id)) return id; }
+    return `o${Date.now().toString(36)}`;
   }
   function textField(q, ui, key, label, placeholder, onChange) {
     const control = ui.input('text', q[key] ?? '', 'input');
@@ -336,7 +341,7 @@
 
   window.SylasphereTypeKit = {
     clone, numberOr, clamp, normalizeTerm, escapeHTML, cleanTerm, matchTerm, editDistance,
-    MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,
+    nextOptionId, MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,
     normalizeOptions, optionById, correctOption, defaultOptions, validateOptions, seededShuffle,
     el, baseQuestion, addImage, addAudio, renderChoice,
     choiceEditor, textField,

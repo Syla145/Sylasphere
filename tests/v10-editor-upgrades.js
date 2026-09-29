@@ -24,6 +24,6 @@ const editorHtml=fs.readFileSync(path.join(root,'editor.html'),'utf8');
 ok(editorHtml.includes('Quiz editieren')&&editorHtml.includes('Neues Quiz erstellen'),'editor has explicit edit/new start choices');
 ok(editorHtml.includes('editor-quiz-select'),'editor can load bundled quizzes');
 const editorJs=fs.readFileSync(path.join(root,'js/editor/editor.js'),'utf8')+fs.readFileSync(path.join(root,'js/question-types/types/estimate.js'),'utf8'); // v14: Typ-Editoren liegen in den Modulen
-ok(editorJs.includes('Erweiterte Einstellungen')&&editorJs.includes('Technische Fragen-ID'),'question ID moved to advanced settings');
+ok((editorJs.includes('Erweiterte Einstellungen')||editorJs.includes("summary.textContent = 'Experten'"))&&editorJs.includes('Technische Fragen-ID'),'question ID only in advanced/expert settings (v30: „Experten“)');
 ok(editorJs.includes('5 %')&&editorJs.includes('10 %')&&editorJs.includes('20 %'),'tolerance presets are present');
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

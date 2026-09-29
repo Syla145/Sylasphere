@@ -23,7 +23,7 @@ ok(e.load().players[0].score===60,'engine scores moderator-adjusted count');
 // Einbindung
 const mv=code('js/views/moderator-view.js'),ed=code('js/editor/editor.js');
 ok(mv.includes('countPanel')&&mv.includes('data-count-player'),'moderator count panel');
-ok(ed.includes('insertBar')&&ed.includes('+ Frage hier einfügen')&&ed.includes('+ Neue Runde danach'),'editor insert buttons');
+ok((ed.includes('insertBar')&&ed.includes('+ Frage hier einfügen'))||(ed.includes('M.insertQuestion(state, selection')&&ed.includes('openTypePicker')),'editor inserts new questions after the current one (v30: + Frage mit Typ-Auswahl)');
 ok(code('js/question-types/types/higher-lower.js').includes('Einheit (optional)'),'higher/lower fields labelled');
 ok(code('css/main.css').includes('.editor-sidebar{overflow-x:hidden}'),'sidebar without horizontal scroll');
 ['moderator.html','spieler.html','zuschauer.html'].forEach(f=>ok(code(f).includes('js/vendor/qrcode.js')&&code(f).includes('js/core/join-qr.js'),`${f} loads QR/wake lock`));
