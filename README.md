@@ -46,7 +46,8 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 3. Optional läuft `zuschauer.html` mit demselben Code auf Beamer oder TV. In der Lobby zeigt er groß den QR-Code und „Wer ist da?“ mit allen Avataren.
 4. Der Moderator drückt immer nur den großen Knopf **„Nächster Schritt“** (oder die **Leertaste**): ▶ Spiel starten → ❓ Frage öffnen → ⏹ Antworten schließen → ✓ Auflösen → ➜ Nächste Frage … → 🏁 Zur Siegerehrung. Zurück, Überspringen und Beenden stehen klein darunter. Am Handy sitzt der Knopf in einer festen Leiste unten.
    - Links sieht er pro Spieler ✓ geantwortet, ⏳ wartet und nach der Auflösung die Punkte oder „— keine Antwort“. Ein Spieler antippen öffnet die Punkte-Korrektur.
-   - Kurzbefehle: **Leertaste** = nächster Schritt, **← / →** = vorige/nächste Frage.
+   - Kurzbefehle: **Leertaste** = nächster Schritt, **← / →** = vorige/nächste Frage, **P** = Pause, **Strg+Z** = Rückgängig.
+   - **Seit v33:** In der Lobby tippen Spieler „✋ Bereit“, der Moderator sieht, wer noch fehlt (starten geht trotzdem). Ein Spieler antippen → Punkte, **✎ Umbenennen**, **✕ Entfernen**. Der grüne Punkt am Avatar zeigt, ob das Handy verbunden ist; lädt ein Spieler die Seite neu oder ist kurz offline, landet er automatisch wieder im Raum. **⏸ Pause** hält den Timer an (Beamer: „Kurze Pause“ mit Rangliste). **↶ Rückgängig** nimmt die letzte Wertung oder Punkteänderung zurück.
 5. Nach der Siegerehrung: **🔁 Nochmal spielen (gleiche Spieler)** setzt die Punkte auf 0 und alle landen wieder in der Lobby, oder **📂 Neues Quiz**. Gleiche Punkte ergeben den gleichen Platz („🤝 Gleichstand!“). XP gibt es pro Raum nur einmal – für neue XP einen neuen Raum erstellen.
 
 **Lokal testen:** „💻 Lokal testen“ nutzen und die Spieleransicht in weiteren Tabs **desselben Browsers** öffnen. Die Anmeldung als Moderator braucht dafür einmal Internet.
@@ -292,6 +293,7 @@ Alles läuft **kostenlos**:
 
 - Seit v25.1 läuft das Projekt im **Blaze-Tarif** (Kreditkarte hinterlegt), weil Cloud Storage nur dort verfügbar ist. Solange die Gratis-Grenzen nicht überschritten werden, kostet es nichts. Eine **Budget-Warnung bei 1 €** meldet sich sofort per E-Mail.
 - Im Blaze-Tarif gibt es keine harte Grenze von 100 gleichzeitigen Verbindungen mehr.
+- **Seit v33:** `admin.html` → **„📊 Nutzung & Kosten“** zeigt Uploads, Konten, Quizze, Spiele und offene Räume aus der eigenen Datenbank und – nach „🔗 Mit Google Cloud verbinden“ – die echten Google-Cloud-Zahlen als Ampel gegen die Freikontingente, mit Verlauf und grober Kostenschätzung. Einrichtung: FIREBASE_SETUP.md → v33. Freikontingente und Preise stehen in `js/core/usage-limits.js`.
 
 ## Projektstruktur
 

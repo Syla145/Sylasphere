@@ -129,7 +129,7 @@ const sv=code('js/views/spectator-view.js'),mv=code('js/views/moderator-view.js'
 ok(sv.includes('Renderers.renderPresent')&&mv.includes('Renderers.renderPresent'),'Beamer und Moderator-Mitte nutzen die Präsentation');
 ok(sv.includes("'eingeloggt'")&&sv.includes('presentShowsSolution'),'Song: „x von y eingeloggt“, Lösung nicht doppelt');
 ok(sv.includes('function fitBeamer')&&css.includes('zoom:var(--fit,1)')&&css.includes('.beamer[data-phase="resolved"] .question-image'),'Beamer scrollt nie: Bild an Höhe, notfalls verkleinert');
-ok(mv.includes("els['timer-ring'].hidden = pendingReveal || resolved")&&!/Frage auflösen“/.test(mv),'Moderator: Ring nach dem Schließen weg, Hinweis passt zum Knopf');
+ok(/els\['timer-ring'\]\.hidden = \(?pendingReveal \|\| resolved/.test(mv)&&!/Frage auflösen“/.test(mv),'Moderator: Ring nach dem Schließen weg, Hinweis passt zum Knopf');
 ok(code('js/views/player-view.js').includes('function fieldError')&&css.includes('.input.is-invalid'),'Beitreten: Fehler am Feld, rot markiert');
 // Online: Stufe für den Beamer im Profil (ohne Regeländerung erlaubt)
 {const {canWrite}=require('./lib/rules-eval.js');const db={rooms:{R1:{meta:{ownerUid:'host'},public:{currentQuestionId:'q1'},profiles:{u1:{name:'A',avatar:'🦊',joinedAt:1,active:true}}}}};

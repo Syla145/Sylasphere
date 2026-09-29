@@ -33,6 +33,7 @@
         ".read": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",
         ".write": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",
         "index": {
+          ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
           "$qid": {
             ".validate": "$qid.matches(/^[A-Za-z0-9_-]+$/) && $qid.length >= 4 && $qid.length <= 40 && newData.hasChildren(['title','updatedAt']) && newData.child('title').isString() && newData.child('title').val().length <= 160 && newData.child('updatedAt').isNumber()"
           }
@@ -48,6 +49,7 @@
       }
     },
     "userMedia": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",
         ".write": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",
@@ -57,6 +59,7 @@
       }
     },
     "players": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
         ".write": "auth != null && root.child('admins').child(auth.uid).val() === true",
@@ -93,6 +96,7 @@
       }
     },
     "modStats": {
+      ".read": "auth != null && root.child('admins').child(auth.uid).val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && auth.provider !== 'anonymous' && (root.child('moderators').child(auth.uid).exists() || root.child('admins').child(auth.uid).val() === true)",

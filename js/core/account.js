@@ -151,6 +151,26 @@
     return current;
   }
 
+  /**
+   * v33: Google-Zugriffstoken mit zusätzlichen Rechten (z. B. Cloud Monitoring lesen) holen.
+   * Öffnet ein Google-Fenster (erneute Anmeldung). Das Token bleibt nur im Speicher.
+   */
+  async function googleAccessToken(scopes = []) {
+    await init();
+    const auth = context.modules.auth;
+    const user = context.auth.currentUser;
+    if (!user || user.isAnonymous) throw Object.assign(new Error('Bitte zuerst anmelden.'), { code: 'sylasphere/not-signed-in' });
+    if (!(user.providerData || []).some(p => p.providerId === 'google.com')) throw Object.assign(new Error('Dafür musst du mit deinem Google-Konto angemeldet sein (nicht mit E-Mail/Passwort).'), { code: 'sylasphere/not-google' });
+    const provider = new auth.GoogleAuthProvider();
+    scopes.forEach(scope => provider.addScope(scope));
+    provider.setCustomParameters({ login_hint: user.email || '' });
+    const result = await auth.reauthenticateWithPopup(user, provider);
+    const credential = auth.GoogleAuthProvider.credentialFromResult?.(result);
+    const token = credential?.accessToken || '';
+    if (!token) throw Object.assign(new Error('Google hat kein Zugriffstoken geliefert.'), { code: 'sylasphere/no-token' });
+    return { token, expiresAt: Date.now() + 55 * 60 * 1000 };
+  }
+
   async function signInEmail(email, password) {
     await init();
     await context.modules.auth.signInWithEmailAndPassword(context.auth, String(email || '').trim(), String(password || ''));
@@ -218,6 +238,7 @@
     requestAccess,
     cancelRequest,
     admin: { listRequests, listModerators, approve, reject, revoke },
+    googleAccessToken,
     signInGoogle,
     signInEmail,
     register,

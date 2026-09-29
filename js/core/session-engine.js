@@ -179,7 +179,52 @@
       });
       return playerId;
     }
-    removePlayer(playerId) { this.mutate(state => { state.players = state.players.filter(p => p.id !== playerId); }); }
+    removePlayer(playerId) {
+      this.mutate(state => {
+        state.players = state.players.filter(p => p.id !== playerId);
+        state.removedIds = Array.from(new Set([...(state.removedIds || []), String(playerId)])); // v33: kein automatisches Wiederverbinden
+      });
+    }
+    // ---------------- v33: Moderator-Werkzeuge
+    renamePlayer(playerId, name) {
+      const clean = String(name || '').trim().slice(0, 28);
+      if (!clean) throw new Error('Bitte einen Namen eingeben.');
+      this.mutate(state => { const player = state.players.find(p => p.id === playerId); if (player) player.name = clean; });
+    }
+    setReady(playerId, ready = true) { this.mutate(state => { const player = state.players.find(p => p.id === playerId); if (player) player.ready = Boolean(ready); }); }
+    /** Lokal: Spieler-Tabs melden sich regelmäßig (Online-Punkt beim Moderator) */
+    heartbeat(playerId) { this.mutate(state => { const player = state.players.find(p => p.id === playerId); if (player) { player.seenAt = Date.now(); player.active = true; } }); }
+    pause() {
+      this.mutate(state => {
+        if (state.paused) return;
+        const now = Date.now();
+        const remaining = state.questionOpen && state.questionEndsAt ? Math.max(0, Number(state.questionEndsAt) - now) : null;
+        state.paused = { since: now, remaining };
+        if (remaining != null) state.questionEndsAt = null;
+      });
+    }
+    resume() {
+      this.mutate(state => {
+        if (!state.paused) return;
+        if (state.paused.remaining != null && state.questionOpen) state.questionEndsAt = Date.now() + Number(state.paused.remaining);
+        state.paused = null;
+      });
+    }
+    /** Punktestand für „Rückgängig“ merken */
+    scoreSnapshot() { const state = this.load(); return { scores: Object.fromEntries(state.players.map(p => [p.id, Number(p.score) || 0])) }; }
+    /** Rückgängig: Punkte zurücksetzen; optional die Auflösung einer Frage zurücknehmen */
+    restoreScores(snapshot, options = {}) {
+      this.mutate(state => {
+        state.players.forEach(p => { if (Object.prototype.hasOwnProperty.call(snapshot?.scores || {}, p.id)) p.score = Math.round(Number(snapshot.scores[p.id]) || 0); });
+        const qid = String(options.unresolve || '');
+        if (qid && state.scoredQuestionIds.includes(qid)) {
+          state.scoredQuestionIds = state.scoredQuestionIds.filter(id => id !== qid);
+          delete state.questionResults[qid];
+          Object.values(state.answers[qid] || {}).forEach(record => { delete record.awardedPoints; delete record.scoreDetail; delete record.scoredAt; });
+          state.media = null;
+        }
+      });
+    }
     startGame() { this.mutate(state => { state.status = 'playing'; state.currentRoundIndex = 0; state.currentQuestionIndex = 0; state.questionOpen = false; state.questionStartedAt = null; state.questionEndsAt = null; }); }
     startQuestion() {
       this.mutate(state => {
@@ -434,6 +479,7 @@
         state.status = 'lobby'; state.currentRoundIndex = 0; state.currentQuestionIndex = 0;
         state.questionOpen = false; state.questionStartedAt = null; state.questionEndsAt = null;
         state.stage = 0; state.media = null; state.game = null; state.finishedAt = null; state.highlights = null;
+        state.paused = null; state.players.forEach(p => { p.ready = false; });
       });
     }
     resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }

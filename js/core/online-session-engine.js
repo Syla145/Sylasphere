@@ -248,8 +248,12 @@
       watch('buzzerBlocked', 'buzzerBlocked');
       try {
         const connectionRef = dbm.ref(this.db, '.info/connected');
+        let wasConnected = null;
         const offConnection = dbm.onValue(connectionRef, snapshot => {
           this.context.connected = snapshot.val() === true;
+          // v33: Wiederverbinden – war das Handy kurz weg, setzt sich der Spieler automatisch wieder auf „online“
+          if (this.context.connected && wasConnected === false) this.markPresent();
+          wasConnected = this.context.connected;
           this.rebuild();
         });
         this.unsubscribers.push(offConnection);
@@ -281,7 +285,8 @@
         account: profile?.account === true, // v28: Spieler mit Konto (sammelt XP)
         xp: Math.max(0, Number(profile?.xp) || 0),
         lastAnsweredQuestionId: String(profile?.lastAnsweredQuestionId || ''),
-        lastAnswerStage: profile?.lastAnswerStage == null ? null : Number(profile.lastAnswerStage) // v32: Song-Enthüllung – Stufe fürs Beamer-Live-Bild
+        lastAnswerStage: profile?.lastAnswerStage == null ? null : Number(profile.lastAnswerStage), // v32: Song-Enthüllung – Stufe fürs Beamer-Live-Bild
+        ready: profile?.ready === true // v33: Bereit-Check in der Lobby
       })).sort(playerSort);
 
       let answers = {};
@@ -359,7 +364,9 @@
         finishedAt: pub.finishedAt == null ? null : Firebase.toLocalTime(this.context, pub.finishedAt),
         highlights: pub.highlights ? clone(pub.highlights) : null,
         publicStats: pub.publicStats ? clone(pub.publicStats) : null,
-        scoreDeltas: pub.scoreDeltas ? clone(pub.scoreDeltas) : null
+        scoreDeltas: pub.scoreDeltas ? clone(pub.scoreDeltas) : null,
+        paused: pub.paused ? { since: Firebase.toLocalTime(this.context, pub.paused.since), remaining: pub.paused.remaining == null ? null : Number(pub.paused.remaining) } : null, // v33
+        removedIds: pub.removed && typeof pub.removed === 'object' ? Object.keys(pub.removed) : []
       };
       this.cachedState = state;
       this.emit(state);
@@ -456,8 +463,68 @@
       await this.modules.database.update(this.roomRef, {
         [`profiles/${playerId}`]: null,
         [`scores/${playerId}`]: null,
-        [`answers/${playerId}`]: null
+        [`answers/${playerId}`]: null,
+        [`public/removed/${playerId}`]: true // v33: entfernte Spieler verbinden sich nicht automatisch neu
       });
+    }
+
+    // ---------------- v33: Moderator-Werkzeuge
+    async renamePlayer(playerId, name) {
+      this.assertModerator();
+      const clean = String(name || '').trim().slice(0, 28);
+      if (!clean) throw new Error('Bitte einen Namen eingeben.');
+      if (!this.raw.profiles?.[playerId]) return;
+      await this.modules.database.update(this.modules.database.ref(this.db, `rooms/${this.code}/profiles/${playerId}`), { name: clean, updatedAt: Firebase.serverNow(this.context) });
+    }
+    async setReady(playerId, ready = true) {
+      if (this.role !== 'player' || String(playerId) !== this.userId || !this.raw.profiles?.[this.userId]) return false;
+      await this.modules.database.update(this.modules.database.ref(this.db, `rooms/${this.code}/profiles/${this.userId}`), { ready: Boolean(ready), updatedAt: Firebase.serverNow(this.context) });
+      return true;
+    }
+    heartbeat() { return Promise.resolve(); }
+    async markPresent() {
+      if (this.role !== 'player' || this.destroyed || !this.userId || !this.raw.profiles?.[this.userId]) return;
+      const dbm = this.modules.database;
+      const profileRef = dbm.ref(this.db, `rooms/${this.code}/profiles/${this.userId}`);
+      try {
+        this.playerDisconnect = dbm.onDisconnect(profileRef);
+        await this.playerDisconnect.update({ active: false, updatedAt: dbm.serverTimestamp() });
+        await dbm.update(profileRef, { active: true, updatedAt: Firebase.serverNow(this.context) });
+      } catch (error) { console.warn('Wiederverbinden', error); }
+    } // online übernimmt Firebase die Anwesenheit (.info/connected + onDisconnect)
+    async pause() {
+      const state = this.load();
+      if (!state || state.paused) return;
+      const now = Firebase.serverNow(this.context);
+      const ends = Number(this.raw.public?.questionEndsAt);
+      const remaining = state.questionOpen && Number.isFinite(ends) && ends > 0 ? Math.max(0, ends - now) : null;
+      await this.patchPublic(Object.assign({ paused: { since: now, remaining } }, remaining != null ? { questionEndsAt: null } : {}));
+    }
+    async resume() {
+      const state = this.load();
+      if (!state?.paused) return;
+      const now = Firebase.serverNow(this.context);
+      await this.patchPublic(Object.assign({ paused: null }, state.paused.remaining != null && state.questionOpen ? { questionEndsAt: now + Number(state.paused.remaining) } : {}));
+    }
+    scoreSnapshot() { return { scores: Object.fromEntries(Object.keys(this.raw.profiles || {}).map(uid => [uid, Math.round(Number(this.raw.scores?.[uid]) || 0)])) }; }
+    async restoreScores(snapshot, options = {}) {
+      this.assertModerator();
+      const updates = {};
+      Object.entries(snapshot?.scores || {}).forEach(([uid, score]) => { if (this.raw.profiles?.[uid]) updates[`scores/${uid}`] = Math.round(Number(score) || 0); });
+      const qid = String(options.unresolve || '');
+      const state = this.load();
+      const question = this.getCurrent(state).question;
+      if (qid && question?.id === qid && state.scoredQuestionIds.includes(qid)) {
+        Object.assign(updates, {
+          [`public/resolved/${qid}`]: null, [`host/resolveLocks/${qid}`]: null, 'public/questionResult': null, 'public/publicStats': null, 'public/scoreDeltas': null, 'public/media': null,
+          'public/currentQuestion': clean(publicQuestion(question, false)), 'public/updatedAt': Firebase.serverNow(this.context)
+        });
+        Object.entries(this.raw.answers || {}).forEach(([uid, byQuestion]) => {
+          if (!byQuestion?.[qid]) return;
+          ['awardedPoints', 'scoreDetail', 'scoredAt'].forEach(key => { updates[`answers/${uid}/${qid}/${key}`] = null; });
+        });
+      }
+      await this.modules.database.update(this.roomRef, updates);
     }
 
     assertModerator() {
@@ -836,8 +903,11 @@
         status: 'lobby', currentRoundIndex: 0, currentQuestionIndex: 0,
         questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
         currentQuestionId: this.raw.hostQuiz?.quiz?.rounds?.[0]?.questions?.[0]?.id || '', currentQuestion: null,
-        questionResult: null, publicStats: null, scoreDeltas: null, finishedAt: null, highlights: null
+        questionResult: null, publicStats: null, scoreDeltas: null, finishedAt: null, highlights: null, paused: null
       });
+      const ready = {};
+      Object.keys(this.raw.profiles || {}).forEach(uid => { if (this.raw.profiles[uid]?.ready) ready[`profiles/${uid}/ready`] = false; });
+      if (Object.keys(ready).length) await this.modules.database.update(this.roomRef, ready);
     }
 
     /** v27: Emoji-Reaktion eines Spielers (rooms/<code>/reactions/<uid>, Server begrenzt auf ca. 1 pro Sekunde) */

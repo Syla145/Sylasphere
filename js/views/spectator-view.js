@@ -85,7 +85,7 @@
     App.setText(els['spectator-progress'], playing && current.round ? `${current.round.title} · Frage ${Math.min(idx + 1, total)} / ${total}` : '');
     const answered = playing ? Object.keys(state.answers[current.question.id] || {}).length : 0;
     App.setText(els['beamer-count'], playing && state.questionStartedAt && !Quiz.gameOf(current.question) ? `${answered} von ${state.players.length} ${current.question.type === 'buzzer' ? 'haben gebuzzert' : Quiz.stagesOf(current.question) ? 'eingeloggt' : 'haben geantwortet'}` : '');
-    renderQuestion(current); renderLeaderboard(); renderTimer();
+    renderQuestion(current); renderLeaderboard(); renderTimer(); renderPause();
     scheduleFit();
     window.SylasphereSfx?.observe(state, { current }); // v27
   }
@@ -148,6 +148,16 @@
   function finalPodium(ranked) {
     // v29: Siegerehrung im Stil des Themes (js/core/themes.js)
     return window.SylasphereThemes.ceremony(ranked, { role: 'spectator', className: 'presenter', eyebrow: 'Finale', title: App.winnerTitle(ranked) || 'Quiz beendet', after: window.SylasphereHighlights?.html(state.highlights) || '' });
+  }
+
+  // v33: Pause – „Kurze Pause“ mit Rangliste über allem
+  function renderPause() {
+    let box = document.getElementById('beamer-pause');
+    if (!state.paused || state.status !== 'playing') { box?.remove(); return; }
+    const ranked = App.rankPlayers(state.players).slice(0, 10);
+    const html = `<div class="beamer-pause-card"><span class="eyebrow">Gleich geht's weiter</span><h1>☕ Kurze Pause</h1><div class="beamer-pause-list">${ranked.map(p => `<div class="beamer-pause-row"><b>${p.place}</b><span class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}</strong><em>${App.formatPoints(p.score)}</em></div>`).join('') || '<p>Noch keine Spieler.</p>'}</div></div>`;
+    if (!box) { box = document.createElement('div'); box.id = 'beamer-pause'; box.className = 'beamer-pause'; box.setAttribute('role', 'status'); els['spectator-live'].append(box); }
+    if (box.dataset.html !== html) { box.dataset.html = html; box.innerHTML = html; }
   }
 
   // v32: Der Beamer scrollt nie – passt der Inhalt nicht auf den Bildschirm, wird er stufenlos verkleinert

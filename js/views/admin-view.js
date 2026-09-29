@@ -53,6 +53,120 @@
     dbm.onValue(dbm.ref(context.db, 'moderatorRequests'), snap => renderRequests(snap.val() || {}), error => showListError('request-list', error));
     dbm.onValue(dbm.ref(context.db, 'moderators'), snap => { renderModerators(snap.val() || {}); syncStorage(snap.val() || {}); }, error => showListError('moderator-list', error));
     startUpkeep(context);
+    startUsage(context);
+  }
+
+  // ================================================================ v33: Nutzung & Kosten
+  const Usage = () => window.SylasphereUsage;
+  const Limits = () => window.SylasphereUsageLimits;
+  let cloudToken = null; // { token, expiresAt } – nur im Speicher, nie in localStorage
+  let lastCloud = null;
+  function startUsage(context) {
+    loadOwn(context);
+    renderCloud();
+    $('usage-refresh')?.addEventListener('click', () => { loadOwn(context); if (cloudToken) loadCloud(); });
+  }
+  /** Nur die Schlüssel eines Pfads (REST ?shallow=true), notfalls komplett laden */
+  async function keysOf(context, path) {
+    try {
+      const token = await context.auth.currentUser.getIdToken();
+      const response = await fetch(`${window.JHQuizFirebase.config.databaseURL}/${path}.json?shallow=true&auth=${encodeURIComponent(token)}`);
+      if (response.status === 401 || response.status === 403) throw Object.assign(new Error('permission_denied'), { code: 'PERMISSION_DENIED' });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return Object.keys((await response.json()) || {});
+    } catch (error) {
+      if (error.code === 'PERMISSION_DENIED') throw error;
+      const dbm = context.modules.database;
+      return Object.keys((await dbm.get(dbm.ref(context.db, path))).val() || {});
+    }
+  }
+  async function loadOwn(context) {
+    const box = $('usage-own');
+    if (!box || !Usage()) return;
+    const dbm = context.modules.database;
+    const get = async path => (await dbm.get(dbm.ref(context.db, path))).val();
+    const missing = [];
+    const safe = async (label, fn, fallback) => { try { return await fn(); } catch (error) { missing.push(label); console.warn(label, error); return fallback; } };
+    const [userMedia, moderators, modStats, accounts, rooms] = await Promise.all([
+      safe('Uploads', () => get('userMedia'), {}),
+      safe('Moderatoren', () => get('moderators'), {}),
+      safe('Spiele', () => get('modStats'), {}),
+      safe('Konten', () => keysOf(context, 'players'), []),
+      safe('Räume', () => keysOf(context, 'rooms'), []),
+      Promise.resolve([]) // Quizze: nur Moderatoren/Admins können speichern → ihre Listen zählen (siehe unten)
+    ]);
+    const me = Account.state().user;
+    // Admin darf nur die Liste (index) lesen, nicht die Quizze selbst – gezählt wird ohne Inhalte (shallow)
+    const owners = [...new Set([...Object.keys(moderators || {}), me?.uid].filter(Boolean))];
+    const quizCounts = await Promise.all(owners.map(uid => safe('Quizze', () => keysOf(context, `userQuizzes/${uid}/index`), [])));
+    const stats = Usage().ownStats({
+      userMedia: userMedia || {}, moderators: moderators || {}, admins: me ? { [me.uid]: me.name } : {},
+      accounts: accounts.length, rooms: rooms.length, games: Usage().countGames(modStats), quizzes: quizCounts.reduce((s, list) => s + list.length, 0)
+    });
+    const U = Usage();
+    const tile = (label, value, sub = '') => `<div class="usage-tile"><span>${esc(label)}</span><strong>${esc(value)}</strong>${sub ? `<small>${esc(sub)}</small>` : ''}</div>`;
+    const people = stats.uploads.perUser.map(u => `<tr><td>${esc(u.name)}</td><td>${U.fmtCount(u.count)}</td><td>${U.fmtBytes(u.bytes)}</td><td>${U.fmtBytes(u.monthBytes)}</td></tr>`).join('');
+    const warn = [...new Set(missing)];
+    box.innerHTML = `${warn.length ? `<div class="notice notice--warning">Nicht lesbar: ${esc(warn.join(', '))}. Sind die Firebase-Regeln für v33 veröffentlicht? (FIREBASE_SETUP.md → v33)</div>` : ''}
+      <div class="usage-tiles">${tile('Uploads gesamt', U.fmtBytes(stats.uploads.bytes), `${U.fmtCount(stats.uploads.count)} Dateien`)}${tile('Uploads diesen Monat', U.fmtBytes(stats.uploads.monthBytes))}${tile('Konten', U.fmtCount(stats.accounts), 'mit gespeichertem Fortschritt')}${tile('Moderatoren', U.fmtCount(stats.moderators))}${tile('Gespielte Spiele', U.fmtCount(stats.games), 'online, mit Ergebnis')}${tile('Gespeicherte Quizze', U.fmtCount(stats.quizzes))}${tile('Offene Räume', U.fmtCount(stats.rooms), 'aufräumen: siehe oben')}</div>
+      ${people ? `<div class="usage-table-wrap"><table class="usage-table"><thead><tr><th>Uploads pro Konto</th><th>Dateien</th><th>Gesamt</th><th>Diesen Monat</th></tr></thead><tbody>${people}</tbody></table></div>` : '<p class="microcopy">Noch keine Uploads.</p>'}`;
+  }
+
+  function renderCloud(message = '', kind = 'info') {
+    const box = $('usage-cloud');
+    if (!box || !Usage() || !Limits()) return;
+    const L = Limits();
+    const connected = cloudToken && cloudToken.expiresAt > Date.now();
+    const head = `<div class="usage-connect"><div><strong>${connected ? '✓ Mit Google Cloud verbunden' : 'Nicht verbunden'}</strong><span>${connected ? 'Die Verbindung gilt etwa eine Stunde und bleibt nur in diesem Tab.' : 'Öffnet ein Google-Fenster und fragt einmalig die Leseberechtigung für Cloud Monitoring an.'}</span></div><button type="button" class="btn ${connected ? 'btn--ghost' : 'btn--primary'}" data-connect>${connected ? '↻ Neu laden' : '🔗 Mit Google Cloud verbinden'}</button></div>`;
+    const note = message ? `<div class="notice ${kind === 'error' ? 'notice--warning' : ''}">${esc(message)}</div>` : '';
+    box.innerHTML = head + note + (lastCloud ? cloudHTML(lastCloud) : '') + `<p class="microcopy usage-links">Die echte Rechnung steht in der <a href="${L.links.billing}" target="_blank" rel="noopener">Google Cloud Console → Abrechnung ↗</a>. Tipp: <a href="${L.links.budgets}" target="_blank" rel="noopener">Budget-Warnung einrichten ↗</a> (z. B. bei 1 €). Freikontingente und Preise: <a href="${L.links.pricing}" target="_blank" rel="noopener">Firebase-Preise ↗</a> · Werte anpassbar in <code>js/core/usage-limits.js</code>.</p>`;
+    box.querySelector('[data-connect]').addEventListener('click', () => connect(connected));
+  }
+  async function connect(connected) {
+    if (!connected) {
+      try { cloudToken = await Account.googleAccessToken([Usage().SCOPE]); }
+      catch (error) { renderCloud(/popup|cancel/i.test(String(error?.code)) ? Account.errorText(error) : (error.code?.startsWith('sylasphere/') ? error.message : Account.errorText(error)), 'error'); return; }
+    }
+    loadCloud();
+  }
+  async function loadCloud() {
+    renderCloud('Lade Zahlen aus Google Cloud …');
+    try {
+      const result = await Usage().fetchMonitoring({ token: cloudToken.token, projectId: window.JHQuizFirebase.config.projectId, limits: Limits() });
+      if (result.errors.some(e => e.status === 401)) cloudToken = null;
+      lastCloud = Usage().evaluate(Limits(), result);
+      const errs = result.errors;
+      const allFailed = errs.length && Object.keys(result.values).length === 0;
+      if (allFailed) lastCloud = null; // keine Zahlen → keine (irreführende) Ampel zeigen
+      renderCloud(allFailed ? Usage().explainError(errs[0]) : errs.length ? `${errs.length} Werte fehlen: ${Usage().explainError(errs[0])}` : '', errs.length ? 'error' : 'info');
+    } catch (error) { renderCloud(Usage().explainError(error), 'error'); }
+  }
+  /** Mini-Verlauf der letzten 30 Tage (ein Balken pro Tag, Tooltip mit Datum und Wert) */
+  function sparkline(item) {
+    const U = Usage();
+    const points = item.series || [];
+    if (points.length < 2) return '';
+    const max = Math.max(...points.map(p => p.value), item.period === 'day' ? item.free : 0, 1);
+    const w = 4, gap = 2, h = 34;
+    const bars = points.map((p, i) => { const bh = Math.max(1, Math.round(p.value / max * h)); const day = new Date(p.end - 1).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }); return `<rect x="${i * (w + gap)}" y="${h - bh}" width="${w}" height="${bh}" rx="1"><title>${day}: ${U.fmtValue(item, p.value)}</title></rect>`; }).join('');
+    const limitLine = item.period === 'day' && item.free <= max ? `<line x1="0" x2="${points.length * (w + gap)}" y1="${h - Math.round(item.free / max * h)}" y2="${h - Math.round(item.free / max * h)}"><title>Freikontingent pro Tag</title></line>` : '';
+    return `<svg class="usage-spark" viewBox="0 0 ${points.length * (w + gap)} ${h}" preserveAspectRatio="none" role="img" aria-label="Verlauf der letzten 30 Tage">${bars}${limitLine}</svg>`;
+  }
+  function cloudHTML(data) {
+    const U = Usage(), L = Limits();
+    const groups = [...new Set(data.items.map(i => i.group))];
+    const rows = groups.map(group => `<div class="usage-group"><h4>${esc(group)}</h4>${data.items.filter(i => i.group === group).map(item => {
+      const pct = item.pct == null ? 0 : Math.min(1, item.pct);
+      const value = item.level === 'none' ? '–' : U.fmtValue(item, item.value);
+      return `<div class="usage-item is-${item.level}"><div class="usage-item-head"><strong>${esc(item.label)}</strong><span class="usage-status">${esc(U.LEVEL_TEXT[item.level])}</span></div>
+        <div class="usage-meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round((item.pct || 0) * 100)}" aria-label="${esc(item.label)}"><i style="width:${Math.round(pct * 100)}%"></i></div>
+        <div class="usage-item-foot">${item.kind === 'manual' ? `<span>Freikontingent ${esc(U.fmtValue(item, item.free))} · <a href="${L.links.usage}" target="_blank" rel="noopener">in der Firebase-Konsole ansehen ↗</a></span>` : `<span><b>${esc(value)}</b> von ${esc(U.fmtValue(item, item.free))} Freikontingent · ${esc(U.PERIOD_TEXT[item.period])}${item.pct != null ? ` · ${Math.round(item.pct * 100)} %` : ''}</span>`}${item.costUsd > 0 ? `<span class="usage-cost">≈ ${item.costUsd * L.usdToEur < 0.01 ? '< 0,01 €' : esc(U.fmtMoney(item.costUsd * L.usdToEur))}</span>` : ''}</div>
+        ${item.note ? `<small class="microcopy">${esc(item.note)}</small>` : ''}${sparkline(item)}</div>`;
+    }).join('')}</div>`).join('');
+    const summary = data.costEur > 0.005
+      ? `<div class="usage-summary is-over">💶 Über dem Freikontingent ≈ <strong>${esc(U.fmtMoney(data.costEur))}</strong> diesen Monat <small>(grobe Schätzung – die echte Rechnung steht in der Google Cloud Console)</small></div>`
+      : `<div class="usage-summary is-ok">✓ Alles im Freikontingent – geschätzte Kosten <strong>${esc(U.fmtMoney(0))}</strong> <small>(grobe Schätzung – die echte Rechnung steht in der Google Cloud Console)</small></div>`;
+    return summary + `<div class="usage-groups">${rows}</div>`;
   }
 
   // v28: Alte Räume löschen, Emote-Liste für die Firebase-Regeln abgleichen

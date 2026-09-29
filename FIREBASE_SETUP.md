@@ -9,6 +9,64 @@ Die Firebase-Webkonfiguration und die Realtime-Database-URL sind bereits im Proj
 3. Den kompletten Inhalt aus `firebase-database.rules.json` einfügen.
 4. **Publish / Veröffentlichen**.
 
+## Neu in v33: Nutzung & Kosten auf `admin.html`
+
+Auf `admin.html` gibt es den Bereich **„📊 Nutzung & Kosten“**. Er hat zwei Teile.
+
+### Teil 1: Zahlen aus der eigenen Datenbank (nur Regeln veröffentlichen)
+
+1. Firebase Console → **Realtime Database** → **Regeln**: den kompletten Inhalt von `firebase-database.rules.json` einfügen → **Veröffentlichen**.
+
+Geändert hat sich nur, dass **Admins** diese Bereiche lesen dürfen (für Summen und Anzahlen). Schreiben darf dort niemand zusätzlich, und für alle anderen bleibt alles wie bisher:
+
+| Pfad | Wofür |
+|---|---|
+| `userMedia` | Summe aller Uploads (gesamt, pro Konto, dieser Monat) |
+| `userQuizzes/<uid>/index` | Anzahl gespeicherter Quizze – nur die Liste, die Quizze selbst bleiben privat |
+| `players` | Anzahl Konten mit gespeichertem Fortschritt |
+| `modStats` | Anzahl gespielter Spiele |
+
+Moderatoren und offene Räume konnte der Admin schon vorher lesen.
+
+### Teil 2: Echte Google-Cloud-Zahlen (Cloud Monitoring, einmalig ca. 10 Minuten)
+
+Die Seite fragt die **Cloud Monitoring API** direkt aus dem Browser ab. Dafür brauchst du keinen Server, und es kostet nichts, weil das Lesen von Monitoring-Werten kostenlos ist. Die Anmeldung läuft über dein Google-Konto: Beim Klick auf **„🔗 Mit Google Cloud verbinden“** öffnet sich ein Google-Fenster, das die Berechtigung „Monitoring-Daten ansehen“ anfragt. Das Zugriffstoken bleibt nur im Speicher dieses Tabs, es wird nirgends gespeichert und gilt etwa eine Stunde.
+
+1. **Cloud Monitoring API aktivieren**
+   [console.cloud.google.com](https://console.cloud.google.com) → oben das Projekt **jh-quiz** wählen → **APIs & Dienste** → **Bibliothek** → nach **„Cloud Monitoring API“** suchen → **Aktivieren**.
+2. **OAuth-Zustimmungsbildschirm einrichten** (falls noch nicht geschehen)
+   **APIs & Dienste** → **OAuth-Zustimmungsbildschirm** (heißt teils auch **„Google Auth Platform“ → Branding / Zielgruppe**):
+   - Nutzertyp **Extern**, App-Name z. B. „Sylasphere“, deine E-Mail als Support- und Entwickler-Kontakt.
+   - **Bereiche/Scopes**: `https://www.googleapis.com/auth/monitoring.read` hinzufügen (ohne diesen Eintrag funktioniert es im Test-Modus meist trotzdem, er macht es aber übersichtlicher).
+   - **Veröffentlichungsstatus: Test** lassen.
+   - Unter **Testnutzer** (bzw. **Zielgruppe → Testnutzer**) **deine eigene Google-Adresse** eintragen. Nur Testnutzer dürfen die App im Test-Modus verwenden, und das ist hier genau richtig, weil nur du das brauchst.
+3. **Autorisierte Domain** (nur falls die Anmeldung meckert)
+   Firebase Console → **Authentication** → **Einstellungen** → **Autorisierte Domains**: Deine GitHub-Pages-Adresse (z. B. `syla145.github.io`) muss dort stehen. Das ist seit v19 schon so, sonst würde die normale Google-Anmeldung nicht funktionieren.
+   Bei der OAuth-Konfiguration zusätzlich unter **Autorisierte Domains** `github.io` bzw. deine Domain eintragen, falls Google danach fragt.
+4. **Berechtigung**: Dein Google-Konto braucht im Projekt mindestens die Rolle **Monitoring-Betrachter**. Als Projektinhaber hast du sie automatisch.
+5. `admin.html` öffnen → **„🔗 Mit Google Cloud verbinden“**.
+   - Google zeigt **„Google hat diese App nicht überprüft“**. Das ist normal für Apps im Test-Modus, weil es deine eigene App ist. Klicke auf **„Weiter“** (evtl. erst auf **„Erweitert“** → **„Zu Sylasphere wechseln (unsicher)“**).
+   - Bestätige die Berechtigung „Cloud Monitoring-Daten ansehen“.
+
+**Was angezeigt wird** (Werte, Freikontingente und Preise stehen zentral in `js/core/usage-limits.js`, dort kannst du sie anpassen):
+
+| Dienst | Metrik | Zeitraum | Freikontingent |
+|---|---|---|---|
+| Cloud Storage (Uploads) | `storage.googleapis.com/storage/total_bytes` | aktuell | 5 GB |
+| | `storage.googleapis.com/network/sent_bytes_count` | seit Monatsbeginn | 100 GB |
+| | `storage.googleapis.com/api/request_count` (nach Methode: Class A = Hochladen/Auflisten, Class B = Lesen) | seit Monatsbeginn | 5.000 / 50.000 |
+| Realtime Database | `firebasedatabase.googleapis.com/storage/total_bytes` | aktuell | 1 GB |
+| | `firebasedatabase.googleapis.com/network/sent_bytes_count` | seit Monatsbeginn | 10 GB |
+| Firestore | `firestore.googleapis.com/document/read_count` / `write_count` | letzte 24 Std. | 50.000 / 20.000 pro Tag |
+
+Dazu kommt ein kleiner Verlauf der letzten 30 Tage und eine **grobe** Kostenschätzung „über dem Freikontingent ≈ x €“. Die **echte Rechnung** steht immer in der Google Cloud Console unter **Abrechnung**. Empfehlung: Dort unter **Budgets & Benachrichtigungen** ein Budget (z. B. 1 €) mit E-Mail-Warnung anlegen.
+
+**Gut zu wissen:**
+- Die Storage-Größe (`total_bytes`) misst Google nur einmal am Tag. Neue Uploads erscheinen dort also erst am nächsten Tag, Teil 1 zeigt sie sofort.
+- Monatswerte sind Tagessummen der letzten 30 Tage ab Monatsbeginn und können an den Rändern um bis zu einen Tag abweichen.
+- Ohne Verbindung oder bei einem Fehler zeigt die Seite eine verständliche Meldung, Teil 1 funktioniert trotzdem.
+- Firestore-Speicherplatz lässt sich nicht über Monitoring abfragen. Bei Sylasphere liegen dort nur die Upload-Freigaben, das sind wenige Bytes.
+
 ## Neu in v28: XP, Stufen und Statistiken
 
 **Was du tun musst (einmalig, ca. 2 Minuten):**

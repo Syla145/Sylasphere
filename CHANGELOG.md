@@ -1,5 +1,20 @@
 # Sylasphere – Changelog
 
+## v33 – Moderator-Werkzeuge + Nutzungs-Dashboard
+- **Spieler entfernen und umbenennen** (lokal und online): Spieler antippen → „✎ Umbenennen“ / „✕ Entfernen“ (mit Rückfrage). Entfernte Spieler verbinden sich nicht automatisch neu.
+- **Pause** (Knopf oder Taste **P**): Der Timer hält an und läuft danach mit der Restzeit weiter. Der Beamer zeigt „☕ Kurze Pause“ mit Rangliste, die Handys zeigen „Pause“ und sperren die Eingabe.
+- **Rückgängig** (Knopf oder **Strg+Z**): nimmt die letzte Wertung zurück (Punkte wie vorher, die Lösung ist für die Spieler wieder verborgen, die Frage kann neu aufgelöst werden) oder die letzte Punkteänderung. Bis zu 10 Schritte pro Frage.
+- **Wiederverbinden:** Lädt ein Spieler die Seite neu oder war das Handy kurz offline, landet er automatisch wieder im Raum. Beim Moderator zeigt ein Punkt am Avatar, wer verbunden ist.
+- **Bereit-Check in der Lobby:** Spieler tippen „✋ Bereit“, der Moderator sieht „2 von 3 bereit · es fehlt: …“. Starten geht trotzdem jederzeit.
+- **admin.html:** Die Upload-Warnung bricht am Handy richtig um.
+- **📊 Nutzung & Kosten auf admin.html:**
+  - Aus der eigenen Datenbank: Uploads (gesamt, pro Konto, dieser Monat), Konten, Moderatoren, gespielte Spiele, gespeicherte Quizze, offene Räume.
+  - Echte Google-Cloud-Zahlen über die Cloud Monitoring API, direkt aus dem Browser: Knopf „🔗 Mit Google Cloud verbinden“ (Google-Anmeldung mit Leserecht für Monitoring, Token nur im Speicher). Cloud Storage (gespeichert, Download, Class-A-/B-Zugriffe), Realtime Database (gespeichert, Download), Firestore (Lese-/Schreibzugriffe der letzten 24 Std.), jeweils mit 30-Tage-Verlauf.
+  - Ampel gegen die Freikontingente und grobe Kostenschätzung „über dem Freikontingent ≈ x €“, Links zur Abrechnung und zu Budget-Warnungen. Freikontingente und Preise zentral in `js/core/usage-limits.js`.
+  - Ohne Verbindung oder bei Fehlern gibt es eine verständliche Meldung, die eigenen Zahlen laufen weiter.
+- **Firebase-Regeln geändert:** Admins dürfen `userMedia`, `players` und `modStats` als Ganzes sowie die Quiz-Listen `userQuizzes/<uid>/index` lesen (nur lesen; fremde Quizze bleiben privat). Einrichtung der Cloud-Zahlen: FIREBASE_SETUP.md → v33.
+- Neue Dateien: `js/core/usage-limits.js`, `js/core/usage-stats.js`, `tests/v33-werkzeuge-nutzung.js`.
+
 ## v32 – Fragetypen verfeinern
 - **Einordnen – neue Stechen-Regel (ersetzt die „letzte Chance“):** Gespielt wird in Runden, jeder mit Leben ist pro Runde genau einmal dran. Wer auf 0 fällt, scheidet aus, die Runde wird aber zu Ende gespielt. Nach jeder vollen Runde: genau einer mit Leben → Sieg; mehrere → weiter; keiner → Stechen zwischen den in dieser Runde Ausgeschiedenen (pro Stechrunde eine Karte je Stecher, genau einer richtig → Sieger, Falsche fliegen raus, nach max. 3 Stechrunden oder wenn die Karten ausgehen entscheiden die richtig gelegten Karten, sonst geteilter Platz). Karten aus vor der Entscheidung: Rang nach Leben, dann Karten. Platzierung mit geteilten Plätzen (gleiche Punkte). Moderator-Panel und Beamer zeigen „Runde n · noch dran: …“ bzw. „Stechen · Runde n/3“. Nach Spielende löst die Leertaste auf.
 - **Gleich gedacht (Dilemma):** Punkte nur, wenn die meistgewählte Antwort mindestens 2 Stimmen hat. Wählen alle unterschiedlich (auch 1:1), gibt es „Keine Mehrheit“ und 0 Punkte. Bei Gleichstand (z. B. 2:2) bekommen weiter alle Mehrheitsgruppen Punkte.

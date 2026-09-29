@@ -22,11 +22,12 @@ Alle Texte, Commits und Antworten auf **Deutsch**.
 - `js/editor/` – Quiz-Editor (v30: Gliederung links, eine Frage in der Mitte; `editor.js` = Oberfläche, `editor-model.js` = Datenlogik ohne DOM: Verschieben, Duplizieren, Typwechsel, ⚠️-Zuordnung), Medienbibliothek (`media-library.js`, Bilder kompakt mit Vorschaubild)
 - **Beamer/Moderator-Mitte (ab v32):** Fragetypen können `present` (Präsentation ohne Eingaben), `presentLive`, `presentShowsSolution` und `mark` (Tipps/Klickpunkte als Avatare) anbieten, siehe `js/question-types/README.md`. Der Beamer scrollt nie (`fitBeamer` in `spectator-view.js` verkleinert notfalls).
 - `js/question-types/` – **Fragetyp-Registry**: jeder Typ ist eine Datei in `types/` (Editor, Spieleransicht, Auswertung, optional `game` für rundenbasierte Spiele wie `ranking`, `time-duel`). Liste in `registry.js` (`TYPE_FILES`). Gemeinsame Helfer in `kit.js` (u. a. unscharfer Textvergleich `Kit.matchTerm`). Siehe `js/question-types/README.md`.
+- **Verwaltung (ab v33):** `admin.html` → „📊 Nutzung & Kosten“: Rechenlogik `js/core/usage-stats.js` (ohne DOM), Freikontingente/Preise `js/core/usage-limits.js`, Cloud Monitoring per REST mit Google-Token (`SylasphereAccount.googleAccessToken`, nur im Speicher).
 - `data/` – Beispiel-Quizze (JSON), `data/quiz-list.json` listet sie.
 - `tests/` – Node-Tests ohne Abhängigkeiten: `node tests/<datei>.js` (alle sollten „0 failed“ melden).
 
 ## Arbeitsweise
-- Versionen in Schritten (zuletzt **v32**). Pro Version: `APP_VERSION` in `js/core/app.js` hochzählen, Eintrag in `CHANGELOG.md`, README bei Bedarf, einen Test `tests/v<NN>-<thema>.js` ergänzen, alle Tests laufen lassen.
+- Versionen in Schritten (zuletzt **v33**). Pro Version: `APP_VERSION` in `js/core/app.js` hochzählen, Eintrag in `CHANGELOG.md`, README bei Bedarf, einen Test `tests/v<NN>-<thema>.js` ergänzen, alle Tests laufen lassen.
 - Einfach, robust, gut erweiterbar; Darstellung, Daten und Spiellogik getrennt halten. Muss auf Handy **und** Desktop gut bedienbar sein.
 - UI im Browser prüfen (Playwright/Chromium ist in der Cloud-Umgebung vorhanden): lokalen Server starten (`python3 -m http.server`), Handy-Breite 390 px und Desktop ansehen. Namen dürfen nie von Avataren/Emojis verdeckt werden.
 - **Themes dürfen den Originalnamen ihres Vorbilds tragen** (z. B. „Mario Kart“), weil die Seite nur im privaten Kreis genutzt wird.

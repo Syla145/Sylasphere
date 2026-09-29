@@ -31,7 +31,7 @@
 
   async function init() {
     await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
-    ['quiz-select','quiz-summary','quiz-import','create-session','create-online-session','firebase-status','setup-panel','session-panel','session-code','session-status','session-mode','transport-hint','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-next-step','mod-next-hint','mod-end-actions','btn-replay','btn-other-quiz','mod-share','mod-share-code','mod-qbar','mod-qbar-label','mod-qbar-count','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
+    ['quiz-select','quiz-summary','quiz-import','create-session','create-online-session','firebase-status','setup-panel','session-panel','session-code','session-status','session-mode','transport-hint','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-next-step','mod-next-hint','mod-end-actions','btn-replay','btn-other-quiz','mod-share','mod-share-code','mod-qbar','mod-qbar-label','mod-qbar-count','btn-prev','btn-next','btn-finish','btn-pause','btn-undo','mod-tools','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
     bind();
     if (Gate) await Gate.whenUnlocked();
     await loadQuizList();
@@ -89,6 +89,8 @@
     // v31: ein großer Knopf für den nächsten Schritt (wie die Leertaste)
     els['btn-next-step']?.addEventListener('click', () => doStep());
     els['btn-replay']?.addEventListener('click', () => replay());
+    els['btn-pause']?.addEventListener('click', togglePause);
+    els['btn-undo']?.addEventListener('click', () => undo());
     els['btn-other-quiz']?.addEventListener('click', () => els['btn-new-session'].click());
     // Spieler antippen → Punkte-Knöpfe ein-/ausblenden
     els['players-list']?.addEventListener('click', event => {
@@ -179,6 +181,8 @@
       }
       // v31: Leertaste = derselbe nächste Schritt wie der große Knopf
       if (event.code === 'Space') { event.preventDefault(); doStep(); }
+      if (event.key.toLowerCase() === 'p' && !event.ctrlKey && !event.metaKey) { event.preventDefault(); togglePause(); } // v33: P = Pause
+      if (event.key.toLowerCase() === 'z' && (event.ctrlKey || event.metaKey) && undoStack.length) { event.preventDefault(); undo(); }
       if (event.key === 'ArrowRight' && !step?.skip.disabled) safe(() => engine.move(1));
       if (event.key === 'ArrowLeft' && !step?.prev.disabled) safe(() => engine.move(-1));
     });
@@ -369,6 +373,7 @@
 
   // v31: Antwortstatus der aktuellen Frage pro Spieler (✓ geantwortet / ⏳ wartet / +P nach der Auflösung)
   function playerStatus(player) {
+    if (state.status === 'lobby') return player.ready ? '<span class="mod-pstatus is-done">✓ bereit</span>' : '<span class="mod-pstatus is-wait">⏳ noch nicht bereit</span>';
     const current = engine.getCurrent(state);
     const q = current.question;
     if (state.status !== 'playing' || !q || !state.questionStartedAt || Quiz.gameOf(q)) return '';
@@ -382,6 +387,61 @@
     if (q.type === 'buzzer') return record ? '<span class="mod-pstatus is-done">⚡ gebuzzert</span>' : '';
     return record ? '<span class="mod-pstatus is-done">✓ geantwortet</span>' : '<span class="mod-pstatus is-wait">⏳ wartet</span>';
   }
+  // v33: Online-Punkt – online über Firebase-Anwesenheit, lokal über regelmäßige Meldungen der Spieler-Tabs
+  function isOnline(p) {
+    if (transport === 'online') return p.active !== false;
+    return p.seenAt ? Date.now() - Number(p.seenAt) < 30000 : p.active !== false;
+  }
+  function renamePlayer(id) {
+    const player = state.players.find(p => p.id === id);
+    if (!player) return;
+    const name = prompt(`Neuer Name für ${player.name}:`, player.name);
+    if (name == null || !name.trim() || name.trim() === player.name) return;
+    safe(() => engine.renamePlayer(id, name.trim()));
+  }
+  function removePlayer(id) {
+    const player = state.players.find(p => p.id === id);
+    if (!player || !confirm(`${player.name} aus dem Raum entfernen? Punkte und Antworten dieses Spielers werden gelöscht.`)) return;
+    expandedPlayer = '';
+    safe(() => engine.removePlayer(id));
+  }
+  // v33: Rückgängig – Punktestand vor der letzten Wertung/Punkteänderung (bis zu 10 Schritte)
+  const undoStack = [];
+  function remember(label, unresolve = '') {
+    if (!engine?.scoreSnapshot) return;
+    undoStack.push({ label, unresolve, snapshot: engine.scoreSnapshot(), questionId: engine.getCurrent(state).question?.id || '' });
+    if (undoStack.length > 10) undoStack.shift();
+    updateTools();
+  }
+  async function undo() {
+    const entry = undoStack.pop();
+    updateTools();
+    if (!entry) return;
+    const current = engine.getCurrent(state).question?.id || '';
+    const unresolve = entry.unresolve && entry.unresolve === current ? entry.unresolve : '';
+    await safe(() => engine.restoreScores(entry.snapshot, { unresolve }));
+    App.toast(unresolve ? 'Auflösung zurückgenommen – Punkte wie vorher.' : 'Punkteänderung zurückgenommen.', 'success');
+  }
+  function togglePause() {
+    if (!engine?.pause || state?.status !== 'playing') return;
+    safe(() => (state.paused ? engine.resume() : engine.pause()));
+  }
+  function updateTools() {
+    if (!els['mod-tools'] || !state) return;
+    els['mod-tools'].hidden = state.status !== 'playing';
+    els['btn-undo'].disabled = !undoStack.length;
+    els['btn-undo'].title = undoStack.length ? `Rückgängig: ${undoStack[undoStack.length - 1].label}` : 'Nichts zum Rückgängigmachen';
+    els['btn-pause'].textContent = state.paused ? '▶ Weiter' : '⏸ Pause';
+    els['btn-pause'].classList.toggle('btn--primary', Boolean(state.paused));
+    document.body.classList.toggle('is-paused', Boolean(state.paused));
+  }
+  function readyHint() {
+    if (state.status !== 'lobby' || !state.players.length) return '';
+    const missing = state.players.filter(p => !p.ready);
+    if (!missing.length) return `✓ Alle ${state.players.length} sind bereit`;
+    return `${state.players.length - missing.length} von ${state.players.length} bereit · es fehlt: ${missing.map(p => p.name).join(', ')}`;
+  }
+
   function renderPlayers() {
     const players = App.rankPlayers(state.players);
     App.setText(els['player-count'], String(players.length));
@@ -391,26 +451,28 @@
       const open = p.id === expandedPlayer;
       return `
       <div class="player-row${open ? ' is-open' : ''}" data-player="${App.escapeHTML(p.id)}" role="button" tabindex="0" aria-expanded="${open}" title="Antippen: Punkte ändern">
-        <div class="player-rank">${p.place}</div><div class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</div>
-        <div class="player-name"><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span>${App.formatPoints(p.score)}${transport === 'online' && p.active === false ? ' · offline' : ''}</span>${playerStatus(p)}</div>
+        <div class="player-rank">${p.place}</div><div class="avatar mod-avatar">${App.escapeHTML(App.avatar(p.avatar))}<i class="mod-dot ${isOnline(p) ? 'is-on' : 'is-off'}" title="${isOnline(p) ? 'online' : 'nicht verbunden'}"></i></div>
+        <div class="player-name"><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span>${App.formatPoints(p.score)}${isOnline(p) ? '' : ' · nicht verbunden'}</span>${playerStatus(p)}</div>
         ${open ? `<div class="score-controls score-controls--precise" aria-label="Punkte von ${App.escapeHTML(p.name)} anpassen">
           <button type="button" class="score-step" data-delta="-10" title="10 Punkte abziehen">−10</button>
           <button type="button" class="score-step score-step--one" data-delta="-1" title="1 Punkt abziehen">−1</button>
           <input class="score-input" type="number" step="1" value="${Math.round(Number(p.score) || 0)}" inputmode="numeric" aria-label="Punktestand von ${App.escapeHTML(p.name)} direkt setzen" title="Punktestand direkt eingeben">
           <button type="button" class="score-step score-step--one" data-delta="1" title="1 Punkt addieren">+1</button>
           <button type="button" class="score-step" data-delta="10" title="10 Punkte addieren">+10</button>
-        </div>` : ''}
+        </div><div class="mod-player-tools"><button type="button" class="btn btn--small btn--ghost" data-rename>✎ Umbenennen</button><button type="button" class="btn btn--small btn--danger" data-remove>✕ Entfernen</button></div>` : ''}
       </div>`;
     }).join('');
     els['players-list'].querySelectorAll('.player-row').forEach(row => {
       row.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target === row) { event.preventDefault(); event.stopPropagation(); row.click(); } });
-      row.querySelectorAll('.score-step').forEach(button => button.addEventListener('click', () => safe(() => engine.adjustPlayerScore(row.dataset.player, Number(button.dataset.delta)))));
+      row.querySelectorAll('.score-step').forEach(button => button.addEventListener('click', () => { remember('Punkte'); safe(() => engine.adjustPlayerScore(row.dataset.player, Number(button.dataset.delta))); }));
+      row.querySelector('[data-rename]')?.addEventListener('click', event => { event.stopPropagation(); renamePlayer(row.dataset.player); });
+      row.querySelector('[data-remove]')?.addEventListener('click', event => { event.stopPropagation(); removePlayer(row.dataset.player); });
       const input = row.querySelector('.score-input');
       if (!input) return;
       const applyExactScore = () => {
         const value = Number(input.value);
         if (!Number.isFinite(value)) { render(state); return; }
-        safe(() => engine.setPlayerScore(row.dataset.player, Math.round(value)));
+        remember('Punkte'); safe(() => engine.setPlayerScore(row.dataset.player, Math.round(value)));
       };
       input.addEventListener('change', applyExactScore);
       input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); input.blur(); } });
@@ -419,6 +481,7 @@
   }
 
   // v31: Kopfzeile der Frage mit Timer-Ring (nur während einer Frage)
+  let lastUndoQuestion = '';
   function renderQbar(current, index, total) {
     const bar = els['mod-qbar'];
     if (!bar) return;
@@ -430,7 +493,9 @@
     const text = !state.questionStartedAt ? `${Quiz.topic(current.question.category).icon} ${current.question.category || 'Ohne Thema'} · ${Quiz.TYPE_LABELS[current.question.type] || ''}`
       : Quiz.gameOf(current.question) ? (Quiz.TYPE_LABELS[current.question.type] || 'Spiel')
       : `${answers} von ${state.players.length} haben ${current.question.type === 'buzzer' ? 'gebuzzert' : 'geantwortet'}`;
-    App.setText(els['mod-qbar-count'], text);
+    App.setText(els['mod-qbar-count'], state.paused ? '⏸ Pause – Timer angehalten, Beamer zeigt die Rangliste' : text);
+    // Rückgängig gilt nur für die aktuelle Frage
+    if (lastUndoQuestion !== current.question.id) { lastUndoQuestion = current.question.id; undoStack.length = 0; updateTools(); }
   }
 
   function renderQuestion(current) {
@@ -486,7 +551,7 @@
       if (resolved && correct) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>`;
       if (resolved) html += answerRows(current.question, answers);
       els['answer-status'].innerHTML = html;
-      els['answer-status'].querySelector('[data-buzzer-action="resolve"]')?.addEventListener('click', () => safe(() => engine.resolveQuestion()));
+      els['answer-status'].querySelector('[data-buzzer-action="resolve"]')?.addEventListener('click', () => { remember('Buzzer-Auflösung'); safe(() => engine.resolveQuestion()); });
       els['answer-status'].querySelector('[data-buzzer-action="wrong"]')?.addEventListener('click', () => safe(() => engine.markBuzzerIncorrect()));
       return;
     }
@@ -802,7 +867,11 @@
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     if (Quiz.gameOf(current?.question) && state.questionStartedAt) { setRing(0, '⏱', 'is-idle'); return; }
     const pendingReveal = Boolean(current?.question && state.questionStartedAt && !state.questionOpen && !resolved);
-    if (els['timer-ring']) els['timer-ring'].hidden = pendingReveal || resolved; // v32: nach dem Schließen kein „0“ mehr – Ring ausblenden
+    if (els['timer-ring']) els['timer-ring'].hidden = (pendingReveal || resolved) && !(state.paused && state.paused.remaining != null); // v32: nach dem Schließen kein „0“ mehr – Ring ausblenden
+    if (state.paused && state.paused.remaining != null) { // v33: Pause – Restzeit eingefroren
+      const total = Math.max(1, (Number(current?.question?.timer) || 0) * 1000);
+      setRing(state.paused.remaining / total, `${Math.ceil(state.paused.remaining / 1000)}`, 'is-idle'); return;
+    }
     if (pendingReveal || resolved) return;
     if (!state.questionOpen || !state.questionEndsAt) { setRing(state.questionStartedAt ? 1 : 0, state.questionStartedAt ? '∞' : `${current?.question?.timer || 0}s`, 'is-idle'); return; }
     const total = Math.max(1, state.questionEndsAt - (state.questionStartedAt || Date.now()));
@@ -836,7 +905,8 @@
     big.textContent = step.label;
     big.disabled = step.disabled;
     big.dataset.step = step.key;
-    App.setText(els['mod-next-hint'], step.hint || '');
+    App.setText(els['mod-next-hint'], readyHint() || step.hint || '');
+    updateTools();
     els['btn-prev'].disabled = step.prev.disabled;
     els['btn-next'].disabled = step.skip.disabled;
     els['btn-finish'].disabled = step.finish.disabled;
@@ -860,6 +930,7 @@
       else if (key === 'resolve') {
         const q = engine.getCurrent(state).question;
         if (state.questionOpen && q?.type !== 'buzzer') await engine.lockQuestion();
+        remember('Auflösung', q?.type === 'buzzer' ? '' : q?.id);
         await engine.resolveQuestion(resolveOptions());
       }
       else if (key === 'game-start') duelAction('start');

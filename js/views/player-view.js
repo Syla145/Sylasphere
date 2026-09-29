@@ -33,6 +33,7 @@
       renderJoinAccount();
     }).catch(() => {});
     [els['room-code'], els['player-name']].forEach(input => input.addEventListener('keydown', e => { if (e.key === 'Enter') join(); }));
+    tryRejoin();
     els['submit-answer'].addEventListener('click', submit);
   }
 
@@ -158,6 +159,27 @@
     ['room-code', 'player-name'].forEach(id => { els[id]?.classList.remove('is-invalid'); els[id]?.removeAttribute('aria-invalid'); els[id]?.parentElement.querySelector('.field-error')?.remove(); });
   }
 
+  // ---------- v33: Wiederverbinden – nach kurzem Verbindungsabbruch/Neuladen automatisch zurück in den Raum
+  const REJOIN_KEY = 'sylasphere:rejoin';
+  const REJOIN_MAX_AGE = 12 * 60 * 60 * 1000;
+  const rejoinStore = {
+    // pro Tab (sessionStorage): Neuladen/kurz weg klappt, weitere Tabs im selben Browser (lokaler Test) treten nicht als dieselbe Person bei
+    get() { try { return JSON.parse(sessionStorage.getItem(REJOIN_KEY) || 'null'); } catch (_) { return null; } },
+    set(value) { try { if (value) sessionStorage.setItem(REJOIN_KEY, JSON.stringify(value)); else sessionStorage.removeItem(REJOIN_KEY); } catch (_) {} }
+  };
+  let autoJoin = false;
+  function tryRejoin() {
+    const saved = rejoinStore.get();
+    const param = String(App.getParam('code') || '').toUpperCase();
+    if (!saved?.code || Date.now() - Number(saved.at || 0) > REJOIN_MAX_AGE || (param && param !== saved.code)) return;
+    els['room-code'].value = saved.code;
+    els['player-name'].value = saved.name || '';
+    const button = els['avatar-options'].querySelector(`[data-avatar="${CSS.escape(saved.avatar || '')}"]`);
+    if (button) { els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x => x.classList.toggle('is-selected', x === button)); avatarPicked = true; }
+    autoJoin = true;
+    join().finally(() => { autoJoin = false; });
+  }
+
   async function join() {
     if (joining) return;
     const code = els['room-code'].value.trim().toUpperCase(); const name = els['player-name'].value.trim();
@@ -187,6 +209,7 @@
         engine = await Online.connect(code, 'player', { account });
         if (account && !engine.isAccount) App.toast('Das ist dein eigener Raum – du spielst als Gast (ohne XP).', 'info');
         await engine.waitForState();
+        if (autoJoin && (engine.load()?.removedIds || []).includes(engine.userId)) throw new Error('removed');
         playerId = await engine.joinPlayer(name, chooseAvatar(avatar, engine.load()?.players, engine.userId), { xp: accountXp });
         identity.activate(playerId);
         transport = 'online';
@@ -195,12 +218,15 @@
         engine = new Session(code);
         identity = new PlayerIdentity(code);
         const previous = await identity.reusablePlayerId();
+        if (autoJoin && previous && (engine.load()?.removedIds || []).includes(previous)) throw new Error('removed');
         playerId = engine.joinPlayer(name, chooseAvatar(avatar, engine.load()?.players, previous), previous);
         identity.activate(playerId);
         transport = 'local';
         startProgress(code);
       }
 
+      rejoinStore.set({ code, mode: transport, name, avatar: els['avatar-options'].querySelector('.is-selected')?.dataset.avatar || '', at: Date.now() });
+      startHeartbeat();
       els['join-panel'].hidden=true; els['game-panel'].hidden=false;
       window.SylasphereJoin?.keepAwake(true); // Handy geht während des Quiz nicht in den Standby
       history.replaceState(null,'',`?code=${code}&mode=${transport}`);
@@ -208,6 +234,12 @@
       // v27: Emoji-Reaktionen (Leiste unter der Frage)
       window.SylasphereReactions?.attachBar(document.getElementById('reaction-bar'), emoji => Promise.resolve(engine.sendReaction?.(playerId, emoji)));
     } catch(error) {
+      if (autoJoin) { // stilles Wiederverbinden hat nicht geklappt (Raum weg, entfernt …) → normales Formular
+        rejoinStore.set(null);
+        els['join-error'].textContent = error?.message === 'removed' ? 'Der Moderator hat dich aus dem Raum entfernt.' : 'Die letzte Runde ist vorbei – gib einen Raumcode ein.';
+        identity?.destroy(); identity = null; try { await engine?.destroy?.(); } catch (_) {} engine = null;
+        return;
+      }
       const message = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Beitritt fehlgeschlagen.');
       if (/nicht gefunden|Raumcode|Code/i.test(message)) fieldError('room-code', message);        // v32: Fehler am betroffenen Feld
       else if (/Name/i.test(message)) fieldError('player-name', message);
@@ -229,12 +261,24 @@
     state=next; window.SylasphereTopics?.use(state.quiz?.quiz?.categories); // eigene Themen des Quiz
     window.SylasphereThemes?.applyQuiz(state.quiz, state.currentRoundIndex); // Design des Quiz (v29: optional pro Runde)
     window.SylasphereThemes?.observe(state); // v29: Übergang zwischen Fragen
-    const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
+    const player=state.players.find(p=>p.id===playerId);
+    if(!player){ const removed = (state.removedIds || []).includes(playerId); rejoinStore.set(null); return disconnect(removed ? 'Der Moderator hat dich aus dem Raum entfernt.' : 'Du bist nicht mehr Teil dieser Sitzung.'); }
+    { const saved = rejoinStore.get(); if (saved && saved.code === state.code && saved.name !== player.name) rejoinStore.set(Object.assign(saved, { name: player.name, at: Date.now() })); } // Umbenennen durch den Moderator merken
+    renderPause();
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
     if (els['game-mode']) { const offline = transport === 'online' && state.onlineConnected === false; els['game-mode'].hidden = !offline; els['game-mode'].textContent = offline ? '↻ Verbindung …' : ''; els['game-mode'].classList.toggle('is-offline', offline); } // v31: kein Lokal/Online-Hinweis mehr, nur bei Verbindungsproblemen
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
     renderLeaderboard(); renderStatus(current); renderTimer(current);
+    if (state.paused && state.status === 'playing') App.setText(els['game-status'], 'Pause'); // v33
     window.SylasphereSfx?.observe(state, { current, playerId }); // v27: Soundeffekte + Vibration
+  }
+
+  function readyButton() {
+    const me = state.players.find(p => p.id === playerId);
+    const ready = state.players.filter(p => p.ready).length;
+    return me?.ready
+      ? `<div class="ready-box is-ready"><strong>✓ Du bist bereit</strong><span>${ready} von ${state.players.length} bereit</span><button type="button" class="link-btn" data-ready>doch nicht bereit</button></div>`
+      : `<div class="ready-box"><button type="button" class="btn btn--primary ready-btn" data-ready>✋ Bereit</button><span>${ready} von ${state.players.length} bereit</span></div>`;
   }
 
   function renderStatus(current) {
@@ -249,7 +293,8 @@
 
     if (state.status === 'lobby') {
       App.setText(els['game-status'], 'Lobby');
-      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · Der Moderator startet gleich.</p><p class="microcopy">Raum ${App.escapeHTML(state.code)}</p></div>`;
+      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · Der Moderator startet gleich.</p>${readyButton()}<p class="microcopy">Raum ${App.escapeHTML(state.code)}</p></div>`;
+      els['game-question'].querySelector('[data-ready]')?.addEventListener('click', toggleReady);
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
     if (state.status === 'finished') {
@@ -499,6 +544,11 @@
     const buzzing = current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id);
     const ends = Number(state.questionEndsAt) || 0, started = Number(state.questionStartedAt) || 0;
     const running = state.status === 'playing' && state.questionOpen && ends && started && !buzzing;
+    if (state.paused && state.paused.remaining != null && state.questionOpen) { // v33: Pause – Balken eingefroren
+      if (bar) bar.hidden = false;
+      setBar(state.paused.remaining / Math.max(1000, (Number(current?.question?.timer) || 1) * 1000));
+      App.setText(els['player-timer'], `⏸ ${Math.ceil(state.paused.remaining / 1000)} s`); return;
+    }
     if (bar) bar.hidden = !running;
     if (!running) { App.setText(els['player-timer'], '–'); return; }
     const span = Math.max(1000, ends - started);
@@ -507,7 +557,32 @@
     timer=new Timer((seconds)=>{App.setText(els['player-timer'],`${seconds ?? '–'} s`); window.SylasphereSfx?.countdown(seconds);},()=>{ setBar(0, 'is-ended'); App.setText(els['player-timer'],'0 s'); els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
   }
 
+  // v33: lokal melden sich Spieler-Tabs alle 10 s (Online-Punkt beim Moderator); online macht das Firebase
+  let heartbeatTimer = 0;
+  function startHeartbeat() {
+    clearInterval(heartbeatTimer);
+    if (transport !== 'local' || !engine?.heartbeat) return;
+    const beat = () => { try { engine?.heartbeat(playerId); } catch (_) {} };
+    beat(); heartbeatTimer = setInterval(beat, 10000);
+  }
+  // v33: Pause – Hinweis über der Frage, Eingaben gesperrt
+  function renderPause() {
+    let box = document.getElementById('player-pause');
+    if (!state.paused) { box?.remove(); return; }
+    if (!box) {
+      box = document.createElement('div'); box.id = 'player-pause'; box.className = 'player-pause'; box.setAttribute('role', 'status');
+      box.innerHTML = '<div><strong>⏸ Pause</strong><span>Gleich geht es weiter – der Timer ist angehalten.</span></div>';
+      document.querySelector('.player-question-card')?.prepend(box);
+    }
+  }
+  async function toggleReady() {
+    const me = state?.players.find(p => p.id === playerId);
+    if (!me || !engine?.setReady) return;
+    try { await engine.setReady(playerId, !me.ready); } catch (error) { App.toast(error.message, 'error'); }
+  }
+
   async function disconnect(message){
+    clearInterval(heartbeatTimer);
     stopProgress?.(); stopProgress = null;
     identity?.destroy(); identity=null; try { await engine?.destroy?.(); } catch (_) {} engine=null;
     els['game-panel'].hidden=true; els['join-panel'].hidden=false; els['join-error'].textContent=message;
