@@ -6,7 +6,7 @@ const idx=code('index.html'),home=code('js/views/home-view.js'),ed=code('editor.
 ok(idx.includes('home-view.js')&&idx.includes('account.js')&&idx.includes('id="home-content"'),'start page loads accounts + home view');
 ok(!/href="\.\/moderator\.html"/.test(idx)&&!/href="\.\/editor\.html"/.test(idx),'start page has no hardcoded moderator/editor links');
 ok(home.includes("['moderator', 'play', 'watch', 'editor']")&&home.includes("['play', 'watch']")&&home.includes("keys.push('admin')"),'role → cards mapping');
-ok(home.includes("GUEST_KEY")&&home.includes("data-choice=\"guest\"")&&home.includes("data-choice=\"login\""),'choice login/guest, guest remembered');
+ok(home.includes('data-home-join')&&home.includes("data-choice=\"login\""),'v31: Raumcode-Feld für alle, Anmelden als Nebenweg');
 ok(ed.includes('class="moderator-locked"')&&ed.includes('id="moderator-gate"')&&ed.includes('moderator-gate.js')&&ed.includes('data-gate-page="editor"'),'editor gated for moderators');
 ok(code('css/main.css').includes('html.moderator-locked #editor-start'),'editor content hidden until unlocked');
 ok(!mod.includes('moderator-code')&&!mod.includes('guest-code')&&!mod.includes('btn-lock-moderator'),'moderator page without guest code');

@@ -1107,3 +1107,255 @@ body.ed-is-dragging,body.ed-is-dragging *{cursor:grabbing!important;user-select:
 }
 @media (max-width:760px){.ed-shell.is-detail .ed-top-title{visibility:hidden}}
 @media (max-width:760px){.ed-save-state span{display:none}.ed-top .btn{white-space:nowrap}}
+
+/* =====================================================================
+   v31 – Usability Spielablauf
+   ===================================================================== */
+/* Deaktivierte Knöpfe grau statt farbig (in allen Themes) */
+.btn.btn:disabled{background:rgba(var(--overlay-rgb),.07);border-color:var(--line);color:var(--muted);box-shadow:none;opacity:1;animation:none;text-shadow:none}
+kbd{display:inline-block;padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;font:700 .72rem/1.3 ui-monospace,monospace;color:var(--text-soft);background:rgba(var(--overlay-rgb),.06);letter-spacing:0;text-transform:none}
+
+/* ---------- Moderator: Raster Spieler | Bühne | Steuerung ---------- */
+.mod-session{margin:8px 0 42px;overflow:visible}
+.mod-grid{display:grid;grid-template-columns:minmax(230px,280px) minmax(0,1fr) minmax(250px,300px);gap:18px;padding:18px;align-items:start}
+.mod-grid>*{min-width:0}
+.mod-stage{min-height:480px}
+.mod-side{display:grid;gap:18px;align-content:start;position:sticky;top:12px}
+.mod-players .section-title{margin-bottom:10px}
+.mod-players-hint{margin-top:10px}
+.mod-control{display:grid;gap:10px}
+.mod-next{width:100%;min-height:74px;font-size:1.25rem;font-weight:900;border-radius:16px;white-space:normal;text-wrap:balance}
+.mod-next-hint{margin:0;text-align:center}
+.mod-next-hint:empty{display:none}
+.mod-small{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.mod-small .btn{flex:1 1 auto;padding:7px 9px;font-size:.84rem}
+.mod-end{display:grid;gap:10px}
+.mod-end .btn{min-height:56px;font-size:1.05rem}
+.mod-share summary{margin:-4px 0;padding:4px 0}
+.mod-share[open] summary{margin-bottom:12px}
+.session-code-box .eyebrow{display:block}
+
+/* Kopfzeile der Frage: runder Timer (feste Größe, gleichmäßige Linie) */
+.mod-qbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.mod-qbar-text{display:grid;gap:3px;min-width:0}
+.mod-qbar-text strong{font-size:1.02rem;overflow-wrap:anywhere}
+#session-panel .mod-qbar .timer-ring,.timer-ring--svg{flex:none;width:68px;height:68px;aspect-ratio:auto;border-radius:50%;background:none;box-shadow:none;display:grid;place-items:center;position:relative}
+#session-panel .mod-qbar .timer-ring::before{display:none}
+.timer-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.timer-ring .timer-track,.timer-ring .timer-fill{fill:none;stroke-width:8;vector-effect:none}
+.timer-ring .timer-track{stroke:rgba(var(--overlay-rgb),.13)}
+.timer-ring .timer-fill{stroke:var(--accent);stroke-dasharray:100 100;stroke-dashoffset:calc(100 - 100 * var(--p,0));transition:stroke-dashoffset .25s linear,stroke .2s}
+.timer-ring.is-critical .timer-fill{stroke:var(--danger)}
+.timer-ring.is-ended .timer-fill{stroke:var(--warning)}
+.timer-ring.is-idle .timer-fill{stroke:transparent}
+#session-panel .mod-qbar .timer-number{font-size:1.35rem;font-weight:900;position:relative}
+#session-panel .mod-qbar .timer-ring.is-critical{animation:none}
+#session-panel .mod-qbar .timer-ring.is-critical .timer-number{animation:modTick .5s ease-in-out infinite alternate}
+@keyframes modTick{to{transform:scale(1.15)}}
+
+/* Spielerliste: Status pro Spieler, Punkte nur nach Antippen */
+.mod-players .player-row{grid-template-columns:22px 36px minmax(0,1fr) auto;gap:8px;padding:8px;cursor:pointer;border:1px solid transparent}
+.mod-players .player-row:hover{border-color:var(--line)}
+.mod-players .player-row.is-open{border-color:rgba(var(--accent-rgb),.45);background:rgba(var(--accent-rgb),.08)}
+.mod-players .avatar{width:36px;height:36px;font-size:1.15rem}
+.mod-players .player-name strong{overflow-wrap:anywhere;line-height:1.2}
+.mod-players .score-controls--precise{grid-column:1/-1;cursor:default}
+.mod-pstatus{justify-self:end;white-space:nowrap;font-size:.74rem;font-weight:800;padding:4px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.mod-pstatus.is-done,.mod-pstatus.is-plus{color:var(--success-text);border-color:rgba(var(--success-rgb),.4);background:rgba(var(--success-rgb),.1)}
+.mod-pstatus.is-wait{color:var(--warning-text);border-color:rgba(var(--warning-rgb),.35);background:rgba(var(--warning-rgb),.08)}
+.mod-pstatus.is-none{color:var(--muted);border-style:dashed}
+.answer-review>div.is-missing{color:var(--muted);font-style:italic;background:transparent;border:1px dashed var(--line)}
+
+/* Sitzung starten: Design zusammengeklappt */
+.session-theme-summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 12px;border:1px solid var(--line);border-radius:12px;background:rgba(var(--overlay-rgb),.04)}
+.session-theme-summary span{font-weight:750;min-width:0;overflow-wrap:anywhere}
+#session-theme{margin-top:8px}
+
+/* Podest: Name, Punkte und Platz untereinander – nichts überlappt */
+.podium-place{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;padding:16px 8px 10px}
+.podium-place>b,.podium-place>.podium-rank{position:static;transform:none;margin-top:auto;padding-top:6px;line-height:1;font-size:1.9rem;opacity:.4}
+.podium-place .podium-score{display:block;white-space:nowrap}
+.podium-place.is-tied{outline:2px dashed rgba(var(--accent-rgb),.5);outline-offset:-6px}
+
+@media(max-width:1100px){
+  .mod-grid{grid-template-columns:minmax(0,1fr) minmax(250px,300px)}
+  .mod-players{grid-column:1/-1;order:3}
+}
+@media(max-width:900px){
+  .mod-grid{grid-template-columns:1fr;padding:12px;gap:12px}
+  .mod-stage{order:1;min-height:auto}
+  .mod-side{order:2;position:static}
+  .mod-players{order:3}
+}
+/* Handy: feste Leiste unten mit dem Nächster-Schritt-Knopf */
+@media(max-width:760px){
+  body.has-mod-bar{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  body.has-mod-bar .toast-stack{bottom:160px}
+  .mod-control{position:fixed;left:0;right:0;bottom:0;z-index:60;border-radius:18px 18px 0 0;padding:10px 12px calc(10px + env(safe-area-inset-bottom));gap:8px;box-shadow:0 -10px 30px rgba(var(--shadow-rgb),.35);background:var(--surface)}
+  .mod-control .mod-next-label{display:none}
+  .mod-control .mod-next{min-height:58px;font-size:1.1rem;order:2}
+  .mod-control .mod-small{order:1;flex-wrap:nowrap}
+  .mod-control .mod-small .btn{padding:6px 8px;font-size:.8rem}
+  .mod-control .mod-next-hint{order:3;margin-top:-2px;font-size:.76rem}
+  .mod-control .mod-end{order:4}
+  .mod-control .mod-end .btn{min-height:48px;font-size:.98rem}
+  .mod-stage{padding:14px}
+  .mod-qbar .timer-ring{width:58px!important;height:58px!important}
+  .podium-place>b,.podium-place>.podium-rank{font-size:1.5rem}
+}
+.mod-next-label{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mod-players .player-row{grid-template-columns:22px 36px minmax(0,1fr)}
+.mod-players .player-name strong{overflow-wrap:break-word;word-break:normal;hyphens:auto}
+.mod-players .player-name .mod-pstatus{justify-self:start;margin-top:4px;font-size:.72rem;padding:2px 8px}
+.mod-players .score-controls--precise{grid-template-columns:repeat(2,minmax(0,1fr)) minmax(0,1.4fr) repeat(2,minmax(0,1fr))}
+.mod-players .score-controls--precise>*{min-width:0;padding-inline:0}
+.final-screen h1,.final-screen h2{overflow-wrap:break-word;text-wrap:balance}
+.final-names{display:block;margin-top:.25em;font-size:.5em;line-height:1.2;letter-spacing:0;opacity:.92}
+.mod-stage .final-screen h1,.mod-stage .final-screen h2{font-size:clamp(1.7rem,3.4vw,2.8rem)}
+
+/* ---------- v31 Beamer (zuschauer.html): volle Breite, groß, keine leere Fläche ---------- */
+.beamer-page .presenter-shell{width:calc(100% - 40px);max-width:none}
+.beamer-page .app-header{padding:12px 0}
+.beamer-page .app-header .code-badge{font-size:clamp(1.6rem,2.6vw,2.6rem);padding:4px 14px;border-radius:12px;background:rgba(var(--accent-rgb),.14);border:1px solid rgba(var(--accent-rgb),.4);color:var(--text)}
+.beamer{min-height:calc(100vh - 90px);display:flex;flex-direction:column;gap:16px;padding-bottom:20px}
+.beamer-top{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.beamer-progress{display:grid;gap:4px;min-width:0}
+.beamer-progress .eyebrow{font-size:clamp(.85rem,1.2vw,1.15rem)}
+.beamer-progress strong{font-size:clamp(1.3rem,2.2vw,2.3rem);line-height:1.15}
+.beamer-timer.timer-ring{flex:none;width:clamp(96px,9vw,150px);height:clamp(96px,9vw,150px);aspect-ratio:auto;border-radius:50%;background:none;box-shadow:none;display:grid;place-items:center;position:relative}
+.beamer-timer.timer-ring::before{display:none}
+.beamer-timer .timer-fill{transition:none}
+.beamer-timer .timer-number{position:relative;font-size:clamp(2.2rem,3.6vw,3.8rem);font-weight:900;font-variant-numeric:tabular-nums}
+.beamer-timer.is-critical{animation:none}
+.beamer-timer.is-critical .timer-number{color:var(--danger-text)}
+.beamer-grid{flex:1;display:grid;grid-template-columns:minmax(0,1fr) clamp(300px,24vw,420px);gap:18px;align-items:stretch}
+.beamer-grid>*{min-width:0}
+.beamer-grid:has(> #beamer-side[hidden]){grid-template-columns:minmax(0,1fr)}
+.beamer .presenter-main{min-height:0;display:flex;flex-direction:column;padding:clamp(20px,2.4vw,40px)}
+.beamer #spectator-question{flex:1;display:flex;flex-direction:column}
+.beamer #spectator-question>*{flex:1}
+.beamer .question-shell{align-content:start;gap:clamp(16px,2vw,28px)}
+.beamer .question-title{font-size:clamp(2.2rem,3.8vw,4.6rem);line-height:1.08}
+.beamer .answer-grid{gap:clamp(12px,1.4vw,22px)}
+.beamer .answer-btn{min-height:clamp(84px,11vh,150px);font-size:clamp(1.3rem,2.1vw,2.3rem);padding:clamp(14px,1.4vw,24px);border-width:2px}
+.beamer .answer-index{width:clamp(40px,3.4vw,62px);height:clamp(40px,3.4vw,62px);font-size:.85em;border-radius:12px;flex:none}
+.beamer .answer-copy b{font-weight:800}
+.beamer .reveal-box strong{font-size:clamp(1.3rem,2vw,2.2rem)}
+.beamer .reveal-box span{font-size:.9rem}
+.beamer .presenter-side .leader-row{font-size:clamp(1rem,1.2vw,1.35rem);padding:10px 12px}
+.beamer .presenter-side .avatar{width:44px;height:44px;font-size:1.5rem;flex:none}
+.beamer .presenter-side h2{margin:4px 0 14px}
+.beamer .round-intro{min-height:100%}
+.beamer .round-intro h1{font-size:clamp(3rem,6vw,6.5rem)}
+.beamer .round-intro p{font-size:clamp(1.1rem,1.6vw,1.6rem)}
+.beamer .question-meta .pill--type,.beamer .question-meta .pill--timer{display:none}
+.beamer .final-screen{display:flex;flex-direction:column;justify-content:center}
+.beamer .final-screen h1{font-size:clamp(2.6rem,5vw,5.4rem)}
+.beamer .podium{max-width:900px;min-height:clamp(260px,40vh,440px);gap:18px}
+.beamer .podium-place{max-width:260px}
+.beamer .podium-place--1{min-height:clamp(245px,38vh,420px)}
+.beamer .podium-place--2{min-height:clamp(205px,31vh,350px)}
+.beamer .podium-place--3{min-height:clamp(178px,26vh,300px)}
+.beamer .podium-avatar{font-size:clamp(2.3rem,4vw,4.4rem)}
+.beamer .podium-place strong{font-size:clamp(1rem,1.5vw,1.6rem)}
+.beamer .podium-place .podium-score{font-size:clamp(.9rem,1.2vw,1.3rem)}
+.beamer .podium-place>.podium-rank{font-size:clamp(2rem,3vw,3.4rem)}
+
+/* Lobby: QR links, „Wer ist da?“ rechts */
+.beamer-lobby{flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(20px,3vw,48px);align-items:center}
+.beamer-lobby-join{display:grid;justify-items:center;gap:14px;text-align:center}
+.beamer-title{margin:0;font-size:clamp(2.2rem,4vw,4.4rem);line-height:1.05;color:var(--text);letter-spacing:-.03em;overflow-wrap:break-word;text-wrap:balance}
+.beamer-lobby .join-qr--large{flex-direction:column;text-align:center;gap:14px}
+.beamer-lobby .join-qr--large .join-qr-code{width:min(340px,38vh);height:min(340px,38vh);padding:12px;background:#fff;border-radius:18px}
+.beamer-lobby .join-qr-room{font-size:clamp(2.6rem,5vw,5rem);color:var(--text);text-shadow:0 2px 0 rgba(var(--shadow-rgb),.25)}
+.beamer-lobby .join-qr-text small{font-size:clamp(.95rem,1.1vw,1.2rem);color:var(--text-soft)}
+.beamer-lobby-players{align-self:stretch;display:flex;flex-direction:column;gap:14px;padding:clamp(16px,2vw,28px);border-radius:20px;border:1px solid var(--line);background:rgba(var(--overlay-rgb),.035)}
+.beamer-lobby-players h2{margin:0;font-size:clamp(1.6rem,2.6vw,2.8rem);display:flex;align-items:center;gap:12px}
+.beamer-lobby-count{display:inline-grid;place-items:center;min-width:1.6em;height:1.6em;padding:0 .4em;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:.6em}
+.beamer-avatars{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(120px,10vw,170px),1fr));gap:12px;align-content:start}
+.beamer-avatar{display:grid;justify-items:center;gap:6px;padding:14px 8px;border-radius:16px;background:var(--surface-hi);border:1px solid var(--line);text-align:center;min-width:0}
+.beamer-avatar-icon{font-size:clamp(2.4rem,3.6vw,3.6rem);line-height:1}
+.beamer-avatar strong{font-size:clamp(.95rem,1.2vw,1.25rem);line-height:1.2;overflow-wrap:break-word;max-width:100%}
+.beamer-avatar.is-away{opacity:.5}
+.beamer-avatar.is-new{animation:beamerPop .55s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes beamerPop{0%{transform:scale(.3) translateY(20px);opacity:0}100%{transform:none;opacity:1}}
+.beamer-lobby-empty{margin:0;color:var(--muted);font-size:1.2rem}
+html[data-motion="reduced"] .beamer-avatar.is-new{animation:none}
+@media (prefers-reduced-motion:reduce){.beamer-avatar.is-new{animation:none}}
+@media(max-width:900px){
+  .beamer-page .presenter-shell{width:calc(100% - 20px)}
+  .beamer-grid,.beamer-lobby{grid-template-columns:minmax(0,1fr)}
+  .beamer .answer-grid{grid-template-columns:1fr}
+}
+.beamer{min-height:calc(100vh - 118px)}
+.beamer .question-shell{display:flex;flex-direction:column}
+.beamer .question-shell>.answer-grid{flex:1;grid-auto-rows:minmax(0,1fr);max-height:min(620px,52vh)}
+.beamer .final-screen{align-items:center}
+.beamer-lobby .join-qr-text{display:grid;justify-items:center;text-align:center}
+.beamer[data-phase="resolved"] .question-title{font-size:clamp(1.6rem,2.6vw,3rem)}
+.beamer[data-phase="resolved"] .question-shell>.answer-grid{flex:none}
+.beamer[data-phase="resolved"] .answer-btn{min-height:clamp(56px,7vh,96px);font-size:clamp(1.1rem,1.6vw,1.8rem);padding-block:10px}
+.beamer .presenter-side .leader-row strong{overflow-wrap:break-word;word-break:normal;hyphens:auto;min-width:0}
+.beamer-page main.presenter-shell{padding-bottom:0}
+
+/* ---------- v31 Spieler (spieler.html) ---------- */
+.avatar-hint{font-weight:600;color:var(--muted)}
+/* Kopfzeile mit Rand: Name links, Punkte rechts */
+.player-topbar{top:6px;margin-top:6px;padding:8px 12px;border:1px solid var(--line);border-radius:16px;background:rgba(var(--surface-rgb),.94);box-shadow:0 8px 24px rgba(var(--shadow-rgb),.22);backdrop-filter:blur(6px)}
+.player-topbar #player-identity{min-width:0;gap:10px}
+.player-topbar #player-identity>span:last-child{min-width:0;overflow-wrap:anywhere;line-height:1.2}
+.player-topbar #player-identity .avatar{flex:none}
+.player-topbar-mid{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.player-topbar #player-score{font-size:1.25rem;white-space:nowrap}
+.player-topbar[data-phase="lobby"] #player-progress,.player-topbar[data-phase="finished"] #player-progress{display:none}
+/* Timer-Balken */
+.player-timebar{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.player-timebar-track{flex:1;height:10px;border-radius:999px;background:rgba(var(--overlay-rgb),.1);overflow:hidden}
+.player-timebar-track i{display:block;height:100%;width:100%;border-radius:inherit;background:var(--accent);transform-origin:left center;transform:scaleX(var(--p,1))}
+.player-timebar b{min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums;font-size:1.05rem}
+.player-timebar.is-critical .player-timebar-track i{background:var(--danger)}
+.player-timebar.is-critical b{color:var(--danger-text)}
+.player-timebar.is-ended .player-timebar-track i{background:var(--warning)}
+/* weniger Chips: Fragetyp und Zeit stehen schon im Balken bzw. sind klar */
+#game-question .question-meta .pill--type,#game-question .question-meta .pill--timer{display:none}
+/* gewählte Antwort deutlich: gefüllt + ✓ */
+#game-question .answer-btn.is-selected:not(.is-correct):not(.is-wrong){background:var(--accent);border-color:var(--accent);color:var(--on-accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.3)}
+#game-question .answer-btn.is-selected:not(.is-correct):not(.is-wrong) .answer-index{background:rgba(0,0,0,.18);color:var(--on-accent)}
+#game-question .answer-btn.is-selected:not(.is-correct):not(.is-wrong) small{color:inherit;opacity:.85}
+#game-question .answer-btn.is-selected{padding-right:46px}
+#game-question .answer-btn.is-selected::after{content:"✓";position:absolute;right:12px;top:50%;translate:0 -50%;z-index:2;width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:var(--on-accent);color:var(--accent);font-weight:900;font-size:1rem}
+#game-question .answer-btn.is-selected.is-wrong::after{background:var(--danger);color:#fff;content:"✗"}
+#game-question .answer-btn.is-selected.is-correct::after{background:var(--success);color:var(--on-success)}
+#game-question .hl-compare .is-selected:not(.is-correct):not(.is-wrong),#game-question .tf-choice.is-selected{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+@media(max-width:760px){
+  .player-topbar{grid-template-columns:minmax(0,1fr) auto;padding:8px 10px}
+  .player-topbar>div:nth-child(2){order:3;grid-column:1/-1}
+  .player-topbar-mid:has(#game-status:only-child),.player-topbar-mid:has(#game-mode[hidden]){justify-content:flex-start}
+}
+
+/* ---------- v31 Startseite: Raumcode direkt oben, Anmelden als Nebenweg ---------- */
+.home-join{max-width:640px;margin:0 auto 18px;padding:22px;display:grid;gap:12px;border-color:rgba(var(--accent-rgb),.45)}
+.home-join-head h2{margin:4px 0 0;font-size:1.5rem}
+.home-join-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}
+.home-join-row .code-input{font-size:1.5rem;min-height:56px}
+.home-join-row .btn{min-height:56px;padding-inline:26px;font-size:1.1rem}
+.home-join .error-text{min-height:0}
+.home-join .error-text:empty{display:none}
+.home-secondary{max-width:640px;margin:0 auto 60px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.home-secondary-link{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(var(--overlay-rgb),.04);color:var(--text);text-align:left;cursor:pointer;font:inherit}
+.home-secondary-link:hover{border-color:rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.08)}
+.home-secondary-link>span:first-child{font-size:1.5rem}
+.home-secondary-link strong{display:block}
+.home-secondary-link small{display:block;color:var(--muted);font-size:.82rem;margin-top:2px}
+.home-greeting+.home-join{margin-top:14px}
+@media(max-width:560px){
+  .home-join{padding:16px}
+  .home-join-row{grid-template-columns:1fr}
+  .home-secondary{grid-template-columns:1fr}
+}
+#session-theme-toggle{white-space:nowrap;flex:none}
+@media(max-width:560px){
+  .hero.hero--compact{padding:22px 0 16px}
+  .hero.hero--compact h1{font-size:clamp(2.2rem,11vw,3.2rem);margin:10px auto 10px}
+  .hero.hero--compact p{display:none}
+}

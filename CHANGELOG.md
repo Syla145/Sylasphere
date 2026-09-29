@@ -1,5 +1,22 @@
 # Sylasphere – Changelog
 
+## v31 – Usability Spielablauf
+- **Moderator: ein großer Knopf „Nächster Schritt“** (auch mit der Leertaste): ▶ Spiel starten → ❓ Frage öffnen → ⏹ Antworten schließen → ✓ Auflösen → ➜ Nächste Frage → 🏁 Zur Siegerehrung. Buzzer und Mini-Spiele (Zeitduell, Einordnen) haben passende Schritte. Zurück, Überspringen und Beenden stehen klein darunter.
+- **Deaktivierte Knöpfe sind grau** statt farbig (in allen Designs).
+- **Antwortstatus pro Spieler** in der Spielerliste: ✓ geantwortet, ⏳ wartet, ⚡ gebuzzert, nach der Auflösung +Punkte oder „— keine Antwort“. Die Antwortliste zeigt auch Spieler ohne Antwort.
+- **Punkte-Knöpfe** erscheinen erst, wenn man einen Spieler antippt.
+- **Timer direkt an der Frage** als runder Ring (feste Größe, überall gleich dicke Linie), daneben „Frage x / y“ und „2 von 5 haben geantwortet“.
+- **„Mitspielen / Präsentieren“** (QR-Code, Links) ist im Spiel eingeklappt, in der Lobby offen.
+- **Handy:** Der Nächster-Schritt-Knopf sitzt in einer festen Leiste unten.
+- **Spielende:** „🔁 Nochmal spielen (gleiche Spieler)“ (Punkte auf 0, alle zurück in die Lobby, lokal und online) und „📂 Neues Quiz“. XP gibt es pro Raum weiterhin nur einmal.
+- **Lobby:** kein „Frage 1/5“ und kein leerer Timer mehr. „Sitzung starten“: Design zusammengeklappt („Wie im Quiz · …“ mit „Ändern …“).
+- **Gleichstand:** Gleiche Punkte = gleicher Platz – im Podest (gleich hohe Stufen), in allen Ranglisten und im Titel („🤝 Gleichstand!“ bzw. „Fotofinish!“, „Unentschieden“ je nach Design; Valorant zeigt dann keine MVP-Karte).
+- **Podest:** Name, Punkte und Platz stehen untereinander – lange Namen überlappen nichts mehr.
+- **Beamer:** volle Breite, deutlich größere Antworten, Code und Timer (großer runder Ring), keine leere Fläche unten. Lobby „Wer ist da?“ mit Avataren, neue Spieler ploppen auf (mit „Animationen reduzieren“ ohne Animation), Titel und Code mit gutem Kontrast. Spielende ohne Timer, „Frage x/y“ und doppelte Tabelle.
+- **Spieler:** gewählte Antwort deutlich (gefüllt + ✓), weniger Chips (Fragetyp und doppelte Zeit weg), Timer als Balken, Kopfzeile mit Rand, in der Lobby ohne Rundenanzeige, kein Lokal/Online-Hinweis mehr (nur bei Verbindungsproblemen „↻ Verbindung …“). Der Standard-Avatar ist zufällig; wer keinen wählt, bekommt einen, den im Raum noch niemand hat.
+- **Startseite:** Raumcode-Feld direkt oben (auch für Gäste), Anmelden als Nebenweg. Der Knopf heißt jetzt „Beitreten“.
+- Neue Dateien: `js/views/moderator-flow.js` (Ablauf-Logik ohne DOM, in Node getestet), `tests/v31-usability.js`.
+
 ## v30 – Editor-Umbau
 - **Neuer Aufbau:**
   - **Gliederung** links: „⚙️ Quiz“ (Titel, Beschreibung, Standard-Timer/-Punkte, Design mit Vorschau, Themen), Runden einklappbar, Fragen als kompakte Zeilen (Typ-Symbol, Nummer, Textanfang, Punkte, ⚠️ aus dem Quiz-Check).

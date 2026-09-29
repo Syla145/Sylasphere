@@ -9,6 +9,7 @@
   const Renderers = window.SchmobinRenderers;
   const Timer = window.SchmobinTimer;
   const Gate = window.SylasphereModeratorGate;
+  const Flow = window.SylasphereModeratorFlow;
 
   let activeQuiz = null;
   let engine = null;
@@ -20,13 +21,17 @@
   // Zeitduell: Das Moderator-Gerät ist die Uhr (Schleife + Schreibschutz gegen doppelte Ereignisse)
   const duel = { busy: false, writtenSeq: 0, processed: new Set(), loop: null };
   const panelCache = { html: '', node: null }; // Einordnen-Panel nur neu zeichnen, wenn sich etwas ändert
+  // v31: aufgeklappter Spieler (Punkte ±), zuletzt gesehener Status (für „Mitspielen“ ein-/ausklappen)
+  let expandedPlayer = '';
+  let lastStatus = '';
+  let step = null;
 
   const els = {};
   document.addEventListener('DOMContentLoaded', init);
 
   async function init() {
     await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
-    ['quiz-select','quiz-summary','quiz-import','create-session','create-online-session','firebase-status','setup-panel','session-panel','session-code','session-status','session-mode','transport-hint','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-start-game','btn-start-question','btn-close-question','btn-resolve-question','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
+    ['quiz-select','quiz-summary','quiz-import','create-session','create-online-session','firebase-status','setup-panel','session-panel','session-code','session-status','session-mode','transport-hint','players-list','player-count','question-area','answer-status','round-progress','timer-number','timer-ring','btn-next-step','mod-next-hint','mod-end-actions','btn-replay','btn-other-quiz','mod-share','mod-share-code','mod-qbar','mod-qbar-label','mod-qbar-count','btn-prev','btn-next','btn-finish','btn-new-session','btn-fullscreen','validation-box','player-link','spectator-link','copy-player-link','copy-spectator-link'].forEach(id => els[id] = document.getElementById(id));
     bind();
     if (Gate) await Gate.whenUnlocked();
     await loadQuizList();
@@ -81,10 +86,25 @@
       }
     }));
 
-    els['btn-start-game']?.addEventListener('click', () => safe(() => engine.startGame()));
-    els['btn-start-question']?.addEventListener('click', () => safe(() => engine.startQuestion()));
-    els['btn-close-question']?.addEventListener('click', () => safe(() => engine.lockQuestion()));
-    els['btn-resolve-question']?.addEventListener('click', () => safe(() => engine.resolveQuestion(resolveOptions())));
+    // v31: ein großer Knopf für den nächsten Schritt (wie die Leertaste)
+    els['btn-next-step']?.addEventListener('click', () => doStep());
+    els['btn-replay']?.addEventListener('click', () => replay());
+    els['btn-other-quiz']?.addEventListener('click', () => els['btn-new-session'].click());
+    // Spieler antippen → Punkte-Knöpfe ein-/ausblenden
+    els['players-list']?.addEventListener('click', event => {
+      if (event.target.closest('.score-controls')) return;
+      const row = event.target.closest('.player-row');
+      if (!row) return;
+      expandedPlayer = expandedPlayer === row.dataset.player ? '' : row.dataset.player;
+      renderPlayers();
+    });
+    // Design für die Sitzung: zusammengeklappt „Wie im Quiz · Ändern …“
+    document.getElementById('session-theme-toggle')?.addEventListener('click', event => {
+      const box = document.getElementById('session-theme');
+      box.hidden = !box.hidden;
+      event.currentTarget.setAttribute('aria-expanded', String(!box.hidden));
+      event.currentTarget.textContent = box.hidden ? 'Ändern …' : 'Fertig';
+    });
     // Moderator-Prüfung (✓/✗) per Klick in der Antwortliste
     els['answer-status']?.addEventListener('click', event => {
       const btn = event.target.closest('[data-review-player]');
@@ -126,11 +146,11 @@
     });
     els['btn-prev']?.addEventListener('click', () => safe(() => engine.move(-1)));
     els['btn-next']?.addEventListener('click', () => safe(() => engine.move(1)));
-    els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden?')) safe(() => engine.finish({ highlights: window.SylasphereHighlights?.compute(state) || [] })); });
+    els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden? Es geht direkt zur Siegerehrung.')) safe(() => engine.finish({ highlights: window.SylasphereHighlights?.compute(state) || [] })); });
     els['btn-new-session']?.addEventListener('click', async () => {
       try { await engine?.destroy?.(); } catch (_) {}
       engine = null; state = null; timer?.stop(); transport = 'local';
-      els['session-panel'].hidden = true; els['setup-panel'].hidden = false; history.replaceState(null, '', location.pathname);
+      els['session-panel'].hidden = true; els['setup-panel'].hidden = false; document.body.classList.remove('has-mod-bar'); history.replaceState(null, '', location.pathname);
     });
     els['btn-fullscreen']?.addEventListener('click', async () => {
       try { if (!document.fullscreenElement) await document.documentElement.requestFullscreen(); else await document.exitFullscreen(); }
@@ -157,17 +177,10 @@
         else if (event.code === 'Space') { event.preventDefault(); duelAction(state.game.phase === 'paused' ? 'resume' : 'pause'); }
         return;
       }
-      if (event.code === 'Space') {
-        event.preventDefault();
-        const current = engine.getCurrent(state);
-        const resolved = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
-        if (!state?.questionStartedAt && !resolved) safe(() => engine.startQuestion());
-        else if (current.question?.type === 'buzzer') { if (!state?.questionOpen && !resolved) safe(() => engine.resolveQuestion()); }
-        else if (state?.questionOpen) safe(() => engine.lockQuestion());
-        else if (!resolved) safe(() => engine.resolveQuestion(resolveOptions()));
-      }
-      if (event.key === 'ArrowRight') safe(() => engine.move(1));
-      if (event.key === 'ArrowLeft') safe(() => engine.move(-1));
+      // v31: Leertaste = derselbe nächste Schritt wie der große Knopf
+      if (event.code === 'Space') { event.preventDefault(); doStep(); }
+      if (event.key === 'ArrowRight' && !step?.skip.disabled) safe(() => engine.move(1));
+      if (event.key === 'ArrowLeft' && !step?.prev.disabled) safe(() => engine.move(-1));
     });
   }
 
@@ -198,7 +211,7 @@
     engine = instance; transport = mode;
     const existing = mode === 'online' ? await engine.waitForState() : engine.load();
     if (!existing) { try { await engine.destroy?.(); } catch (_) {} engine = null; throw new Error('Sitzung nicht gefunden.'); }
-    els['setup-panel'].hidden = true; els['session-panel'].hidden = false;
+    els['setup-panel'].hidden = true; els['session-panel'].hidden = false; document.body.classList.add('has-mod-bar');
     window.SylasphereJoin?.keepAwake(true); // Bildschirm des Moderator-Geräts bleibt an (Uhr beim Zeitduell!)
     engine.subscribe(render);
     engine.onReaction?.(reaction => window.SylasphereReactions?.show(reaction, id => (state?.players || []).find(p => p.id === id)?.name || '')); // v27
@@ -276,9 +289,14 @@
     // Design: Vorgabe aus dem Quiz, für diese Sitzung änderbar (wird an alle Geräte übertragen)
     window.SylasphereThemes?.applyQuiz(activeQuiz);
     const themeBox = document.getElementById('session-theme');
-    if (themeBox && window.SylasphereThemes) themeBox.replaceChildren(window.SylasphereThemes.picker(activeQuiz.quiz.settings.theme, id => {
+    const quizTheme = activeQuiz.quiz.settings.theme;
+    const themeName = document.getElementById('session-theme-name');
+    const nameOf = id => window.SylasphereThemes?.get(id || window.SylasphereThemes.DEFAULT)?.name || '';
+    if (themeName) themeName.textContent = `Wie im Quiz · ${nameOf(quizTheme)}`;
+    if (themeBox && window.SylasphereThemes) themeBox.replaceChildren(window.SylasphereThemes.picker(quizTheme, id => {
       activeQuiz.quiz.settings.theme = id;
       window.SylasphereThemes.apply(id);
+      if (themeName) themeName.textContent = id === quizTheme ? `Wie im Quiz · ${nameOf(id)}` : `Für diese Sitzung · ${nameOf(id)}`;
     }));
     showValidation(validation);
     els['create-session'].disabled = !validation.valid;
@@ -319,7 +337,12 @@
       : '💻 Lokaler Testmodus: Spieler-/Zuschaueransicht im selben Browser/Gerät öffnen.';
     const qIndexGlobal = questionGlobalIndex(state);
     const total = Quiz.allQuestions(state.quiz).length;
-    App.setText(els['round-progress'], current.round ? `${current.round.title} · Frage ${qIndexGlobal + 1}/${total}` : 'Keine Frage');
+    // v31: in der Lobby und am Ende keine „Frage x/y“
+    App.setText(els['round-progress'], state.status === 'finished' ? `${state.quiz.quiz.title} · Spiel beendet` : state.quiz.quiz.title); // Frage x/y steht an der Frage selbst
+    // „Mitspielen / Präsentieren“: in der Lobby offen, im Spiel eingeklappt (nur beim Wechsel, danach frei auf-/zuklappbar)
+    if (state.status !== lastStatus) { if (els['mod-share']) els['mod-share'].open = state.status === 'lobby'; lastStatus = state.status; }
+    App.setText(els['mod-share-code'], `Code ${state.code}`);
+    renderQbar(current, qIndexGlobal, total);
     renderPlayers(); renderQuestion(current); renderTimer(); renderButtons(current);
     if (state.status === 'finished') saveResults(); // v28: XP & Statistiken beim Spielende
     window.SylasphereSfx?.observe(state, { current }); // v27 (auf der Moderator-Seite standardmäßig aus)
@@ -344,25 +367,46 @@
     return n + s.currentQuestionIndex;
   }
 
+  // v31: Antwortstatus der aktuellen Frage pro Spieler (✓ geantwortet / ⏳ wartet / +P nach der Auflösung)
+  function playerStatus(player) {
+    const current = engine.getCurrent(state);
+    const q = current.question;
+    if (state.status !== 'playing' || !q || !state.questionStartedAt || Quiz.gameOf(q)) return '';
+    const record = state.answers[q.id]?.[player.id];
+    const resolved = state.scoredQuestionIds?.includes(q.id);
+    if (resolved) {
+      if (!record) return '<span class="mod-pstatus is-none">— keine Antwort</span>';
+      const pts = Math.round(Number(record.awardedPoints) || 0);
+      return `<span class="mod-pstatus ${pts > 0 ? 'is-plus' : 'is-zero'}">+${pts} P</span>`;
+    }
+    if (q.type === 'buzzer') return record ? '<span class="mod-pstatus is-done">⚡ gebuzzert</span>' : '';
+    return record ? '<span class="mod-pstatus is-done">✓ geantwortet</span>' : '<span class="mod-pstatus is-wait">⏳ wartet</span>';
+  }
   function renderPlayers() {
-    const players = state.players.slice().sort((a,b) => b.score - a.score || a.joinedAt - b.joinedAt);
+    const players = App.rankPlayers(state.players);
     App.setText(els['player-count'], String(players.length));
     if (!players.length) { els['players-list'].innerHTML = '<div class="empty-state compact">Noch keine Spieler beigetreten.</div>'; return; }
-    els['players-list'].innerHTML = players.map((p, i) => `
-      <div class="player-row" data-player="${App.escapeHTML(p.id)}">
-        <div class="player-rank">${i + 1}</div><div class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</div>
-        <div class="player-name"><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span>${App.formatPoints(p.score)}${transport === 'online' && p.active === false ? ' · offline' : ''}</span></div>
-        <div class="score-controls score-controls--precise" aria-label="Punkte von ${App.escapeHTML(p.name)} anpassen">
+    if (expandedPlayer && !players.some(p => p.id === expandedPlayer)) expandedPlayer = '';
+    els['players-list'].innerHTML = players.map(p => {
+      const open = p.id === expandedPlayer;
+      return `
+      <div class="player-row${open ? ' is-open' : ''}" data-player="${App.escapeHTML(p.id)}" role="button" tabindex="0" aria-expanded="${open}" title="Antippen: Punkte ändern">
+        <div class="player-rank">${p.place}</div><div class="avatar">${App.escapeHTML(App.avatar(p.avatar))}</div>
+        <div class="player-name"><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span>${App.formatPoints(p.score)}${transport === 'online' && p.active === false ? ' · offline' : ''}</span>${playerStatus(p)}</div>
+        ${open ? `<div class="score-controls score-controls--precise" aria-label="Punkte von ${App.escapeHTML(p.name)} anpassen">
           <button type="button" class="score-step" data-delta="-10" title="10 Punkte abziehen">−10</button>
           <button type="button" class="score-step score-step--one" data-delta="-1" title="1 Punkt abziehen">−1</button>
           <input class="score-input" type="number" step="1" value="${Math.round(Number(p.score) || 0)}" inputmode="numeric" aria-label="Punktestand von ${App.escapeHTML(p.name)} direkt setzen" title="Punktestand direkt eingeben">
           <button type="button" class="score-step score-step--one" data-delta="1" title="1 Punkt addieren">+1</button>
           <button type="button" class="score-step" data-delta="10" title="10 Punkte addieren">+10</button>
-        </div>
-      </div>`).join('');
+        </div>` : ''}
+      </div>`;
+    }).join('');
     els['players-list'].querySelectorAll('.player-row').forEach(row => {
+      row.addEventListener('keydown', event => { if ((event.key === 'Enter' || event.key === ' ') && event.target === row) { event.preventDefault(); event.stopPropagation(); row.click(); } });
       row.querySelectorAll('.score-step').forEach(button => button.addEventListener('click', () => safe(() => engine.adjustPlayerScore(row.dataset.player, Number(button.dataset.delta)))));
       const input = row.querySelector('.score-input');
+      if (!input) return;
       const applyExactScore = () => {
         const value = Number(input.value);
         if (!Number.isFinite(value)) { render(state); return; }
@@ -372,6 +416,21 @@
       input.addEventListener('keydown', event => { if (event.key === 'Enter') { event.preventDefault(); input.blur(); } });
       input.addEventListener('focus', () => input.select());
     });
+  }
+
+  // v31: Kopfzeile der Frage mit Timer-Ring (nur während einer Frage)
+  function renderQbar(current, index, total) {
+    const bar = els['mod-qbar'];
+    if (!bar) return;
+    const show = state.status === 'playing' && Boolean(current.question);
+    bar.hidden = !show;
+    if (!show) return;
+    App.setText(els['mod-qbar-label'], `${current.round?.title || ''} · Frage ${index + 1} / ${total}`);
+    const answers = Object.keys(state.answers[current.question.id] || {}).length;
+    const text = !state.questionStartedAt ? `${Quiz.topic(current.question.category).icon} ${current.question.category || 'Ohne Thema'} · ${Quiz.TYPE_LABELS[current.question.type] || ''}`
+      : Quiz.gameOf(current.question) ? (Quiz.TYPE_LABELS[current.question.type] || 'Spiel')
+      : `${answers} von ${state.players.length} haben ${current.question.type === 'buzzer' ? 'gebuzzert' : 'geantwortet'}`;
+    App.setText(els['mod-qbar-count'], text);
   }
 
   function renderQuestion(current) {
@@ -384,8 +443,7 @@
     }
     els['question-area'].dataset.key = '';
     if (state.status === 'finished') {
-      const winners = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
-      els['question-area'].innerHTML = finalPodium(winners); els['answer-status'].innerHTML = resultsNotice(); return;
+      els['question-area'].innerHTML = finalPodium(App.rankPlayers(state.players)); els['answer-status'].innerHTML = resultsNotice(); return;
     }
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
     if (!state.questionStartedAt) {
@@ -418,7 +476,7 @@
       if (!resolved) html += moderatorSolution(current.question, questionResult);
       if (!resolved) html += `<div class="buzzer-admin-actions"><button type="button" class="btn btn--reveal" data-buzzer-action="resolve">${buzzer.contenderId ? '✅ Richtig werten & auflösen' : 'Ohne Gewinner auflösen'}</button><button type="button" class="btn" data-buzzer-action="wrong" ${buzzer.contenderId ? '' : 'disabled'}>❌ Falsch · Spieler sperren & neu freigeben</button></div>`;
       if (resolved && correct) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>`;
-      if (resolved && submitted) html += answerRows(current.question, answers);
+      if (resolved) html += answerRows(current.question, answers);
       els['answer-status'].innerHTML = html;
       els['answer-status'].querySelector('[data-buzzer-action="resolve"]')?.addEventListener('click', () => safe(() => engine.resolveQuestion()));
       els['answer-status'].querySelector('[data-buzzer-action="wrong"]')?.addEventListener('click', () => safe(() => engine.markBuzzerIncorrect()));
@@ -428,7 +486,7 @@
     const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist für die Spieler noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
     const review = Quiz.needsReview(current.question) && !resolved ? reviewPanel(current.question, answers) : '';
     const songControl = stagePanel(current.question, resolved);
-    els['answer-status'].innerHTML = `${songControl}<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${review}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved && submitted ? answerRows(current.question, answers) : ''}`;
+    els['answer-status'].innerHTML = `${songControl}<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${review}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved ? answerRows(current.question, answers) : ''}`;
   }
 
   // ---------------------------------------------------------------- Zeitduell (v22)
@@ -670,17 +728,20 @@
     return state.players.find(player => player.id === playerId)?.name || '';
   }
 
+  // v31: alle Spieler – auch die ohne Antwort („— keine Antwort“)
   function answerRows(question, answers) {
-    const players = new Map(state.players.map(p => [p.id, p]));
-    return `<div class="answer-review">${Object.entries(answers).map(([pid, a]) => {
-      const player = players.get(pid); const shown = Quiz.answerLabel(question, a.answer);
-      return `<div><span>${App.escapeHTML(player?.name || 'Spieler')}</span><span>${App.escapeHTML(shown)}</span><strong class="${Number(a.awardedPoints) > 0 ? 'score-positive' : ''}">+${Math.round(a.awardedPoints || 0)} P</strong></div>`;
-    }).join('')}</div>`;
+    const rows = App.rankPlayers(state.players).map(player => {
+      const a = answers[player.id];
+      if (!a) return `<div class="is-missing"><span>${App.escapeHTML(player.name)}</span><span>— keine Antwort</span><strong>+0 P</strong></div>`;
+      const shown = Quiz.answerLabel(question, a.answer);
+      return `<div><span>${App.escapeHTML(player.name)}</span><span>${App.escapeHTML(shown)}</span><strong class="${Number(a.awardedPoints) > 0 ? 'score-positive' : ''}">+${Math.round(a.awardedPoints || 0)} P</strong></div>`;
+    });
+    return `<div class="answer-review">${rows.join('')}</div>`;
   }
 
   function finalPodium(ranked) {
     // v29: Siegerehrung im Stil des Themes (js/core/themes.js)
-    return window.SylasphereThemes.ceremony(ranked, { role: 'moderator', eyebrow: 'Spiel beendet', title: ranked[0] ? `🏆 ${App.escapeHTML(ranked[0].name)} gewinnt!` : 'Fertig!', after: window.SylasphereHighlights?.html(state.highlights) || '' });
+    return window.SylasphereThemes.ceremony(ranked, { role: 'moderator', eyebrow: 'Spiel beendet', title: App.winnerTitle(ranked) || 'Fertig!', after: window.SylasphereHighlights?.html(state.highlights) || '' });
   }
 
 
@@ -705,7 +766,7 @@
     const list = s.saved.map(p => `${App.escapeHTML(p.name)} +${p.xp} XP`).join(' · ');
     const head = !s.saved.length ? 'Keine Spieler mit Konto – es wurden keine XP vergeben.'
       : s.eligible ? `⭐ XP vergeben: ${list}` : `💾 Ergebnisse gespeichert (ohne XP): ${s.saved.map(p => App.escapeHTML(p.name)).join(' · ')}`;
-    return `<div class="notice ${s.errors ? 'notice--warning' : 'notice--success'} results-notice">${head}${s.eligible ? '' : `<br><small>${App.escapeHTML(s.reason)}</small>`}${s.skipped ? `<br><small>${s.skipped} Gast${s.skipped === 1 ? '' : 'e'} ohne Konto.</small>` : ''}${s.errors ? `<br><small>Bei ${s.errors} Spieler${s.errors === 1 ? '' : 'n'} hat das Speichern nicht geklappt.</small>` : ''}<br><small>Schwerste Fragen und Statistik: <a href="./profil.html">Profil ↗</a></small></div>`;
+    return `<div class="notice ${s.errors ? 'notice--warning' : 'notice--success'} results-notice">${head}${s.eligible ? '' : `<br><small>${App.escapeHTML(s.reason)}</small>`}${s.skipped ? `<br><small>${s.skipped} ${s.skipped === 1 ? 'Gast' : 'Gäste'} ohne Konto.</small>` : ''}${s.errors ? `<br><small>Bei ${s.errors} Spieler${s.errors === 1 ? '' : 'n'} hat das Speichern nicht geklappt.</small>` : ''}<br><small>Schwerste Fragen und Statistik: <a href="./profil.html">Profil ↗</a></small></div>`;
   }
 
   async function copyJoinLink(kind) {
@@ -717,47 +778,99 @@
     catch (_) { App.toast('Link konnte nicht kopiert werden.', 'error'); }
   }
 
+  // v31: Timer als runder SVG-Ring (immer kreisrund, Linie überall gleich dick). --p = Anteil der Restzeit 0…1
+  function setRing(progress, text, cls = '') {
+    const ring = els['timer-ring'];
+    if (!ring) return;
+    ring.style.setProperty('--p', String(App.clamp(Number(progress) || 0, 0, 1)));
+    ring.classList.remove('is-critical', 'is-ended', 'is-idle');
+    if (cls) ring.classList.add(cls);
+    App.setText(els['timer-number'], text);
+  }
   function renderTimer() {
     timer?.stop();
     const current = engine?.getCurrent(state);
-    els['timer-ring']?.classList.remove('is-critical', 'is-ended');
-    if (current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id)) {
-      App.setText(els['timer-number'], '⚡');
-      els['timer-ring']?.style.setProperty('--timer-progress', '360deg');
-      return;
-    }
+    if (current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id)) { setRing(1, '⚡'); return; }
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
-    if (Quiz.gameOf(current?.question) && state.questionStartedAt) { App.setText(els['timer-number'], '⏱'); els['timer-ring']?.style.setProperty('--timer-progress', '0deg'); return; }
+    if (Quiz.gameOf(current?.question) && state.questionStartedAt) { setRing(0, '⏱', 'is-idle'); return; }
     const pendingReveal = Boolean(current?.question && state.questionStartedAt && !state.questionOpen && !resolved);
-    if (pendingReveal) { App.setText(els['timer-number'], '0'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); els['timer-ring']?.classList.add('is-ended'); return; }
-    if (!state.questionOpen || !state.questionEndsAt) { App.setText(els['timer-number'], '–'); els['timer-ring']?.style.setProperty('--timer-progress','0deg'); return; }
+    if (pendingReveal) { setRing(0, '0', 'is-ended'); return; }
+    if (resolved) { setRing(0, '✓', 'is-idle'); return; }
+    if (!state.questionOpen || !state.questionEndsAt) { setRing(state.questionStartedAt ? 1 : 0, state.questionStartedAt ? '∞' : `${current?.question?.timer || 0}s`, 'is-idle'); return; }
     const total = Math.max(1, state.questionEndsAt - (state.questionStartedAt || Date.now()));
     timer = new Timer((seconds, ms) => {
-      App.setText(els['timer-number'], String(seconds ?? '–'));
       window.SylasphereSfx?.countdown(seconds);
-      const progress = ms == null ? 0 : App.clamp(ms / total, 0, 1) * 360;
-      els['timer-ring']?.style.setProperty('--timer-progress', `${progress}deg`);
-      els['timer-ring']?.classList.toggle('is-critical', seconds != null && seconds <= 5);
+      setRing(ms == null ? 0 : ms / total, String(seconds ?? '–'), seconds != null && seconds <= 5 ? 'is-critical' : '');
     }, () => { const fresh = engine.load(); if (fresh?.questionOpen) safe(() => engine.lockQuestion()); });
     timer.start(state.questionEndsAt);
   }
 
+  // v31: Steuerung – großer Knopf „nächster Schritt“, klein darunter Zurück/Überspringen/Beenden
+  function flowFacts(current) {
+    const q = current.question;
+    const resolved = Boolean(q && state.scoredQuestionIds?.includes(q.id));
+    const Game = Quiz.gameOf(q);
+    const total = Quiz.allQuestions(state.quiz).length;
+    const index = questionGlobalIndex(state);
+    const buzz = q?.type === 'buzzer' ? (state.questionResults?.[q.id] || {}) : null;
+    const game = state.game && state.game.questionId === q?.id ? state.game : state.game;
+    return {
+      status: state.status, players: state.players.length, hasQuestion: Boolean(q),
+      started: Boolean(q && state.questionStartedAt), open: Boolean(state.questionOpen), resolved,
+      isFirst: index <= 0, isLast: index >= total - 1,
+      isBuzzer: q?.type === 'buzzer', contender: Boolean(buzz?.contenderId),
+      isGame: Boolean(Game), gameRunning: Boolean(Game && game), gameDone: Boolean(Game && game && (Game.isOver ? Game.isOver(game) : game.phase === 'done'))
+    };
+  }
   function renderButtons(current) {
+    step = Flow.next(flowFacts(current));
+    const big = els['btn-next-step'];
+    big.textContent = step.label;
+    big.disabled = step.disabled;
+    big.dataset.step = step.key;
+    App.setText(els['mod-next-hint'], step.hint || '');
+    els['btn-prev'].disabled = step.prev.disabled;
+    els['btn-next'].disabled = step.skip.disabled;
+    els['btn-finish'].disabled = step.finish.disabled;
     const finished = state.status === 'finished';
-    const isBuzzer = current.question?.type === 'buzzer';
-    els['btn-start-game'].disabled = state.status !== 'lobby' || !state.players.length;
-    const alreadyScored = Boolean(current.question && state.scoredQuestionIds?.includes(current.question.id));
-    const started = Boolean(current.question && state.questionStartedAt);
-    const pendingReveal = started && !state.questionOpen && !alreadyScored;
-    const buzzerResult = isBuzzer ? (state.questionResults?.[current.question.id] || {}) : null;
-    els['btn-start-question'].disabled = finished || started || !current.question || alreadyScored;
-    els['btn-close-question'].disabled = finished || !state.questionOpen || isBuzzer;
-    els['btn-resolve-question'].disabled = finished || !pendingReveal || isBuzzer;
-    els['btn-resolve-question'].classList.toggle('is-ready', pendingReveal && !isBuzzer);
-    els['btn-prev'].disabled = state.questionOpen || pendingReveal || questionGlobalIndex(state) <= 0;
-    els['btn-next'].disabled = state.questionOpen || pendingReveal || finished;
-    if (isBuzzer && started && !alreadyScored && buzzerResult?.status === 'open') els['btn-next'].disabled = true;
-    els['btn-finish'].disabled = finished;
+    els['mod-end-actions'].hidden = !finished;
+    big.hidden = finished;
+    document.querySelector('.mod-small')?.toggleAttribute('hidden', finished || state.status === 'lobby');
+    document.querySelector('.mod-next-label')?.toggleAttribute('hidden', finished);
+  }
+  let stepping = false;
+  async function doStep() {
+    if (!engine || !state || stepping) return;
+    renderButtons(engine.getCurrent(state));
+    if (!step || step.disabled) return;
+    stepping = true;
+    try {
+      const key = step.key;
+      if (key === 'start-game') await engine.startGame();
+      else if (key === 'open') await engine.startQuestion();
+      else if (key === 'close') await engine.lockQuestion();
+      else if (key === 'resolve') {
+        const q = engine.getCurrent(state).question;
+        if (state.questionOpen && q?.type !== 'buzzer') await engine.lockQuestion();
+        await engine.resolveQuestion(resolveOptions());
+      }
+      else if (key === 'game-start') duelAction('start');
+      else if (key === 'next' || key === 'finish') await engine.move(1);
+      else if (key === 'replay') await replay();
+    } catch (error) {
+      App.toast(transport === 'online' ? Firebase.friendlyError(error) : error.message, 'error');
+    } finally { stepping = false; }
+  }
+  // v31: Nochmal spielen – gleiche Spieler, Punkte und Antworten auf 0, zurück in die Lobby
+  async function replay() {
+    if (!engine?.restart) return;
+    const note = transport === 'online' ? '\n\nHinweis: XP gibt es pro Raum nur einmal. Wer in diesem Raum schon XP bekommen hat, bekommt in der nächsten Runde keine – für neue XP einen neuen Raum starten.' : '';
+    if (!confirm(`Nochmal spielen? Alle bleiben im Raum, Punkte und Antworten werden auf 0 gesetzt.${note}`)) return;
+    Object.keys(reviews).forEach(key => delete reviews[key]);
+    duel.processed.clear(); duel.writtenSeq = 0;
+    saving.code = ''; saving.status = 'idle'; saving.summary = null; // Ergebnisse der neuen Runde wieder sichern
+    await safe(() => engine.restart());
+    App.toast('Neue Runde – alle Spieler sind in der Lobby.', 'success');
   }
 
   async function safe(fn) {

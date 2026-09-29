@@ -15,10 +15,10 @@
     },
     ceremony: {
       effect: 'rays',
-      before: ({ role, place }) => `<div class="legends-banner">${role === 'player' && place !== 1 ? 'Ergebnis' : 'Sieg'}</div>`,
-      title: ({ role, place, winner, esc }) => role === 'player'
-        ? (place === 1 ? 'Platz 1' : `Platz ${place || '–'}`)
-        : (winner ? esc(winner.name) : 'Spiel beendet')
+      before: ({ role, place, tie }) => `<div class="legends-banner">${role === 'player' && place !== 1 ? 'Ergebnis' : tie ? 'Unentschieden' : 'Sieg'}</div>`,
+      title: ({ role, place, winner, winners, tie, esc }) => role === 'player'
+        ? (place === 1 ? (tie ? 'Gleichstand auf Platz 1' : 'Platz 1') : `Platz ${place || '–'}`)
+        : (tie ? `Gleichstand ${window.SchmobinApp.winnerNames(winners)}` : winner ? esc(winner.name) : 'Spiel beendet')
     },
     sounds: {
       open: s => { t(s, 98, 0, 1.4, 'sine', 0.35); t(s, 196, 0, 1.0, 'triangle', 0.14); t(s, 294, 0.02, 0.8, 'sine', 0.08); s.noise({ d: 0.3, v: 0.05, hp: 200 }); },

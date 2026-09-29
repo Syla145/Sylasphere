@@ -74,8 +74,8 @@
     const def = typeMeta(question.type);
     meta.append(el('span', 'pill pill--category', `${topic.icon} ${question.category || 'Ohne Thema'}`));
     meta.append(el('span', 'pill pill--type', `${def.icon || '•'} ${def.label || question.type}`));
-    meta.append(el('span', 'pill', `${question.points} Punkte`));
-    if (question.timer > 0) meta.append(el('span', 'pill', `${question.timer}s`));
+    meta.append(el('span', 'pill pill--points', `${question.points} Punkte`));
+    if (question.timer > 0) meta.append(el('span', 'pill pill--timer', `${question.timer}s`)); // v31: Spieler/Beamer blenden Typ + Zeit aus (Timer läuft als Balken/Ring)
     wrap.append(meta, el('h2', 'question-title', question.text));
     return wrap;
   }

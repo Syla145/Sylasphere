@@ -15,13 +15,13 @@
     },
     ceremony: {
       effect: 'confetti',
-      title: ({ role, place, winner, esc }) => role === 'player'
-        ? (place === 1 ? '📍 Volltreffer – Platz 1!' : `📍 Platz ${place || '–'}`)
-        : (winner ? `📍 ${esc(winner.name)} liegt goldrichtig!` : 'Spiel beendet'),
+      title: ({ role, place, winner, winners, tie, esc }) => role === 'player'
+        ? (place === 1 ? (tie ? '📍 Gleichstand auf Platz 1!' : '📍 Volltreffer – Platz 1!') : `📍 Platz ${place || '–'}`)
+        : (tie ? `📍 Gleichstand! ${window.SchmobinApp.winnerNames(winners)}` : winner ? `📍 ${esc(winner.name)} liegt goldrichtig!` : 'Spiel beendet'),
       extra: ({ ranked, esc, points }) => {
         const top = ranked.slice(0, 3);
         const best = Math.max(1, ...top.map(p => Number(p.score) || 0));
-        return `<div class="geo-bars">${top.map((p, i) => `<div class="geo-bar"><strong>${i + 1}. ${esc(p.name)}</strong><b>${points(p.score)}</b><div class="geo-track"><span style="--w:${Math.max(2, Math.round((Math.max(0, Number(p.score) || 0) / best) * 100))}%"></span></div></div>`).join('')}</div>`;
+        return `<div class="geo-bars">${top.map((p, i) => `<div class="geo-bar"><strong>${p.place || i + 1}. ${esc(p.name)}</strong><b>${points(p.score)}</b><div class="geo-track"><span style="--w:${Math.max(2, Math.round((Math.max(0, Number(p.score) || 0) / best) * 100))}%"></span></div></div>`).join('')}</div>`;
       }
     },
     sounds: {

@@ -31,7 +31,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 
 | Seite | Für wen | Wofür |
 |---|---|---|
-| `index.html` | alle | Startseite: erst **Anmelden** oder **Als Gast fortfahren**, dann nur die passenden Bereiche |
+| `index.html` | alle | Startseite: oben das **Raumcode-Feld** zum Beitreten (auch ohne Konto), darunter Zuschauen und **Anmelden**; angemeldet die passenden Bereiche |
 | `spieler.html` | Spieler | Mit Raumcode beitreten und antworten. Als Gast ohne Konto oder angemeldet, dann mit XP |
 | `moderator.html` | Moderatoren | Quiz auswählen, Raum erstellen, Fragen öffnen, schließen, auflösen und Punkte vergeben |
 | `zuschauer.html` | Beamer/TV | Große Anzeige mit Frage, Timer, Statistik und Rangliste |
@@ -42,10 +42,12 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 ## So läuft ein Quizabend
 
 1. Der Moderator meldet sich auf `moderator.html` an, wählt ein Quiz und tippt auf **🌐 Online-Sitzung erstellen**.
-2. Es erscheint ein **Raumcode** wie `58SN9A` mit **QR-Code**. Die Spieler scannen ihn oder öffnen `spieler.html` und geben den Code ein. Die Handys gehen während des Quiz nicht in den Standby.
-3. Optional läuft `zuschauer.html` mit demselben Code auf Beamer oder TV.
-4. Der Moderator öffnet jede Frage, schließt die Antworten und löst auf. Die Punkte werden automatisch vergeben, er kann sie aber jederzeit korrigieren.
-   - Kurzbefehle: **Leertaste** öffnet, schließt die Antworten und löst auf. **← / →** springt zur vorigen oder nächsten Frage.
+2. Es erscheint ein **Raumcode** wie `58SN9A` mit **QR-Code**. Die Spieler scannen ihn oder geben den Code direkt auf der Startseite ein. Die Handys gehen während des Quiz nicht in den Standby.
+3. Optional läuft `zuschauer.html` mit demselben Code auf Beamer oder TV. In der Lobby zeigt er groß den QR-Code und „Wer ist da?“ mit allen Avataren.
+4. Der Moderator drückt immer nur den großen Knopf **„Nächster Schritt“** (oder die **Leertaste**): ▶ Spiel starten → ❓ Frage öffnen → ⏹ Antworten schließen → ✓ Auflösen → ➜ Nächste Frage … → 🏁 Zur Siegerehrung. Zurück, Überspringen und Beenden stehen klein darunter. Am Handy sitzt der Knopf in einer festen Leiste unten.
+   - Links sieht er pro Spieler ✓ geantwortet, ⏳ wartet und nach der Auflösung die Punkte oder „— keine Antwort“. Ein Spieler antippen öffnet die Punkte-Korrektur.
+   - Kurzbefehle: **Leertaste** = nächster Schritt, **← / →** = vorige/nächste Frage.
+5. Nach der Siegerehrung: **🔁 Nochmal spielen (gleiche Spieler)** setzt die Punkte auf 0 und alle landen wieder in der Lobby, oder **📂 Neues Quiz**. Gleiche Punkte ergeben den gleichen Platz („🤝 Gleichstand!“). XP gibt es pro Raum nur einmal – für neue XP einen neuen Raum erstellen.
 
 **Lokal testen:** „💻 Lokal testen“ nutzen und die Spieleransicht in weiteren Tabs **desselben Browsers** öffnen. Die Anmeldung als Moderator braucht dafür einmal Internet.
 

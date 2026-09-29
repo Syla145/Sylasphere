@@ -15,9 +15,9 @@
     },
     ceremony: {
       effect: 'confetti',
-      title: ({ role, place, winner, esc }) => role === 'player'
-        ? (place === 1 ? '🏁 1. Platz!' : `🏁 ${place || '–'}. Platz`)
-        : (winner ? `🏁 ${esc(winner.name)} gewinnt das Rennen!` : 'Rennen beendet'),
+      title: ({ role, place, winner, winners, tie, esc }) => role === 'player'
+        ? (place === 1 ? (tie ? '🏁 Gleichstand auf Platz 1!' : '🏁 1. Platz!') : `🏁 ${place || '–'}. Platz`)
+        : (tie ? `🏁 Fotofinish! ${window.SchmobinApp.winnerNames(winners)}` : winner ? `🏁 ${esc(winner.name)} gewinnt das Rennen!` : 'Rennen beendet'),
       extra: () => '<div class="kart-finish" aria-hidden="true"></div>'
     },
     sounds: {

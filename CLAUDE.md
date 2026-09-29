@@ -17,7 +17,7 @@ Alle Texte, Commits und Antworten auf **Deutsch**.
 
 ## Aufbau
 - `js/core/` – App-Grundlagen (app.js mit `APP_VERSION`, Themes `themes.js` (Katalog, Bühne, Übergang, Siegerehrung, Animationen reduzieren), Timer, Sounds `sfx.js`, Reaktionen, Highlights, Einstellungen ⚙️, Konto, Uploads `cloud-media.js`)
-- `js/views/` – Logik der Seiten (moderator-, player-, spectator-, admin-, home-, profile-, preview-view)
+- `js/views/` – Logik der Seiten (moderator-, player-, spectator-, admin-, home-, profile-, preview-view); v31: `moderator-flow.js` = Ablauf des „Nächster Schritt“-Knopfs (ohne DOM). Plätze immer mit `App.rankPlayers` (gleiche Punkte = gleicher Platz), Sieger-Titel mit `App.winnerTitle`
 - **Themes (ab v29):** Eintrag in `THEMES` (`js/core/themes.js`) + Aussehen `css/themes/<id>.css` (in `css/themes/index.css` importieren) + optional Effekte `js/themes/<id>.js` (`decor`, `transition`, `ceremony`, `sounds`). Theme pro Quiz (`settings.theme`) und pro Runde (`round.theme`). Neue Themes: alle Farb-Variablen setzen, Kontrast wird in `tests/v29-themes.js` geprüft; Deko nur am Rand/unten, nie unter freiem Text. Vorschau: `vorschau.html?theme=<id>`.
 - `js/editor/` – Quiz-Editor (v30: Gliederung links, eine Frage in der Mitte; `editor.js` = Oberfläche, `editor-model.js` = Datenlogik ohne DOM: Verschieben, Duplizieren, Typwechsel, ⚠️-Zuordnung), Medienbibliothek (`media-library.js`, Bilder kompakt mit Vorschaubild)
 - `js/question-types/` – **Fragetyp-Registry**: jeder Typ ist eine Datei in `types/` (Editor, Spieleransicht, Auswertung, optional `game` für rundenbasierte Spiele wie `ranking`, `time-duel`). Liste in `registry.js` (`TYPE_FILES`). Gemeinsame Helfer in `kit.js` (u. a. unscharfer Textvergleich `Kit.matchTerm`). Siehe `js/question-types/README.md`.
@@ -25,7 +25,7 @@ Alle Texte, Commits und Antworten auf **Deutsch**.
 - `tests/` – Node-Tests ohne Abhängigkeiten: `node tests/<datei>.js` (alle sollten „0 failed“ melden).
 
 ## Arbeitsweise
-- Versionen in Schritten (zuletzt **v30**). Pro Version: `APP_VERSION` in `js/core/app.js` hochzählen, Eintrag in `CHANGELOG.md`, README bei Bedarf, einen Test `tests/v<NN>-<thema>.js` ergänzen, alle Tests laufen lassen.
+- Versionen in Schritten (zuletzt **v31**). Pro Version: `APP_VERSION` in `js/core/app.js` hochzählen, Eintrag in `CHANGELOG.md`, README bei Bedarf, einen Test `tests/v<NN>-<thema>.js` ergänzen, alle Tests laufen lassen.
 - Einfach, robust, gut erweiterbar; Darstellung, Daten und Spiellogik getrennt halten. Muss auf Handy **und** Desktop gut bedienbar sein.
 - UI im Browser prüfen (Playwright/Chromium ist in der Cloud-Umgebung vorhanden): lokalen Server starten (`python3 -m http.server`), Handy-Breite 390 px und Desktop ansehen. Namen dürfen nie von Avataren/Emojis verdeckt werden.
 - **Themes dürfen den Originalnamen ihres Vorbilds tragen** (z. B. „Mario Kart“), weil die Seite nur im privaten Kreis genutzt wird.

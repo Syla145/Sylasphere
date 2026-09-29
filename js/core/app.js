@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const APP_VERSION = 'v30';
+  const APP_VERSION = 'v31';
 
   const App = {
     version: APP_VERSION,
@@ -102,6 +102,31 @@
       const up = prev.rank - Number(el.dataset.rank);
       if (up > 0) { el.dataset.climb = `▲${up}`; el.classList.add('is-climb'); setTimeout(() => el.classList.remove('is-climb'), 2400); }
     });
+  };
+
+  /**
+   * v31: Rangliste mit Gleichstand. Gleiche Punkte = gleicher Platz (1, 1, 3 …).
+   * → Kopie der Spieler, sortiert, jeweils mit place (Platz) und tied (teilt sich den Platz)
+   */
+  App.rankPlayers = function (players) {
+    const sorted = (players || []).slice().sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0) || (Number(a.joinedAt) || 0) - (Number(b.joinedAt) || 0));
+    return sorted.map((player, i) => {
+      const score = Number(player.score) || 0;
+      const place = 1 + sorted.filter(o => (Number(o.score) || 0) > score).length;
+      const tied = sorted.some((o, j) => j !== i && (Number(o.score) || 0) === score);
+      return Object.assign({}, player, { place, tied });
+    });
+  };
+  /** v31: Alle Spieler auf Platz 1 (bei Gleichstand mehrere) */
+  App.winnersOf = ranked => (ranked || []).filter(p => p.place === 1);
+  /** v31: „🏆 Anna gewinnt!“ bzw. „🤝 Gleichstand! Anna & Ben“ (HTML-sicher) */
+  /** v31: Namen bei Gleichstand als eigene, kleinere Zeile unter dem Titel */
+  App.winnerNames = winners => `<small class="final-names">${winners.slice(0, 4).map(p => App.escapeHTML(p.name)).join(' & ')}${winners.length > 4 ? ' …' : ''}</small>`;
+  App.winnerTitle = function (ranked) {
+    const winners = App.winnersOf(ranked);
+    if (!winners.length) return '';
+    if (winners.length > 1) return `🤝 Gleichstand! ${App.winnerNames(winners)}`;
+    return `🏆 ${App.escapeHTML(winners[0].name)} gewinnt!`;
   };
 
   window.SchmobinApp = App;

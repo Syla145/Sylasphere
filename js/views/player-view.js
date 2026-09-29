@@ -18,9 +18,10 @@
 
   async function init() {
     await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
-    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar'].forEach(id => els[id] = document.getElementById(id));
+    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar','player-timebar','player-timebar-fill','player-topbar'].forEach(id => els[id] = document.getElementById(id));
     els['game-question'].addEventListener('quiz:interaction-end', () => { if (deferredState) render(deferredState); });
     const code = (App.getParam('code') || Session.lastCode() || Online?.lastCode?.() || '').toUpperCase(); if (code) els['room-code'].value = code;
+    if (App.getParam('code') && !els['player-name'].value) setTimeout(() => els['player-name'].focus({ preventScroll: true }), 50); // v31: von der Startseite – direkt Namen eingeben
     renderAvatars();
     els['join-btn'].addEventListener('click', join);
     els['room-code'].addEventListener('input', () => els['room-code'].value = els['room-code'].value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6));
@@ -35,12 +36,30 @@
     els['submit-answer'].addEventListener('click', submit);
   }
 
+  // v31: Standard-Avatar zufällig; beim Beitreten wird – falls nicht selbst gewählt – einer genommen, den im Raum noch niemand hat
+  const AVATARS = ['🦊','🐼','🦁','🐸','🐙','🦄','🤖','👾','🐧','🦖','🐐','🐻','🐯','🐵','🦉','🐢'];
+  let avatarPicked = false;
   function renderAvatars() {
-    const avatars = ['🦊','🐼','🦁','🐸','🐙','🦄','🤖','👾','🐧','🦖','🐐','🐻','🐯','🐵','🦉','🐢'];
-    els['avatar-options'].innerHTML = avatars.map((a,i)=>`<button type="button" class="avatar-choice ${i===0?'is-selected':''}" data-avatar="${a}">${a}</button>`).join('');
+    const start = Math.floor(Math.random() * AVATARS.length);
+    els['avatar-options'].innerHTML = AVATARS.map((a,i)=>`<button type="button" class="avatar-choice ${i===start?'is-selected':''}" data-avatar="${a}" aria-label="Avatar ${a}">${a}</button>`).join('');
     els['avatar-options'].addEventListener('click', e => {
-      const b=e.target.closest('.avatar-choice'); if(!b)return; els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x=>x.classList.toggle('is-selected',x===b));
+      const b=e.target.closest('.avatar-choice'); if(!b)return; avatarPicked = true; els['avatar-options'].querySelectorAll('.avatar-choice').forEach(x=>x.classList.toggle('is-selected',x===b));
     });
+  }
+  /** Freien Avatar wählen (ohne DOM, in tests/v31 geprüft): bevorzugt `preferred`, sonst zufällig einer, den noch niemand hat */
+  function pickAvatar(preferred, players, ownId, random = Math.random) {
+    const taken = new Set((players || []).filter(p => p && p.id !== ownId).map(p => p.avatar));
+    if (preferred && !taken.has(preferred)) return preferred;
+    const free = AVATARS.filter(a => !taken.has(a));
+    const pool = free.length ? free : AVATARS;
+    return pool[Math.floor(random() * pool.length)] || preferred || AVATARS[0];
+  }
+  window.SylasphereAvatarPick = pickAvatar;
+  function chooseAvatar(chosen, players, ownId) {
+    const own = (players || []).find(p => p.id === ownId);
+    if (avatarPicked) return chosen; // selbst gewählt → so lassen (Doppelte erlaubt)
+    if (own?.avatar) return own.avatar; // Wiederbeitritt: bisherigen Avatar behalten
+    return pickAvatar(chosen, players, ownId);
   }
 
   // ---------- v28: Konto beim Beitreten ----------
@@ -131,7 +150,7 @@
     if (code.length !== 6) { els['join-error'].textContent='Bitte gib den 6-stelligen Raumcode ein.'; return; }
     if (!name) { els['join-error'].textContent='Bitte gib deinen Namen ein.'; return; }
     const joinButton = els['join-btn'];
-    joining = true; joinButton.disabled = true; joinButton.textContent = 'Sitzung wird gesucht …';
+    joining = true; joinButton.disabled = true; joinButton.textContent = 'Raum wird gesucht …';
     try {
       const selected = await resolveTransport(code);
       try { await engine?.destroy?.(); } catch (_) {}
@@ -139,7 +158,7 @@
       const avatar=els['avatar-options'].querySelector('.is-selected')?.dataset.avatar || '🦊';
 
       if (selected === 'online') {
-        joinButton.textContent = '🌐 Online beitreten …';
+        joinButton.textContent = 'Beitreten …';
         identity = new PlayerIdentity(`ONLINE${code}`);
         // v28: Mit Konto beitreten (XP). Spielt das Konto schon in einem anderen Tab, geht es hier als Gast weiter.
         let account = useAccount() ? window.SylasphereAccount.context() : null;
@@ -153,7 +172,7 @@
         engine = await Online.connect(code, 'player', { account });
         if (account && !engine.isAccount) App.toast('Das ist dein eigener Raum – du spielst als Gast (ohne XP).', 'info');
         await engine.waitForState();
-        playerId = await engine.joinPlayer(name, avatar, { xp: accountXp });
+        playerId = await engine.joinPlayer(name, chooseAvatar(avatar, engine.load()?.players, engine.userId), { xp: accountXp });
         identity.activate(playerId);
         transport = 'online';
         startProgress(code);
@@ -161,7 +180,7 @@
         engine = new Session(code);
         identity = new PlayerIdentity(code);
         const previous = await identity.reusablePlayerId();
-        playerId = engine.joinPlayer(name,avatar,previous);
+        playerId = engine.joinPlayer(name, chooseAvatar(avatar, engine.load()?.players, previous), previous);
         identity.activate(playerId);
         transport = 'local';
         startProgress(code);
@@ -179,7 +198,7 @@
       try { await engine?.destroy?.(); } catch (_) {}
       engine = null;
     } finally {
-      joining = false; joinButton.disabled = false; joinButton.textContent = 'Sitzung beitreten';
+      joining = false; joinButton.disabled = false; joinButton.textContent = 'Beitreten';
     }
   }
 
@@ -194,7 +213,7 @@
     window.SylasphereThemes?.observe(state); // v29: Übergang zwischen Fragen
     const player=state.players.find(p=>p.id===playerId); if(!player){ return disconnect('Du bist nicht mehr Teil dieser Sitzung.'); }
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
-    if (els['game-mode']) { els['game-mode'].textContent = transport === 'online' ? (state.onlineConnected === false ? '↻ Reconnect' : '🌐 Online') : '💻 Lokal'; els['game-mode'].classList.toggle('is-online', transport === 'online' && state.onlineConnected !== false); els['game-mode'].classList.toggle('is-offline', transport === 'online' && state.onlineConnected === false); }
+    if (els['game-mode']) { const offline = transport === 'online' && state.onlineConnected === false; els['game-mode'].hidden = !offline; els['game-mode'].textContent = offline ? '↻ Verbindung …' : ''; els['game-mode'].classList.toggle('is-offline', offline); } // v31: kein Lokal/Online-Hinweis mehr, nur bei Verbindungsproblemen
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
     renderLeaderboard(); renderStatus(current); renderTimer(current);
     window.SylasphereSfx?.observe(state, { current, playerId }); // v27: Soundeffekte + Vibration
@@ -205,18 +224,20 @@
     let global = 0;
     for (let i = 0; i < state.currentRoundIndex; i++) global += state.quiz.quiz.rounds[i].questions.length;
     global += state.currentQuestionIndex;
-    App.setText(els['player-progress'], current.round ? `${current.round.title} · ${Math.min(global + 1, total)}/${total}` : '');
-    if (els['player-progress-bar']) els['player-progress-bar'].style.width = `${total ? Math.round(((Math.min(global + 1, total)) / total) * 100) : 0}%`;
+    const playing = state.status === 'playing' && Boolean(current.round); // v31: Lobby/Spielende ohne Rundenanzeige
+    App.setText(els['player-progress'], playing ? `${current.round.title} · ${Math.min(global + 1, total)}/${total}` : '');
+    if (els['player-progress-bar']) { els['player-progress-bar'].style.width = `${total ? Math.round(((Math.min(global + 1, total)) / total) * 100) : 0}%`; els['player-progress-bar'].parentElement.hidden = !playing; }
+    els['player-topbar']?.setAttribute('data-phase', state.status);
 
     if (state.status === 'lobby') {
       App.setText(els['game-status'], 'Lobby');
-      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · ${transport === 'online' ? 'Online verbunden' : 'Der Moderator startet gleich'}.</p></div>`;
+      els['game-question'].innerHTML = `<div class="waiting-card lobby-wait"><div class="pulse-dot"></div><span class="eyebrow">${App.escapeHTML(state.quiz.quiz.title)}</span><h2>Du bist drin!</h2><p>${state.players.length} Spieler in der Lobby · Der Moderator startet gleich.</p><p class="microcopy">Raum ${App.escapeHTML(state.code)}</p></div>`;
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
     if (state.status === 'finished') {
       App.setText(els['game-status'], 'Beendet');
-      const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
-      const place = ranked.findIndex(p => p.id === playerId) + 1;
+      const ranked = App.rankPlayers(state.players);
+      const place = ranked.find(p => p.id === playerId)?.place || 0; // v31: gleiche Punkte = gleicher Platz
       const podium = finalPodium(ranked, place);
       if (els['game-question'].dataset.finalKey !== podium || !els['game-question'].querySelector('.final-screen')) { els['game-question'].innerHTML = podium; els['game-question'].dataset.finalKey = podium; }
       renderXpResult();
@@ -381,7 +402,7 @@
     const me = ranked.find(p => p.id === playerId);
     const after = `${me ? `<div class="my-final-score"><span>Dein Ergebnis</span><strong>${App.formatPoints(me.score)}</strong></div>` : ''}<div class="xp-result" data-xp-result></div>${window.SylasphereHighlights?.html(state.highlights) || ''}`;
     // v29: Siegerehrung im Stil des Themes (js/core/themes.js)
-    return window.SylasphereThemes.ceremony(ranked, { role: 'player', place, eyebrow: 'Finale', title: place === 1 ? '🏆 Sieg!' : `Platz ${place || '–'}`, after });
+    return window.SylasphereThemes.ceremony(ranked, { role: 'player', place, eyebrow: 'Finale', title: place === 1 ? (App.winnersOf(ranked).length > 1 ? '🤝 Gleichstand auf Platz 1!' : '🏆 Sieg!') : `Platz ${place || '–'}`, after });
   }
 
 
@@ -435,22 +456,37 @@
   }
 
   function renderLeaderboard() {
-    const ranked = state.players.slice().sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt).slice(0, 10);
+    const ranked = App.rankPlayers(state.players).slice(0, 10);
     const current = engine?.getCurrent(state);
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     const gains = resolved ? (state.answers[current.question.id] || {}) : {};
     App.renderRanking(els['leaderboard'], ranked.map((p, i) => {
       const gain = Number(gains[p.id]?.awardedPoints) || 0;
-      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${i + 1}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
+      return `<div class="leader-row ${p.id === playerId ? 'is-me' : ''}" data-pid="${App.escapeHTML(p.id)}" data-rank="${i + 1}"><span>${p.place}</span><span class="avatar small">${App.escapeHTML(App.avatar(p.avatar))}</span><strong>${App.escapeHTML(p.name)}${window.SylasphereProgress?.badge(p) || ''}</strong><span class="leader-score">${gain > 0 ? `<em>+${Math.round(gain)}</em>` : ''}<b>${Math.round(p.score)} P</b></span></div>`;
     }).join(''));
   }
 
+  // v31: Timer als Balken über der Frage (schrumpft gleichmäßig, die letzten 5 Sekunden rot)
+  let barFrame = 0;
+  function setBar(progress, cls = '') {
+    const bar = els['player-timebar'];
+    if (!bar) return;
+    bar.style.setProperty('--p', String(App.clamp(Number(progress) || 0, 0, 1)));
+    bar.classList.toggle('is-critical', cls === 'is-critical');
+    bar.classList.toggle('is-ended', cls === 'is-ended');
+  }
   function renderTimer(current){
-    timer?.stop();
-    els['player-timer'].classList.remove('is-critical');
-    if (current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id)) { App.setText(els['player-timer'],'⚡'); return; }
-    if(!state.questionOpen||!state.questionEndsAt){App.setText(els['player-timer'],'–');return;}
-    timer=new Timer((seconds)=>{App.setText(els['player-timer'],String(seconds??'–')); window.SylasphereSfx?.countdown(seconds); if(seconds!=null&&seconds<=5)els['player-timer'].classList.add('is-critical');else els['player-timer'].classList.remove('is-critical');},()=>{ els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
+    timer?.stop(); cancelAnimationFrame(barFrame);
+    const bar = els['player-timebar'];
+    const buzzing = current?.question?.type === 'buzzer' && state.questionStartedAt && !state.scoredQuestionIds?.includes(current.question.id);
+    const ends = Number(state.questionEndsAt) || 0, started = Number(state.questionStartedAt) || 0;
+    const running = state.status === 'playing' && state.questionOpen && ends && started && !buzzing;
+    if (bar) bar.hidden = !running;
+    if (!running) { App.setText(els['player-timer'], '–'); return; }
+    const span = Math.max(1000, ends - started);
+    const tick = () => { const left = ends - Date.now(); setBar(left / span, left <= 0 ? 'is-ended' : left <= 5000 ? 'is-critical' : ''); if (left > 0) barFrame = requestAnimationFrame(tick); };
+    tick();
+    timer=new Timer((seconds)=>{App.setText(els['player-timer'],`${seconds ?? '–'} s`); window.SylasphereSfx?.countdown(seconds);},()=>{ setBar(0, 'is-ended'); App.setText(els['player-timer'],'0 s'); els['submit-answer'].disabled=true; els['game-question'].querySelectorAll('button,input,textarea').forEach(el=>el.disabled=true); App.setText(els['game-status'],'Zeit abgelaufen'); if(!state.scoredQuestionIds?.includes(current?.question?.id)) els['answer-feedback'].innerHTML='<div class="notice notice--warning">⏱ Zeit abgelaufen. Warte auf die Auflösung durch den Moderator.</div>'; }); timer.start(state.questionEndsAt);
   }
 
   async function disconnect(message){

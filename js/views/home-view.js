@@ -11,11 +11,12 @@
    *    Gast → Mitspielen, Zuschauen
    * Direkte Links (z. B. spieler.html?code=…) funktionieren weiterhin ohne diese Auswahl.
    * v28: Angemeldete sehen ihre Stufe und einen Link zum Profil (XP, Statistik, Bestenliste).
+   * v31: Raumcode-Feld direkt oben (für alle, auch Gäste) – Anmelden ist nur noch ein Nebenweg.
+   *      Die frühere Auswahl „Anmelden / Als Gast“ entfällt.
    */
   const App = window.SchmobinApp;
   const Account = window.SylasphereAccount;
   const UI = window.SylasphereAccountUI;
-  const GUEST_KEY = 'sylasphere:home-guest';
   const HINT_KEY = 'sylasphere:home-role-hint';
   const esc = value => App.escapeHTML(value);
   let view = 'auto'; // 'auto' | 'login'
@@ -41,14 +42,31 @@
 
   function content() { return document.getElementById('home-content'); }
 
+  // v31: Beitreten direkt auf der Startseite – Code eingeben, weiter zur Spieleransicht (Name + Avatar)
+  function joinBox() {
+    return `<form class="panel home-join" data-home-join novalidate><div class="home-join-head"><span class="eyebrow">Mitspielen</span><h2>Raumcode eingeben</h2></div><div class="home-join-row"><input class="input code-input" name="code" maxlength="6" placeholder="ABC234" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Raumcode"><button type="submit" class="btn btn--primary">Beitreten</button></div><div class="error-text" data-join-error role="alert"></div></form>`;
+  }
+  function bindJoin() {
+    const form = content().querySelector('[data-home-join]');
+    if (!form) return;
+    const input = form.querySelector('input');
+    input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); });
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const code = input.value.trim();
+      if (code.length !== 6) { form.querySelector('[data-join-error]').textContent = 'Bitte den 6-stelligen Raumcode eingeben (steht beim Moderator oder auf dem Beamer).'; input.focus(); return; }
+      location.href = `./spieler.html?code=${encodeURIComponent(code)}`;
+    });
+  }
+
   function renderChoice() {
-    content().innerHTML = `
-      <div class="home-choice">
-        <button type="button" class="role-card home-choice-card" data-choice="login"><div class="role-icon">🔑</div><h2>Anmelden</h2><p>Mit Google oder E-Mail. Mit Konto sammelst du XP, steigst Stufen auf und siehst deine Statistik. Moderatoren brauchen ein Konto.</p><span class="role-arrow">→</span></button>
-        <button type="button" class="role-card home-choice-card" data-choice="guest"><div class="role-icon">👋</div><h2>Als Gast fortfahren</h2><p>Ohne Konto direkt mitspielen oder zuschauen.</p><span class="role-arrow">→</span></button>
+    content().innerHTML = `${joinBox()}
+      <div class="home-secondary">
+        <a class="home-secondary-link" href="./zuschauer.html"><span>📺</span><span><strong>Zuschauen</strong><small>Große Ansicht für Beamer, TV oder Stream</small></span></a>
+        <button type="button" class="home-secondary-link" data-choice="login"><span>🔑</span><span><strong>Anmelden</strong><small>Quiz moderieren, XP sammeln, Statistik</small></span></button>
       </div>`;
     content().querySelector('[data-choice="login"]').addEventListener('click', () => { view = 'login'; render(); });
-    content().querySelector('[data-choice="guest"]').addEventListener('click', () => { store.set(GUEST_KEY, '1'); view = 'auto'; render(); });
+    bindJoin();
   }
 
   function renderLogin() {
@@ -61,7 +79,7 @@
     }
     const back = document.createElement('button');
     back.type = 'button'; back.className = 'link-btn home-back';
-    back.textContent = store.get(GUEST_KEY) ? '← Zurück' : '← Zurück zur Auswahl';
+    back.textContent = '← Zurück';
     back.addEventListener('click', () => { view = 'auto'; render(); });
     wrap.append(back);
     content().replaceChildren(wrap);
@@ -79,7 +97,9 @@
     if (user && role === 'pending') extra = '<div class="notice home-note">⏳ Deine Moderator-Anfrage wartet auf Freigabe durch den Admin.</div>';
     else if (user && role === 'none') extra = '<a class="notice home-note home-note--link" href="./moderator.html">Du möchtest selbst ein Quiz moderieren? <strong>Moderator-Zugang anfragen →</strong></a>';
     const profile = user ? '<a class="notice home-note home-note--link home-profile" href="./profil.html"><span data-home-level>⭐</span> <strong>Dein Profil</strong> – Stufe, XP, Statistik und Bestenliste →</a>' : '';
-    content().innerHTML = `${greeting}${profile}<div class="role-grid home-roles home-roles--${keys.length}">${keys.map(card).join('')}</div>${extra}`;
+    const shown = keys.filter(key => key !== 'play'); // v31: „Mitspielen“ ist jetzt das Raumcode-Feld oben
+    content().innerHTML = `${greeting}${joinBox()}${profile}<div class="role-grid home-roles home-roles--${shown.length}">${shown.map(card).join('')}</div>${extra}`;
+    bindJoin();
     content().querySelector('[data-login]')?.addEventListener('click', () => { view = 'login'; render(); });
     if (user) showLevel(user.uid);
   }
@@ -102,14 +122,12 @@
     if (loggedIn && !state.role) { renderCards(store.get(HINT_KEY) || 'none', state); return; } // Rolle lädt noch
     if (loggedIn) {
       store.set(HINT_KEY, state.role);
-      store.set(GUEST_KEY, '');
       view = 'auto';
       renderCards(state.role, state);
       return;
     }
     if (view === 'login') { renderLogin(); return; }
     if (state.ready || firebaseFailed) store.set(HINT_KEY, '');
-    if (store.get(GUEST_KEY)) { renderCards('guest', null); return; }
     const hint = store.get(HINT_KEY);
     if (hint && !state.ready && !firebaseFailed) { renderCards(hint, null); return; } // war angemeldet – kein Aufblitzen der Auswahl
     renderChoice();

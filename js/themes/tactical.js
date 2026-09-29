@@ -15,10 +15,10 @@
     },
     ceremony: {
       effect: 'none',
-      title: ({ role, place, winner, esc }) => role === 'player'
-        ? (place === 1 ? 'Sieg' : `Platz ${place || '–'}`)
-        : (winner ? 'Sieg' : 'Match beendet'),
-      extra: ({ winner, esc, avatar, points }) => winner
+      title: ({ role, place, winner, tie }) => role === 'player'
+        ? (place === 1 ? (tie ? 'Unentschieden' : 'Sieg') : `Platz ${place || '–'}`)
+        : (tie ? 'Unentschieden' : winner ? 'Sieg' : 'Match beendet'),
+      extra: ({ winner, tie, esc, avatar, points }) => winner && !tie
         ? `<div class="tactical-mvp"><span class="tactical-mvp-tag">MVP</span><div class="podium-avatar">${avatar(winner.avatar)}</div><strong>${esc(winner.name)}</strong><span>${points(winner.score)}</span></div>`
         : ''
     },

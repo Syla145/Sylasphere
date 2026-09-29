@@ -427,6 +427,15 @@
     saveResults() { return Promise.resolve({ local: true, eligible: false, reason: 'Im lokalen Modus gibt es keine XP.', saved: [], skipped: 0, errors: 0 }); }
 
     finish(extra = {}) { this.mutate(state => { state.status = 'finished'; state.questionOpen = false; state.questionEndsAt = null; state.finishedAt = Date.now(); state.highlights = Array.isArray(extra.highlights) ? Quiz.clone(extra.highlights) : null; }); }
+    /** v31: Nochmal spielen – gleiche Spieler, Punkte auf 0, zurück in die Lobby */
+    restart() {
+      this.mutate(state => {
+        state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = [];
+        state.status = 'lobby'; state.currentRoundIndex = 0; state.currentQuestionIndex = 0;
+        state.questionOpen = false; state.questionStartedAt = null; state.questionEndsAt = null;
+        state.stage = 0; state.media = null; state.game = null; state.finishedAt = null; state.highlights = null;
+      });
+    }
     resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }
   }
 

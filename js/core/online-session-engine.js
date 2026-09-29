@@ -825,6 +825,18 @@
       await this.modules.database.update(this.roomRef, updates);
     }
 
+    /** v31: Nochmal spielen – gleiche Spieler, Punkte auf 0, zurück in die Lobby */
+    async restart() {
+      this.assertModerator();
+      await this.resetScores();
+      await this.patchPublic({
+        status: 'lobby', currentRoundIndex: 0, currentQuestionIndex: 0,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
+        currentQuestionId: this.raw.hostQuiz?.quiz?.rounds?.[0]?.questions?.[0]?.id || '', currentQuestion: null,
+        questionResult: null, publicStats: null, scoreDeltas: null, finishedAt: null, highlights: null
+      });
+    }
+
     /** v27: Emoji-Reaktion eines Spielers (rooms/<code>/reactions/<uid>, Server begrenzt auf ca. 1 pro Sekunde) */
     async sendReaction(playerId, emoji) {
       const e = String(emoji || '').slice(0, 16);

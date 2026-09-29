@@ -191,12 +191,16 @@
     const App = window.SchmobinApp;
     const avatar = value => esc(App?.avatar ? App.avatar(value) : value);
     const points = value => esc(App?.formatPoints ? App.formatPoints(value) : `${Math.round(Number(value) || 0)} P`);
-    const ctx = { ranked, role: options.role || 'player', place: options.place || 0, winner: ranked[0] || null, esc, avatar, points };
+    // v31: Gleichstand – gleiche Punkte = gleicher Platz (App.rankPlayers), Podest zeigt den geteilten Platz
+    if (App?.rankPlayers && !ranked.every(p => Number.isInteger(p.place))) ranked = App.rankPlayers(ranked);
+    const winners = ranked.filter(p => (p.place || 0) === 1);
+    const ctx = { ranked, role: options.role || 'player', place: options.place || 0, winner: ranked[0] || null, winners, tie: winners.length > 1, esc, avatar, points };
     const top = ranked.slice(0, 3);
     const order = [top[1], top[0], top[2]].filter(Boolean);
     const podium = order.map(player => {
-      const rank = ranked.findIndex(p => p.id === player.id) + 1;
-      return `<div class="podium-place podium-place--${rank}"><div class="podium-avatar">${avatar(player.avatar)}</div><strong>${esc(player.name)}</strong><span>${points(player.score)}</span><b>${rank}</b></div>`;
+      const rank = player.place || ranked.findIndex(p => p.id === player.id) + 1;
+      const slot = Math.min(3, Number(player.place) || (ranked.findIndex(p => p.id === player.id) + 1)); // v31: gleiche Punkte → gleich hohe Stufe
+      return `<div class="podium-place podium-place--${slot}${player.tied ? ' is-tied' : ''}"><div class="podium-avatar">${avatar(player.avatar)}</div><strong class="podium-name">${esc(player.name)}</strong><span class="podium-score">${points(player.score)}</span><b class="podium-rank">${rank}</b></div>`;
     }).join('');
     const effect = reducedMotion() ? 'none' : (def.effect || 'none');
     const pieces = effect === 'confetti' ? Array.from({ length: 28 }, (_, i) => `<i style="--i:${i};--x:${(i * 37) % 100}%;--d:${(i % 7) * 0.18}s"></i>`).join('') : effect === 'rays' ? '<i></i>' : '';
