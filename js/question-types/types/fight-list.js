@@ -59,6 +59,18 @@
     solutionText(q) { return (q.correctAnswers || []).join(', '); },
     answerLabel(q, answer) { return Array.isArray(answer) ? answer.join(' · ') : String(answer ?? ''); },
 
+    // v32: Präsentation – kein leeres Textfeld; bei der Auflösung alle gültigen Begriffe
+    present(q, container, ctx) {
+      const { el } = Kit;
+      const wrap = Kit.baseQuestion(q);
+      if (ctx.reveal) {
+        const answers = el('div', 'solution-chips fight-present');
+        (q.correctAnswers || []).forEach(answer => answers.append(el('span', 'chip chip--solution', answer)));
+        wrap.append(answers);
+      } else wrap.append(el('div', 'present-note', `✍️ Nennt bis zu ${q.maxEntries || q.correctAnswers?.length || 5} Begriffe`));
+      container.replaceChildren(wrap);
+    },
+
     render(q, container, ctx) {
       const { el } = Kit;
       const wrap = Kit.baseQuestion(q);

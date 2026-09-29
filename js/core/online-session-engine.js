@@ -280,7 +280,8 @@
         score: Math.round(Number(scores[id]) || 0),
         account: profile?.account === true, // v28: Spieler mit Konto (sammelt XP)
         xp: Math.max(0, Number(profile?.xp) || 0),
-        lastAnsweredQuestionId: String(profile?.lastAnsweredQuestionId || '')
+        lastAnsweredQuestionId: String(profile?.lastAnsweredQuestionId || ''),
+        lastAnswerStage: profile?.lastAnswerStage == null ? null : Number(profile.lastAnswerStage) // v32: Song-Enthüllung – Stufe fürs Beamer-Live-Bild
       })).sort(playerSort);
 
       let answers = {};
@@ -297,7 +298,7 @@
       if (this.role === 'spectator' && currentQuestionId) {
         answers[currentQuestionId] = answers[currentQuestionId] || {};
         players.forEach(player => {
-          if (player.lastAnsweredQuestionId === currentQuestionId) answers[currentQuestionId][player.id] = { submittedAt: 1 };
+          if (player.lastAnsweredQuestionId === currentQuestionId) answers[currentQuestionId][player.id] = player.lastAnswerStage == null ? { submittedAt: 1 } : { submittedAt: 1, stage: player.lastAnswerStage };
         });
       }
       if (pub.scoreDeltas && currentQuestionId) {
@@ -691,11 +692,13 @@
       if (Quiz.locksOnSubmit(question) && state.answers?.[question.id]?.[this.userId]) return false; // Antwort ist gesperrt
       let value = clone(answer);
       if (Quiz.stagesOf(question) && value && typeof value === 'object') value.stage = Math.max(0, Number(this.raw.public?.stage) || 0); // Firebase prüft: = aktuelle Stufe
-      await dbm.update(this.roomRef, {
+      const updates = {
         [`answers/${this.userId}/${question.id}`]: clean({ answer: value, submittedAt: now }),
         [`profiles/${this.userId}/lastAnsweredQuestionId`]: question.id,
         [`profiles/${this.userId}/updatedAt`]: now
-      });
+      };
+      if (Quiz.stagesOf(question)) updates[`profiles/${this.userId}/lastAnswerStage`] = Math.max(0, Number(value?.stage) || 0); // Beamer zeigt, wer bei welcher Stufe eingeloggt hat
+      await dbm.update(this.roomRef, updates);
       return true;
     }
 

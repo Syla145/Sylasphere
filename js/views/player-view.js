@@ -143,12 +143,27 @@
     throw new Error('Sitzung nicht gefunden. Prüfe den 6-stelligen Code.');
   }
 
+  // v32: Fehlermeldung direkt am Feld, Feld rot markiert; verschwindet beim Tippen
+  function fieldError(id, message) {
+    const input = els[id];
+    if (!input) { els['join-error'].textContent = message; return; }
+    input.classList.add('is-invalid'); input.setAttribute('aria-invalid', 'true');
+    let hint = input.parentElement.querySelector('.field-error');
+    if (!hint) { hint = document.createElement('span'); hint.className = 'field-error'; hint.id = `${id}-error`; hint.setAttribute('role', 'alert'); input.insertAdjacentElement('afterend', hint); input.setAttribute('aria-describedby', hint.id); }
+    hint.textContent = message;
+    input.focus();
+    input.addEventListener('input', () => { input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); hint.remove(); }, { once: true });
+  }
+  function clearFieldErrors() {
+    ['room-code', 'player-name'].forEach(id => { els[id]?.classList.remove('is-invalid'); els[id]?.removeAttribute('aria-invalid'); els[id]?.parentElement.querySelector('.field-error')?.remove(); });
+  }
+
   async function join() {
     if (joining) return;
     const code = els['room-code'].value.trim().toUpperCase(); const name = els['player-name'].value.trim();
-    els['join-error'].textContent='';
-    if (code.length !== 6) { els['join-error'].textContent='Bitte gib den 6-stelligen Raumcode ein.'; return; }
-    if (!name) { els['join-error'].textContent='Bitte gib deinen Namen ein.'; return; }
+    els['join-error'].textContent=''; clearFieldErrors();
+    if (code.length !== 6) { fieldError('room-code', 'Bitte gib den 6-stelligen Raumcode ein.'); return; }
+    if (!name) { fieldError('player-name', 'Bitte gib deinen Namen ein.'); return; }
     const joinButton = els['join-btn'];
     joining = true; joinButton.disabled = true; joinButton.textContent = 'Raum wird gesucht …';
     try {
@@ -193,7 +208,10 @@
       // v27: Emoji-Reaktionen (Leiste unter der Frage)
       window.SylasphereReactions?.attachBar(document.getElementById('reaction-bar'), emoji => Promise.resolve(engine.sendReaction?.(playerId, emoji)));
     } catch(error) {
-      els['join-error'].textContent = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Beitritt fehlgeschlagen.');
+      const message = /Firebase|auth|permission|network/i.test(String(error?.message || '')) ? Firebase.friendlyError(error) : (error.message || 'Beitritt fehlgeschlagen.');
+      if (/nicht gefunden|Raumcode|Code/i.test(message)) fieldError('room-code', message);        // v32: Fehler am betroffenen Feld
+      else if (/Name/i.test(message)) fieldError('player-name', message);
+      else els['join-error'].textContent = message;
       identity?.destroy(); identity = null;
       try { await engine?.destroy?.(); } catch (_) {}
       engine = null;

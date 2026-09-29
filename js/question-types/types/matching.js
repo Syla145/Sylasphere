@@ -59,6 +59,21 @@
       delete pq.pairs;
     },
 
+    presentShowsSolution: true,
+    // v32: Präsentation – zwei Spalten statt Dropdowns, bei der Auflösung die richtigen Paare
+    present(q, container, ctx) {
+      const { el, escapeHTML } = Kit;
+      const wrap = Kit.baseQuestion(q);
+      const box = el('div', `match-present${ctx.reveal ? ' is-revealed' : ''}`);
+      if (ctx.reveal && q.pairs) {
+        box.innerHTML = pairsOf(q).map(p => `<div class="match-pair"><span>${escapeHTML(p.left)}</span><b>→</b><span>${escapeHTML(p.right)}</span></div>`).join('');
+      } else {
+        const col = (items, cls) => `<div class="match-col ${cls}">${items.map((t, i) => `<span><i>${cls === 'is-left' ? i + 1 : String.fromCharCode(65 + i)}</i>${escapeHTML(t)}</span>`).join('')}</div>`;
+        box.innerHTML = col(leftsOf(q), 'is-left') + col(rightsOf(q), 'is-right');
+      }
+      wrap.append(box); container.replaceChildren(wrap);
+    },
+
     render(q, container, ctx) {
       const { el } = Kit;
       const wrap = Kit.baseQuestion(q);

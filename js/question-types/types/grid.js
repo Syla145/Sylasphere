@@ -233,6 +233,40 @@
     });
     refreshLabels();
     box.append(matrix);
+
+    // v32: Alle Felder auf einmal einfügen – 9 Zeilen, eine pro Feld (oben links → unten rechts), Vorschau vor dem Übernehmen
+    const paste = document.createElement('details'); paste.className = 'grid9-paste';
+    const summary = document.createElement('summary'); summary.textContent = '📋 Alle Felder einfügen';
+    const area = document.createElement('textarea'); area.className = 'input'; area.rows = 9;
+    area.placeholder = 'Eine Zeile pro Feld, Reihenfolge oben links → unten rechts.\nMehrere Antworten mit Komma trennen, z. B.:\nBerlin, Paris, Madrid\nTokio, Peking\n…';
+    const preview = div('grid9-paste-preview');
+    const take = ui.button('Vorschau übernehmen', 'btn btn--small btn--primary', () => {
+      const parsed = parseCells(area.value);
+      if (!parsed.ok) return;
+      parsed.cells.forEach((answers, k) => { q.cells[k].answers = answers; });
+      area.value = ''; paste.open = false; ui.structuralChange();
+      window.SchmobinApp.toast('Alle 9 Felder übernommen.', 'success');
+    });
+    const showPreview = () => {
+      const parsed = parseCells(area.value);
+      take.disabled = !parsed.ok;
+      if (!area.value.trim()) { preview.innerHTML = ''; return; }
+      const esc = Kit.escapeHTML;
+      preview.innerHTML = `<div class="${parsed.ok ? 'notice notice--success' : 'notice notice--warning'}">${parsed.ok ? 'Vorschau – so werden die Felder gefüllt:' : `${parsed.count} von 9 Zeilen erkannt – es müssen genau 9 sein (eine pro Feld).`}</div>
+        <div class="grid9-paste-board">${Array.from({ length: CELLS }, (_, k) => `<div><small>${esc(cellName(q, k))}</small><span>${esc((parsed.cells[k] || []).join(', ') || '–')}</span></div>`).join('')}</div>`;
+    };
+    area.addEventListener('input', showPreview);
+    take.disabled = true;
+    paste.append(summary, area, preview, take);
+    box.append(paste);
+  }
+  /** 9 Zeilen → 9 Felder; Antworten je Zeile mit Komma, Semikolon oder Tab getrennt. Leere Zeilen am Rand zählen nicht. */
+  function parseCells(text) {
+    const lines = String(text || '').replace(/\r/g, '').split('\n');
+    while (lines.length && !lines[0].trim()) lines.shift();
+    while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+    const cells = lines.map(line => line.split(/[,;\t]/).map(v => v.trim()).filter(Boolean));
+    return { ok: cells.length === CELLS && cells.every(c => c.length), count: cells.length, cells };
   }
 
   // ---------------------------------------------------------------- Registrierung
@@ -298,6 +332,7 @@
       return filled.length ? `${filled.length}/9: ${filled.slice(0, 4).join(', ')}${filled.length > 4 ? ' …' : ''}` : '–';
     },
     render,
-    editor
+    editor,
+    parseCells
   });
 })();

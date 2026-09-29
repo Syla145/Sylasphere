@@ -147,6 +147,15 @@
     if (!ctx.currentAnswer && !ctx.readOnly) ctx.onAnswer?.(Array.from(list.children).map(li => li.dataset.value));
   }
 
+  // v32: Präsentation – Karten ohne ↑↓; bei der Auflösung die richtige Reihenfolge nummeriert
+  function presentSort(question, container, ctx) {
+    const wrap = Kit.baseQuestion(question);
+    const items = ctx.reveal ? (question.correctOrder || question.items || []) : Kit.seededShuffle(question.items || [], question.id);
+    const list = Kit.el('ol', `sort-present${ctx.reveal ? ' is-revealed' : ''}`);
+    list.innerHTML = items.map(item => `<li>${Kit.escapeHTML(item)}</li>`).join('');
+    wrap.append(list); container.replaceChildren(wrap);
+  }
+
   window.SylasphereTypes.register({
     type: 'sort',
     label: 'Sortierquiz',
@@ -181,6 +190,8 @@
     hideSolution(pq) { if (Array.isArray(pq.items)) pq.items = pq.items.slice().sort(() => Math.random() - 0.5); },
 
     render: renderSort,
+    present: presentSort,
+    presentShowsSolution: true,
 
     editor(q, ui, box) {
       const area = document.createElement('textarea'); area.className = 'input textarea'; area.rows = 6; area.value = (q.correctOrder || q.items || []).join('\n');

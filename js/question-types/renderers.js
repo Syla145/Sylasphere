@@ -29,6 +29,19 @@
     def.render(question, container, ctx, Kit());
   }
 
+  /** v32: Präsentation (Beamer, Moderator-Mitte) – ohne Eingabefelder */
+  function renderPresent(question, container, context = {}) {
+    const def = Types()?.get(question?.type);
+    if (!def) return unsupported(question, container);
+    const ctx = Object.assign({ onAnswer: () => {}, currentAnswer: null, readOnly: true, reveal: false, result: null, players: [], answers: {}, present: true }, context);
+    if (def.present) def.present(question, container, ctx, Kit());
+    else def.render(question, container, ctx, Kit());
+    container.querySelector('.question-shell')?.classList.add('is-present');
+  }
+  const hasPresent = question => Boolean(Types()?.get(question?.type)?.present);
+  const presentLive = question => Boolean(Types()?.get(question?.type)?.presentLive);
+  const presentShowsSolution = question => Boolean(Types()?.get(question?.type)?.presentShowsSolution);
+
   /** Nach der Auflösung: Antworten aller Spieler (für Typen mit publishAnswers, z. B. Lückentext) */
   function answerEntriesHTML(entries, meId = '') {
     if (!Array.isArray(entries) || !entries.length) return '';
@@ -36,5 +49,5 @@
     return `<div class="all-answers"><div class="all-answers-title">Alle Antworten</div>${entries.map(entry => `<div class="all-answers-row ${entry.correct ? 'is-right' : 'is-wrong'}${entry.playerId === meId ? ' is-me' : ''}"><span class="all-answers-mark">${entry.correct ? '✓' : '✗'}</span><strong>${esc(entry.name)}</strong><b>+${Math.round(entry.points || 0)}</b><span class="all-answers-text">${esc(entry.answer)}</span></div>`).join('')}</div>`;
   }
 
-  window.SchmobinRenderers = { renderPlayer, renderModerator, answerEntriesHTML };
+  window.SchmobinRenderers = { renderPlayer, renderModerator, renderPresent, hasPresent, presentLive, presentShowsSolution, answerEntriesHTML };
 })();

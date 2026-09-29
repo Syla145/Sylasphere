@@ -30,12 +30,12 @@ const qi=mk({revealValues:'instant'});let gi=place(G.start(qi,['a'],0,noShuffle)
 // Öffentliche Frage
 ok(Q.publicQuestion(q,false).items.every(i=>!('value' in i))&&Q.publicQuestion(q,false).anchorValue===84,'public: values hidden, anchor visible');
 const qa=mk({showAnchor:false});ok(Q.publicQuestion(qa,false).anchorValue===null&&G.start(qa,['a'],0,noShuffle).line[0].v===null,'anchor value can be hidden too');
-// Letzte Chance → Sieg
+// v32: Runden statt „letzte Chance“ – wer allein Leben übrig hat, gewinnt nach der vollen Runde
 q=mk({lives:1});g=G.start(q,['a','b'],0,noShuffle);const A=g.active,B=g.order.find(x=>x!==A);
-g=after(miss(g,q,A,3));ok(g.lastChance&&g.active===B&&g.eliminated.includes(A),'last chance for the remaining player');
-let w=after(place(g,q,B,1));ok(w.phase==='done'&&w.winner===B&&w.endReason==='last-chance-won','hit on last chance = win');
-// Stechen
-let s1=after(miss(g,q,B,3));ok(s1.shootout&&s1.active===A&&!s1.eliminated.includes(A)&&s1.phase==='play','miss on last chance → shootout, eliminated player starts');
+g=after(miss(g,q,A,3));ok(g.active===B&&g.eliminated.includes(A)&&g.phase==='play'&&g.round===1,'A raus, Runde wird zu Ende gespielt (B ist dran)');
+let w=after(place(g,q,B,1));ok(w.phase==='done'&&w.winner===B&&w.endReason==='last-standing','B hat nach der Runde als Einziger Leben → Sieg');
+// Stechen: beide fallen in derselben Runde raus
+let s1=after(miss(g,q,B,3));ok(s1.shootout&&s1.active===A&&s1.phase==='play'&&s1.shootout.players.join()===[A,B].join(),'beide in Runde 1 raus → Stechen, Reihenfolge wie im Spiel');
 let s2=after(miss(s1,q,A,3));ok(s2.active===B&&s2.phase==='play','shootout: other player answers');
 let s3=after(place(s2,q,B,1));ok(s3.phase==='done'&&s3.winner===B&&s3.endReason==='shootout','shootout: hit while other missed wins');
 let t1=after(place(s1,q,A,1));let t2=after(place(t1,q,B,2));ok(t2.phase==='play'&&t2.shootout.round===2&&t2.active===A,'both hit → next round');
@@ -52,19 +52,20 @@ let p=G.act(g,q,'pause',4000);ok(p.phase==='paused'&&p.turnLeftMs===6000,'pause 
 let r=G.act(p,q,'resume',100000);ok(r.phase==='play'&&G.turnRemaining(r,q,100000)===6000,'resume continues the clock');
 let to=G.tick(r,q,106001);ok(to.reveal.reason==='timeout'&&to.lives[act0]===2,'timeout costs a life');
 let sk=G.act(G.start(q,['a','b'],0,noShuffle),q,'skip',10);ok(sk.reveal.reason==='skip'&&Object.values(sk.lives).every(l=>l===3),'skip costs nothing');
-// Platzierung + Punkte
+// Platzierung + Punkte (v32: gleiche Runde + gleiche Karten = geteilter Platz)
 q=mk({lives:1});g=G.start(q,['a','b','c'],0,noShuffle);const [p1,p2,p3]=g.order;
-g=after(place(g,q,p1,1));g=after(miss(g,q,p2,3));g=after(miss(g,q,p3,3));/* p2,p3 raus → p1 Letzte Chance */g=after(place(g,q,p1,2));
-const pl=G.placements(g);ok(pl.map(x=>x.playerId).join()===[p1,p3,p2].join(),'placements: winner, then last eliminated first');
-ok(G.pointsFor(q,pl[0],100)===120&&G.pointsFor(q,pl[1],100)===60&&G.pointsFor(q,pl[2],100)===30,'points: 2 cards + 100 % = 120, 60 %, 30 %');
-ok(G.pointsFor(q,pl[0],200)===240,'round multiplier applies to card and place points');
+g=after(place(g,q,p1,1));g=after(miss(g,q,p2,3));g=after(miss(g,q,p3,3));
+ok(g.phase==='done'&&g.winner===p1,'nach Runde 1 hat nur p1 Leben → Sieg');
+const pl=G.placements(g);ok(pl[0].playerId===p1&&pl[1].rank===2&&pl[2].rank===2&&pl[1].tied,'placements: winner, then shared 2nd place');
+ok(G.pointsFor(q,pl[0],100)===110&&G.pointsFor(q,pl[1],100)===60&&G.pointsFor(q,pl[2],100)===60,'points: 1 card + 100 % = 110, shared place 60 % each');
+ok(G.pointsFor(q,pl[0],200)===220,'round multiplier applies to card and place points');
 // Engine
 {const q1=mk({lives:1});const e=S.create({quiz:{title:'t',rounds:[{questions:[q1]}]}});const a=e.joinPlayer('Anna','🦊'),b=e.joinPlayer('Ben','🐐');e.startGame();e.startQuestion();
  let game=G.start(q1,[a,b],0,noShuffle);const x=game.active,y=game.order.find(i=>i!==x);
- game=after(place(game,q1,x,1));game=after(miss(game,q1,y,3));game=after(place(game,q1,x,2));
+ game=after(place(game,q1,x,1));game=after(miss(game,q1,y,3));
  e.setGame(game);e.lockQuestion();e.resolveQuestion();const st=e.load();const pts=Object.fromEntries(st.players.map(p=>[p.id,p.score]));
- ok(pts[x]===120&&pts[y]===60,'engine: winner 120, second 60 ('+JSON.stringify(pts)+')');
- ok(/1\. Platz · 2 Karten richtig · 🏆 Sieger/.test(st.answers.r[x].scoreDetail),'score detail');}
+ ok(pts[x]===110&&pts[y]===60,'engine: winner 110, second 60 ('+JSON.stringify(pts)+')');
+ ok(/1\. Platz · 1 Karte richtig · 🏆 Sieger/.test(st.answers.r[x].scoreDetail),'score detail');}
 // alte Fragen (v25)
 const old={id:'o',type:'ranking',text:'x',category:'x',points:50,scoring:'fixed',growth:1.5,items:[{name:'A',value:1},{name:'B',value:2},{name:'C',value:3}]};def.normalize(old,{});
 ok(old.cardPoints===50&&!('scoring' in old)&&old.revealValues==='end','v25 questions migrate (old points become points per card)');

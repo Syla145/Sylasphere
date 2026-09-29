@@ -167,7 +167,7 @@
         return;
       }
       // Einordnen & andere Spiele mit eigenem Panel: keine Kurztasten, Leertaste schließt nicht die Frage
-      if (duelGame()?.host && state?.game && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) {
+      if (duelGame()?.host && state?.game && !duelGame().isOver?.(state.game) && !state.scoredQuestionIds?.includes(engine.getCurrent(state).question?.id)) { // v32: nach Spielende löst die Leertaste auf
         if (event.code === 'Space') event.preventDefault();
         return;
       }
@@ -455,7 +455,15 @@
     const resolved = state.scoredQuestionIds?.includes(current.question.id);
     const pendingReveal = !state.questionOpen && state.questionStartedAt && !resolved;
     if (Quiz.gameOf(current.question)) { renderDuel(current.question, resolved, questionResult); return; }
-    Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage });
+    if (Renderers.hasPresent(current.question)) {
+      // v32: Präsentations-Ansicht wie auf dem Beamer (keine leeren Eingabefelder); nur bei echten Änderungen neu zeichnen
+      const liveAnswers = state.answers[current.question.id] || {};
+      const live = Renderers.presentLive(current.question) ? Object.entries(liveAnswers).map(([id, r]) => `${id}:${r?.answer?.stage ?? ''}`).sort().join(',') : '';
+      const key = JSON.stringify([current.question.id, resolved, questionResult ?? null, live, state.players.length]);
+      const area = els['question-area'];
+      if (area.dataset.presentKey === key && area.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, area, { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage });
+      else { Renderers.renderPresent(current.question, area, { reveal: resolved, result: questionResult, stage: state.stage, players: state.players, answers: liveAnswers, role: 'moderator' }); area.dataset.presentKey = key; }
+    } else { els['question-area'].dataset.presentKey = ''; Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage }); }
     window.SylasphereMedia?.sync(state.media, current.question); // Ton auch auf dem Moderator-Gerät (abschaltbar)
     const answers = state.answers[current.question.id] || {};
     const submitted = Object.keys(answers).length; const total = state.players.length;
@@ -483,7 +491,7 @@
       return;
     }
 
-    const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist für die Spieler noch verborgen. Klicke auf „Frage auflösen“, wenn du bereit bist.</span></div>' : '';
+    const hold = pendingReveal ? '<div class="notice notice--warning reveal-hold"><strong>Antwortphase beendet.</strong><span>Die Lösung ist für die Spieler noch verborgen. Klicke auf „✓ Auflösen“ (Leertaste), wenn du bereit bist.</span></div>' : '';
     const review = Quiz.needsReview(current.question) && !resolved ? reviewPanel(current.question, answers) : '';
     const songControl = stagePanel(current.question, resolved);
     els['answer-status'].innerHTML = `${songControl}<div class="response-meter"><div><strong>${submitted}/${total}</strong><span>Antworten</span></div><div class="meter"><span style="width:${total ? Math.round(submitted / total * 100) : 0}%"></span></div></div>${hold}${review}${correct ? `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(correct)}</strong></div>` : moderatorSolution(current.question, questionResult)}${resolved ? answerRows(current.question, answers) : ''}`;
@@ -604,7 +612,7 @@
       html = `<div class="duel-control"><div class="duel-control-info"><strong>${count} Spieler · ${(q.items || []).length} Bilder · ${q.clockSeconds} s pro Spieler</strong><span>${q.answerMode === 'typed' ? '⌨️ Spieler tippen – richtige Antworten erkennt das System.' : '🗣 Mündlich – du drückst ✓ oder Passen.'} Passen kostet ${q.passPenalty} s.</span></div><button type="button" class="btn btn--primary duel-big" data-duel="start" ${count ? '' : 'disabled'}>🎲 Duell starten</button></div>`;
     } else if (game.phase === 'done') {
       const places = Game.placements(game);
-      html = `<div class="duel-control"><div class="notice notice--success"><strong>🏁 Duell beendet${game.endReason === 'out-of-images' ? ' – alle Bilder gespielt' : ''}.</strong> Tippe auf „✨ Frage auflösen“, dann gibt es Punkte nach Platzierung.</div><div class="answer-review">${places.map(p => `<div><span>${p.rank}. ${esc(name(p.playerId))}</span><span>${p.out ? 'ausgeschieden' : `${(p.remainingMs / 1000).toFixed(1).replace('.', ',')} s übrig`}</span><strong>${Game.parsePlaces(q.placePoints)[p.rank - 1] || 0} %</strong></div>`).join('')}</div></div>`;
+      html = `<div class="duel-control"><div class="notice notice--success"><strong>🏁 Duell beendet${game.endReason === 'out-of-images' ? ' – alle Bilder gespielt' : ''}.</strong> Tippe auf „✓ Auflösen“ (Leertaste), dann gibt es Punkte nach Platzierung.</div><div class="answer-review">${places.map(p => `<div><span>${p.rank}. ${esc(name(p.playerId))}</span><span>${p.out ? 'ausgeschieden' : `${(p.remainingMs / 1000).toFixed(1).replace('.', ',')} s übrig`}</span><strong>${Game.parsePlaces(q.placePoints)[p.rank - 1] || 0} %</strong></div>`).join('')}</div></div>`;
     } else {
       const item = game.phase === 'reveal' ? { answer: game.reveal?.answer } : (q.items || [])[game.deck[game.pos]] || {};
       const playing = game.phase === 'play';
@@ -794,8 +802,8 @@
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));
     if (Quiz.gameOf(current?.question) && state.questionStartedAt) { setRing(0, '⏱', 'is-idle'); return; }
     const pendingReveal = Boolean(current?.question && state.questionStartedAt && !state.questionOpen && !resolved);
-    if (pendingReveal) { setRing(0, '0', 'is-ended'); return; }
-    if (resolved) { setRing(0, '✓', 'is-idle'); return; }
+    if (els['timer-ring']) els['timer-ring'].hidden = pendingReveal || resolved; // v32: nach dem Schließen kein „0“ mehr – Ring ausblenden
+    if (pendingReveal || resolved) return;
     if (!state.questionOpen || !state.questionEndsAt) { setRing(state.questionStartedAt ? 1 : 0, state.questionStartedAt ? '∞' : `${current?.question?.timer || 0}s`, 'is-idle'); return; }
     const total = Math.max(1, state.questionEndsAt - (state.questionStartedAt || Date.now()));
     timer = new Timer((seconds, ms) => {

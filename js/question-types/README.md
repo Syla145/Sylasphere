@@ -108,3 +108,7 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
 | `interaction: 'buzzer'` | Sonderablauf „erster gewinnt“ (nur der Buzzer). |
 | `game: { start, tick, … }` | Mini-Spiel mit eigenem Spielstand (`state.game`), den das Moderator-Gerät führt und über `engine.setGame()` an alle verteilt (Beispiel: `time-duel.js`). `render` bekommt `ctx.game`, `ctx.players`, `ctx.role`. |
 | `scoresAllPlayers: true` | Punkte für alle Spieler, auch ohne eigene Antwort (z. B. nach Platzierung). |
+| `present(q, container, ctx)` | v32: Präsentation für Beamer und Moderator-Mitte – ohne Eingabefelder. `ctx`: `{ reveal, result, stage, players, answers, role }`. Ohne `present` wird `render` schreibgeschützt genutzt. |
+| `presentLive: true` | Präsentation bei jeder neuen Antwort neu zeichnen (Song-Enthüllung: Avatar an der Stufe). |
+| `presentShowsSolution: true` | Die Präsentation zeigt die Lösung selbst – der Beamer blendet keinen zweiten Lösungskasten ein. |
+| `mark(q, answer)` | Kleiner Wert pro Antwort für die Auflösung (Schätzwert, Klickpunkt). Landet in `result.entries[].mark`; der Beamer zeigt die Tipps dann als Avatare. |

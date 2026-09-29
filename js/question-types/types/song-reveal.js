@@ -167,6 +167,41 @@
     // Lösung, Albumbild und Auflösungs-Stelle erst mit der Auflösung an Spieler senden
     hideSolution(pq) { ['songTitle', 'artist', 'titleAliases', 'artistAliases', 'cover', 'revealStart', 'revealDuration'].forEach(key => { delete pq[key]; }); },
 
+    // v32: Beamer – live, wer bei welcher Stufe eingeloggt hat (Avatar an der Stufe); die Antwort erst nach der Auflösung
+    presentLive: true,
+    presentShowsSolution: true,
+    present(q, container, ctx) {
+      const { el } = Kit;
+      const wrap = Kit.baseQuestion(q);
+      if (q.audio) Media()?.preload(q.audio);
+      const current = Math.max(0, Number(ctx.stage) || 0);
+      const records = Object.entries(ctx.answers || {});
+      const stageOfRecord = r => Number(r?.answer?.stage ?? r?.stage);
+      const head = el('div', 'song-head');
+      head.append(el('div', 'song-status', ctx.reveal ? 'Aufgelöst' : stageText(q, current)));
+      const bar = stageBar(q, current, ctx.reveal);
+      bar.querySelectorAll('.song-stage').forEach(chip => {
+        const i = Number(chip.dataset.stage);
+        const who = records.filter(([, r]) => Number.isFinite(stageOfRecord(r)) && stageInfo(q, stageOfRecord(r)).index === i);
+        if (!who.length) return;
+        const box = el('div', 'song-stage-pins');
+        box.innerHTML = who.map(([id]) => Kit.pinHTML(Kit.playerOf(ctx.players, id))).join('');
+        chip.append(box); chip.classList.add('has-pins');
+      });
+      wrap.append(head, bar);
+      if (ctx.reveal) {
+        const card = el('div', 'song-reveal-card');
+        const src = window.SchmobinApp.sanitizeURL(q.cover || '');
+        if (src) { const img = document.createElement('img'); img.src = src; img.alt = 'Albumcover'; card.append(img); }
+        const info = el('div', 'song-reveal-info');
+        info.append(el('strong', '', q.songTitle || '–'));
+        if (q.artist) info.append(el('span', '', q.artist));
+        card.append(info);
+        wrap.append(card);
+      }
+      container.replaceChildren(wrap);
+    },
+
     render(q, container, ctx) {
       const { el } = Kit;
       const wrap = Kit.baseQuestion(q);

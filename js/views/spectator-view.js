@@ -84,8 +84,9 @@
     els['beamer-side'].hidden = !playing;
     App.setText(els['spectator-progress'], playing && current.round ? `${current.round.title} · Frage ${Math.min(idx + 1, total)} / ${total}` : '');
     const answered = playing ? Object.keys(state.answers[current.question.id] || {}).length : 0;
-    App.setText(els['beamer-count'], playing && state.questionStartedAt && !Quiz.gameOf(current.question) ? `${answered} von ${state.players.length} haben ${current.question.type === 'buzzer' ? 'gebuzzert' : 'geantwortet'}` : '');
+    App.setText(els['beamer-count'], playing && state.questionStartedAt && !Quiz.gameOf(current.question) ? `${answered} von ${state.players.length} ${current.question.type === 'buzzer' ? 'haben gebuzzert' : Quiz.stagesOf(current.question) ? 'eingeloggt' : 'haben geantwortet'}` : '');
     renderQuestion(current); renderLeaderboard(); renderTimer();
+    scheduleFit();
     window.SylasphereSfx?.observe(state, { current }); // v27
   }
 
@@ -119,18 +120,20 @@
       els['spectator-stats'].innerHTML = resolved ? `<div class="reveal-box"><span>Ergebnis</span><strong>${App.escapeHTML(Quiz.correctAnswerText(current.question, result) || '–')}</strong></div>` : '';
       return;
     }
-    const key = JSON.stringify([current.question.id, resolved, result ?? null]);
-    if (shown.dataset.renderKey === key && shown.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, shown, { readOnly: true, reveal: resolved, result, stage: state.stage });
-    else { Renderers.renderPlayer(current.question, shown, { readOnly: true, reveal: resolved, currentAnswer: null, result, stage: state.stage }); shown.dataset.renderKey = key; }
     const answers = state.answers[current.question.id] || {};
+    // v32: Präsentations-Ansicht (ohne Eingabefelder); Song-Enthüllung zeichnet bei neuen Antworten neu (Avatare an den Stufen)
+    const live = Renderers.presentLive(current.question) ? Object.entries(answers).map(([id, r]) => `${id}:${r?.answer?.stage ?? r?.stage ?? ''}`).sort().join(',') : '';
+    const key = JSON.stringify([current.question.id, resolved, result ?? null, live, state.players.length]);
+    if (shown.dataset.renderKey === key && shown.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, shown, { readOnly: true, reveal: resolved, result, stage: state.stage });
+    else { Renderers.renderPresent(current.question, shown, { reveal: resolved, result, stage: state.stage, players: state.players, answers, role: 'spectator' }); shown.dataset.renderKey = key; }
     let html = ''; // v31: „x von y haben geantwortet“ steht groß in der Kopfzeile
     if (pendingReveal) html += '<div class="notice notice--warning reveal-wait"><strong>Antworten geschlossen</strong><span>Die Auflösung folgt durch den Moderator.</span></div>';
     if (resolved) {
       const solution = Quiz.correctAnswerText(current.question, result) || '–';
       const label = Quiz.solutionLabel(current.question);
-      html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(solution)}</strong></div>`;
+      if (!Renderers.presentShowsSolution(current.question)) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(solution)}</strong></div>`;
       html += stats(current.question, answers, result);
-      html += Renderers.answerEntriesHTML(result?.entries);
+      if (!Quiz.typeDef(current.question.type)?.mark) html += Renderers.answerEntriesHTML(result?.entries); // v32: Schätzung/Hotspot zeigen die Tipps schon als Avatare
     }
     els['spectator-stats'].innerHTML = html;
   }
@@ -146,6 +149,25 @@
     // v29: Siegerehrung im Stil des Themes (js/core/themes.js)
     return window.SylasphereThemes.ceremony(ranked, { role: 'spectator', className: 'presenter', eyebrow: 'Finale', title: App.winnerTitle(ranked) || 'Quiz beendet', after: window.SylasphereHighlights?.html(state.highlights) || '' });
   }
+
+  // v32: Der Beamer scrollt nie – passt der Inhalt nicht auf den Bildschirm, wird er stufenlos verkleinert
+  let fitFrame = 0;
+  function scheduleFit() { cancelAnimationFrame(fitFrame); fitFrame = requestAnimationFrame(fitBeamer); }
+  function fitBeamer() {
+    const live = els['spectator-live'];
+    if (!live || live.hidden) return;
+    const root = document.documentElement;
+    let fit = 1;
+    live.style.setProperty('--fit', '1');
+    if (innerWidth <= 900) { live.classList.remove('is-fitted'); return; } // Handy/Tablet: normal scrollen
+    for (let i = 0; i < 12 && root.scrollHeight > innerHeight + 1 && fit > 0.5; i++) {
+      fit = Math.max(0.5, fit * Math.min(0.97, innerHeight / root.scrollHeight));
+      live.style.setProperty('--fit', fit.toFixed(3));
+    }
+    live.classList.toggle('is-fitted', fit < 1);
+  }
+  window.addEventListener('resize', scheduleFit);
+  document.addEventListener('load', event => { if (event.target?.tagName === 'IMG') scheduleFit(); }, true);
 
   // v31: Lobby „Wer ist da?“ – QR-Code links, Avatare rechts; neue Spieler ploppen einzeln auf
   const lobbySeen = new Set();

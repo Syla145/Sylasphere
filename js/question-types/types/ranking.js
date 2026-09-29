@@ -15,11 +15,16 @@
    *  ⏰ Zeit um → (nur mit Zeitlimit pro Zug) −1 Leben
    * Wer keine Leben mehr hat, scheidet aus.
    *
-   * Ende (v25.2, „Stechen“ wie beim Elfmeterschießen):
-   *  - Verliert der Vorletzte sein letztes Leben, muss der Letzte EINE Karte richtig legen → Sieg.
-   *  - Vergibt er auch, beginnt das Stechen: beide abwechselnd, der zuletzt Ausgeschiedene zuerst.
-   *    Wer in einer Runde vergibt, während der andere trifft, verliert. Leben zählen dann nicht mehr.
-   *  - Gehen die Karten aus, entscheidet die Rangfolge (richtige Karten, dann Leben).
+   * Runden (v32): Jeder Spieler mit Leben ist pro Runde genau einmal dran (feste Reihenfolge).
+   * Wer auf 0 Leben fällt, scheidet aus – die Runde wird aber zu Ende gespielt. Nach jeder vollen Runde:
+   *  - genau einer hat noch Leben → er gewinnt sofort
+   *  - mehrere → nächste Runde
+   *  - keiner → Stechen zwischen den in dieser Runde Ausgeschiedenen
+   * Stechen: pro Stechrunde legt jeder Stecher eine Karte (Leben zählen nicht). Genau einer richtig → Sieger.
+   *  Liegen einige richtig und andere falsch (ab 3 Stechern), fliegen die Falschen raus. Nach max. 3 Stechrunden
+   *  ohne Entscheidung oder wenn die Karten ausgehen: mehr richtig gelegte Karten im ganzen Spiel gewinnt, sonst geteilt.
+   * Karten aus vor der Entscheidung: Rang nach übrigen Leben, dann richtigen Karten (sonst geteilt).
+   * Platzierung: später ausgeschieden = besser; gleiche Runde → länger im Stechen, dann richtige Karten, sonst geteilt.
    * Danach darf der Sieger mündlich weiterraten, „👁 Aufdecken“ zeigt allen die komplette Reihenfolge.
    *
    * Werte (v25.2, im Editor): sofort beim richtigen Einordnen zeigen – oder erst beim Aufdecken/Auflösen.
@@ -68,12 +73,16 @@
     g.turnStartedAt = g.turnStartedAt == null ? null : Number(g.turnStartedAt);
     g.turnLeftMs = g.turnLeftMs == null ? null : Number(g.turnLeftMs);
     g.reveal = g.reveal || null;
-    g.lastChance = g.lastChance === true;
-    g.lastChanceAgainst = String(g.lastChanceAgainst || '');
+    g.round = toNumber(g.round, 1);
+    g.roundLeft = list(g.roundLeft).map(String);
+    g.outRound = g.outRound && typeof g.outRound === 'object' ? g.outRound : {};
+    const obj = v => (v && typeof v === 'object' ? v : {});
     if (g.shootout && typeof g.shootout === 'object') {
-      g.shootout = { players: list(g.shootout.players).map(String), round: toNumber(g.shootout.round, 1), results: g.shootout.results && typeof g.shootout.results === 'object' ? g.shootout.results : {} };
+      g.shootout = { players: list(g.shootout.players).map(String), all: list(g.shootout.all || g.shootout.players).map(String), round: toNumber(g.shootout.round, 1), results: obj(g.shootout.results), dropped: obj(g.shootout.dropped) };
     } else g.shootout = null;
     g.winner = String(g.winner || '');
+    g.winners = list(g.winners).map(String);
+    if (g.winner && !g.winners.length) g.winners = [g.winner];
     return g;
   }
   function alive(game) { return (game?.order || []).filter(id => !(game.eliminated || []).includes(id)); }
@@ -96,7 +105,7 @@
       kind: 'ranking', questionId: String(q.id || ''), phase: playable ? 'play' : 'done', order, active: playable ? order[0] : '',
       lives, correct: Object.fromEntries(order.map(id => [id, 0])), eliminated: [],
       line: (q.items || []).length ? [{ i: anchor, v: anchorVisible(q) || instant(q) ? valueAt(q, anchor) : null }] : [], pool,
-      turn: 1, turnStartedAt: now, turnLeftMs: null, reveal: null, lastChance: false, lastChanceAgainst: '', shootout: null, winner: '',
+      turn: 1, turnStartedAt: now, turnLeftMs: null, reveal: null, round: 1, roundLeft: playable ? order.slice(1) : [], outRound: {}, shootout: null, winner: '', winners: [],
       endReason: playable ? '' : (order.length ? 'no-cards' : 'no-players'), uncovered: null, startedAt: now, seq: 1
     };
   }
@@ -131,17 +140,11 @@
     if (!game.shootout) game.lives[by] = Math.max(0, toNumber(game.lives[by], 0) - 1);
     return beginReveal(game, now, { reason: 'wrong', by, item, slot });
   }
-  function nextPlayer(game, from) {
-    const start = game.order.indexOf(from);
-    for (let step = 1; step <= game.order.length; step++) {
-      const candidate = game.order[(start + step) % game.order.length];
-      if (!game.eliminated.includes(candidate)) return candidate;
-    }
-    return '';
-  }
-  function finish(game, reason, winner = '') {
-    game.phase = 'done'; game.active = ''; game.turnStartedAt = null; game.turnLeftMs = null;
-    game.endReason = reason; game.winner = winner; game.lastChance = false;
+  const SHOOTOUT_ROUNDS = 3;
+  function finish(game, reason, winners = []) {
+    const ws = (Array.isArray(winners) ? winners : [winners]).filter(Boolean).map(String);
+    game.phase = 'done'; game.active = ''; game.turnStartedAt = null; game.turnLeftMs = null; game.roundLeft = [];
+    game.endReason = reason; game.winners = ws; game.winner = ws.length === 1 ? ws[0] : '';
     game.seq = (game.seq || 0) + 1;
     return game;
   }
@@ -151,53 +154,65 @@
     game.seq = (game.seq || 0) + 1;
     return game;
   }
-  /** Nach der Anzeige: Ausscheiden, letzte Chance, Stechen, Ende oder nächster Spieler */
+  /** Beste Gruppe nach Schlüsseln (höher = besser) – mehrere = geteilt */
+  function best(ids, key) {
+    if (!ids.length) return [];
+    const cmp = (a, b) => { const x = key(a), y = key(b); for (let k = 0; k < x.length; k++) if (x[k] !== y[k]) return y[k] - x[k]; return 0; };
+    const sorted = ids.slice().sort(cmp);
+    return sorted.filter(id => cmp(id, sorted[0]) === 0);
+  }
+  const correctOf = (game, id) => toNumber(game.correct[id], 0);
+  /** Karten aus vor der Entscheidung: übrige Leben, dann richtige Karten */
+  function cardsOut(game) {
+    if (game.shootout) return finish(game, 'shootout-cards', best(game.shootout.players, id => [correctOf(game, id)]));
+    const left = alive(game);
+    const pool = left.length ? left : game.order;
+    return finish(game, 'all-placed', game.order.length > 1 || left.length ? best(pool, id => [toNumber(game.lives[id], 0), correctOf(game, id)]) : []);
+  }
+  function startShootout(game, players, now) {
+    game.shootout = { players: players.slice(), all: players.slice(), round: 1, results: {}, dropped: {} };
+    game.roundLeft = [];
+    return nextTurn(game, players[0], now);
+  }
+  /** Nach der Anzeige: Ausscheiden, Rundenende, Stechen, Ende oder nächster Spieler */
   function advance(game, q, now) {
     const r = game.reveal || {};
     const by = r.by || game.active;
     const hit = r.reason === 'correct';
     const skipped = r.reason === 'skip';
     game.reveal = null;
-    const topOnEmpty = () => finish(game, 'all-placed', placements(game)[0]?.playerId || '');
 
-    // Stechen: pro Runde je ein Versuch; trifft genau einer, gewinnt er
     if (game.shootout) {
       const so = game.shootout;
-      if (!skipped) so.results[by] = hit;
-      const [a, b] = so.players;
-      if (so.results[a] !== undefined && so.results[b] !== undefined) {
-        if (so.results[a] !== so.results[b]) return finish(game, 'shootout', so.results[a] ? a : b);
-        so.round += 1; so.results = {};
+      if (skipped) return game.pool.length ? nextTurn(game, by, now) : cardsOut(game); // übersprungen → derselbe nochmal
+      so.results[by] = hit;
+      if (!game.pool.length) return cardsOut(game);
+      const waiting = so.players.filter(id => so.results[id] === undefined);
+      if (waiting.length) return nextTurn(game, waiting[0], now);
+      const hits = so.players.filter(id => so.results[id]);
+      if (hits.length === 1) return finish(game, 'shootout', hits);
+      if (hits.length && hits.length < so.players.length) { // die Falschen fliegen raus
+        so.players.filter(id => !so.results[id]).forEach(id => { so.dropped[id] = so.round; });
+        so.players = hits;
       }
-      if (!game.pool.length) return topOnEmpty();
-      return nextTurn(game, skipped ? by : (so.results[a] === undefined ? a : b), now);
+      if (so.round >= SHOOTOUT_ROUNDS) return finish(game, 'shootout-cards', best(so.players, id => [correctOf(game, id)]));
+      so.round += 1; so.results = {};
+      return nextTurn(game, so.players[0], now);
     }
 
-    if (toNumber(game.lives[by], 0) <= 0 && !game.eliminated.includes(by)) game.eliminated.push(by);
+    if (toNumber(game.lives[by], 0) <= 0 && !game.eliminated.includes(by)) { game.eliminated.push(by); game.outRound[by] = game.round; }
+    if (!game.pool.length) return cardsOut(game);
+    game.roundLeft = game.roundLeft.filter(id => !game.eliminated.includes(id) && id !== by);
+    if (game.roundLeft.length) { const next = game.roundLeft.shift(); return nextTurn(game, next, now); }
 
-    // Letzte Chance des Übriggebliebenen
-    if (game.lastChance) {
-      if (skipped) return nextTurn(game, by, now);
-      if (hit) return finish(game, 'last-chance-won', by);
-      const other = game.lastChanceAgainst;
-      game.lastChance = false;
-      if (!game.pool.length || !other) return topOnEmpty();
-      // Stechen: der zuletzt Ausgeschiedene kommt zurück und beginnt
-      game.eliminated = game.eliminated.filter(id => id !== other);
-      game.shootout = { players: [other, by], round: 1, results: {} };
-      return nextTurn(game, other, now);
-    }
-
-    if (!game.pool.length) return topOnEmpty();
+    // Runde vorbei
     const left = alive(game);
-    if (!left.length) return finish(game, 'no-lives', game.order.length === 1 ? '' : '');
-    if (game.order.length > 1 && left.length === 1) {
-      if (left[0] === by) return finish(game, 'last-standing', by);
-      game.lastChance = true;
-      game.lastChanceAgainst = by;
-      return nextTurn(game, left[0], now);
-    }
-    return nextTurn(game, nextPlayer(game, by), now);
+    if (game.order.length > 1 && left.length === 1) return finish(game, 'last-standing', left);
+    if (left.length) { game.round += 1; game.roundLeft = left.slice(1); return nextTurn(game, left[0], now); }
+    const outNow = game.order.filter(id => toNumber(game.outRound[id], 0) === game.round);
+    if (game.order.length === 1 || !outNow.length) return finish(game, 'no-lives', []);
+    if (outNow.length === 1) return finish(game, 'last-standing', outNow);
+    return startShootout(game, outNow, now);
   }
   function tick(inputGame, q, now = Date.now()) {
     const game = normalizeGame(inputGame);
@@ -222,7 +237,7 @@
       game.phase = 'play'; game.turnStartedAt = total ? now - (total - toNumber(game.turnLeftMs, total)) : now; game.turnLeftMs = null; game.seq++; return game;
     }
     if (action === 'skip' && (game.phase === 'play' || game.phase === 'paused')) return beginReveal(game, now, { reason: 'skip', by: game.active });
-    if (action === 'stop' && !['done', 'uncovered'].includes(game.phase)) { game.reveal = null; return finish(game, 'stopped'); }
+    if (action === 'stop' && !['done', 'uncovered'].includes(game.phase)) { game.reveal = null; game.shootout = game.shootout || null; return finish(game, 'stopped', []); }
     if (action === 'uncover' && game.phase === 'done') {
       game.uncovered = (q.items || []).map((item, i) => ({ i, v: valueAt(q, i) })).sort((a, b) => a.v - b.v || a.i - b.i);
       game.phase = 'uncovered'; game.seq++; return game;
@@ -230,17 +245,31 @@
     return inputGame;
   }
   const isOver = game => Boolean(game && (game.phase === 'done' || game.phase === 'uncovered'));
-  /** Rangfolge: Sieger, dann alle noch im Spiel (mehr richtige Karten, mehr Leben), dann Ausgeschiedene (zuletzt raus = besser) */
+  /**
+   * Rangfolge (v32): Sieger, dann später ausgeschieden = besser; gleiche Runde → länger im Stechen,
+   * dann (noch im Spiel) mehr Leben, dann mehr richtige Karten. Gleiche Werte = geteilter Platz.
+   */
   function placements(inputGame) {
     const game = normalizeGame(inputGame);
     if (!game) return [];
-    const outIndex = id => { const k = game.eliminated.indexOf(id); return k < 0 ? Infinity : k; };
-    return game.order.slice().sort((a, b) =>
-      (b === game.winner) - (a === game.winner) ||
-      outIndex(b) - outIndex(a) ||
-      toNumber(game.correct[b], 0) - toNumber(game.correct[a], 0) ||
-      toNumber(game.lives[b], 0) - toNumber(game.lives[a], 0)
-    ).map((playerId, k) => ({ playerId, rank: k + 1, correct: toNumber(game.correct[playerId], 0), lives: toNumber(game.lives[playerId], 0), out: game.eliminated.includes(playerId), winner: playerId === game.winner }));
+    const winners = game.winners || [];
+    const so = game.shootout;
+    const outAt = id => {
+      if (!game.eliminated.includes(id)) return Infinity;
+      const r = Number(game.outRound[id]);
+      return Number.isFinite(r) ? r : game.eliminated.indexOf(id) + 1; // ältere Spielstände
+    };
+    const soAt = id => (so && so.all.includes(id) ? (so.dropped[id] != null ? Number(so.dropped[id]) : Infinity) : Infinity);
+    const key = id => [winners.includes(id) ? 1 : 0, outAt(id), soAt(id), toNumber(game.lives[id], 0), correctOf(game, id)];
+    const better = (a, b) => { const x = key(a), y = key(b); for (let k = 0; k < x.length; k++) if (x[k] !== y[k]) return x[k] > y[k]; return false; };
+    const same = (a, b) => key(a).every((v, k) => v === key(b)[k]);
+    const sorted = game.order.slice().sort((a, b) => (better(a, b) ? -1 : better(b, a) ? 1 : game.order.indexOf(a) - game.order.indexOf(b)));
+    return sorted.map(playerId => ({
+      playerId,
+      rank: 1 + game.order.filter(other => better(other, playerId)).length,
+      tied: game.order.some(other => other !== playerId && same(other, playerId)),
+      correct: correctOf(game, playerId), lives: toNumber(game.lives[playerId], 0), out: game.eliminated.includes(playerId), winner: winners.includes(playerId)
+    }));
   }
   /** Punkte eines Platzes: Karten × Kartenpunkte + Platz-% der Fragenpunkte (base enthält den Runden-Multiplikator) */
   function pointsFor(q, place, base) {
@@ -254,19 +283,29 @@
   // ---------------------------------------------------------------- Texte
   const REASON = { correct: '✓ Richtig!', wrong: '✗ Falsch!', timeout: '⏰ Zeit abgelaufen', skip: '⏭ Zug übersprungen' };
   const END = {
-    'last-chance-won': w => `🏆 ${w} gewinnt!`, 'last-standing': w => `🏆 ${w} gewinnt!`, shootout: w => `🏆 ${w} gewinnt das Stechen!`,
-    'last-chance-lost': () => 'Spiel vorbei – kein Sieger.',
+    'last-standing': w => `🏆 ${w} gewinnt!`, shootout: w => `🏆 ${w} gewinnt das Stechen!`,
+    'shootout-cards': w => (w ? `🏆 ${w} gewinnt – mehr richtige Karten` : 'Stechen ohne Entscheidung'),
     'all-placed': w => (w ? `🎉 Alle Karten liegen – ${w} gewinnt!` : '🎉 Alle Karten liegen!'), 'no-lives': () => 'Spiel vorbei – keine Leben mehr.', stopped: () => 'Spiel beendet.',
     'no-cards': () => 'Keine Karten im Pool.', 'no-players': () => 'Keine Spieler im Raum.'
   };
   const hearts = (n, max) => '❤'.repeat(Math.max(0, n)) + '♡'.repeat(Math.max(0, max - n));
-  function endText(game, name) { return (END[game.endReason] || END.stopped)(game.winner ? name(game.winner) : ''); }
-  /** Hinweis zur Spielphase (letzte Chance / Stechen) */
-  function phaseNote(game, name) {
-    if (game?.lastChance) return `Letzte Chance für ${name(game.active)}: richtig = Sieg!`;
-    if (game?.shootout) return `⚔️ Stechen, Runde ${game.shootout.round}: ${game.shootout.players.map(name).join(' gegen ')} – wer vergibt, während der andere trifft, verliert.`;
-    return '';
+  function endText(game, name) {
+    const ws = game.winners || [];
+    if (ws.length > 1) return `🤝 Geteilter Sieg: ${ws.map(name).join(' & ')}${game.endReason === 'shootout-cards' ? ' (gleich viele richtige Karten)' : ''}`;
+    return (END[game.endReason] || END.stopped)(ws[0] ? name(ws[0]) : '');
   }
+  /** Hinweis zur Spielphase: „Runde n · noch dran: …“ bzw. Stechen */
+  function phaseNote(game, name) {
+    if (!game || isOver(game)) return '';
+    if (game.shootout) {
+      const so = game.shootout;
+      const waiting = so.players.filter(id => so.results[id] === undefined);
+      return `⚔️ Stechen · Runde ${so.round}/${SHOOTOUT_ROUNDS} – genau einer richtig gewinnt${waiting.length ? ` · noch dran: ${waiting.map(name).join(', ')}` : ''}`;
+    }
+    const waiting = [game.phase === 'reveal' ? '' : game.active, ...(game.roundLeft || [])].filter(Boolean);
+    return `Runde ${game.round}${waiting.length ? ` · noch dran: ${waiting.map(name).join(', ')}` : ''}`;
+  }
+  const isWinner = (game, id) => (game?.winners || []).includes(String(id));
 
   /** Status und Hinweis für das Spieler-Handy (Kopfzeile + Kasten unter der Frage) */
   function playerStatus(inputGame, playerId) {
@@ -274,12 +313,12 @@
     const esc = window.SchmobinApp.escapeHTML;
     if (!g) return { status: 'Gleich geht’s los', html: '' };
     const inGame = g.order.includes(String(playerId));
-    const out = g.eliminated.includes(String(playerId));
+    const out = g.eliminated.includes(String(playerId)) && !(g.shootout?.players.includes(String(playerId)));
     const status = isOver(g) ? 'Spiel vorbei' : g.phase === 'reveal' ? 'Auswertung' : g.phase === 'paused' ? 'Pause' : g.active === playerId ? 'Du bist dran!' : g.shootout ? 'Stechen' : 'Einordnen';
     let html = '';
     if (!inGame) html = '<div class="notice">Du bist nach dem Start beigetreten und schaust bei dieser Runde zu.</div>';
     else if (out && !isOver(g)) html = '<div class="notice">Keine Leben mehr – du bist raus und schaust den anderen zu.</div>';
-    else if (isOver(g)) html = `<div class="notice notice--warning reveal-wait"><strong>🏁 ${esc(g.winner === String(playerId) ? 'Du hast gewonnen! Du darfst jetzt mündlich weiterraten.' : 'Spiel vorbei.')}</strong><span>Der Moderator deckt gleich auf und vergibt die Punkte.</span></div>`;
+    else if (isOver(g)) html = `<div class="notice notice--warning reveal-wait"><strong>🏁 ${esc(isWinner(g, playerId) ? ((g.winners || []).length > 1 ? 'Geteilter Sieg – du bist ganz vorne!' : 'Du hast gewonnen! Du darfst jetzt mündlich weiterraten.') : 'Spiel vorbei.')}</strong><span>Der Moderator deckt gleich auf und vergibt die Punkte.</span></div>`;
     return { status, html };
   }
 
@@ -295,9 +334,9 @@
     const chips = placements(game).map(p => `<div><span>${p.rank}. ${esc(h.name(p.playerId))}${p.winner ? ' 🏆' : ''}</span><span>${inShootout(p.playerId) && !isOver(game) ? '⚔️ Stechen' : p.out ? 'raus' : hearts(p.lives, livesOf(q))} · ✓ ${p.correct}</span><strong>${pointsFor(q, p, Number(q.points) || 0)} P</strong></div>`).join('');
     if (isOver(game)) {
       const uncover = game.phase === 'done'
-        ? `<p class="microcopy">${game.winner ? `${esc(h.name(game.winner))} darf die restlichen Karten jetzt mündlich einordnen. ` : ''}Mit „👁 Aufdecken“ sehen alle die komplette Reihenfolge${instant(q) ? '' : ' mit allen Werten'}.</p><div class="duel-buttons"><button type="button" class="btn duel-big" data-duel="uncover">👁 Aufdecken</button></div>`
+        ? `<p class="microcopy">${game.winners?.length ? `${esc(game.winners.map(h.name).join(' & '))} darf die restlichen Karten jetzt mündlich einordnen. ` : ''}Mit „👁 Aufdecken“ sehen alle die komplette Reihenfolge${instant(q) ? '' : ' mit allen Werten'}.</p><div class="duel-buttons"><button type="button" class="btn duel-big" data-duel="uncover">👁 Aufdecken</button></div>`
         : '<p class="microcopy">Die komplette Reihenfolge ist für alle sichtbar.</p>';
-      return `<div class="duel-control"><div class="notice notice--success"><strong>${esc(endText(game, h.name))}</strong> Tippe auf „✨ Frage auflösen“, dann gibt es die Punkte (Vorschau unten, ohne Runden-Multiplikator).</div>${uncover}<div class="answer-review">${chips}</div></div>`;
+      return `<div class="duel-control"><div class="notice notice--success"><strong>${esc(endText(game, h.name))}</strong> Tippe auf „✓ Auflösen“ (Leertaste), dann gibt es die Punkte (Vorschau unten, ohne Runden-Multiplikator).</div>${uncover}<div class="answer-review">${chips}</div></div>`;
     }
     const remaining = game.pool.map(i => ({ i, v: valueAt(q, i) })).sort((a, b) => a.v - b.v);
     const secret = remaining.map(e => `<span class="chip">${esc(q.items[e.i]?.name || '?')} · ${esc(fmtValue(e.v, unit))}</span>`).join('');
@@ -306,7 +345,7 @@
     const note = phaseNote(game, h.name);
     const who = game.phase === 'reveal' ? `${esc(REASON[game.reveal?.reason] || '')} · ${esc(h.name(game.reveal?.by))}` : `${esc(h.name(game.active))} ist dran`;
     return `<div class="duel-control">
-      <div class="reveal-box moderator-solution"><span>Zug ${game.turn} · ${game.pool.length} Karten im Pool</span><strong>${who}</strong><small>${note ? esc(note) : 'Der Spieler legt die Karte auf seinem Handy – das System prüft automatisch.'}</small></div>
+      <div class="reveal-box moderator-solution"><span>${game.shootout ? `Stechen · Runde ${game.shootout.round}/${SHOOTOUT_ROUNDS}` : `Runde ${game.round}`} · ${game.pool.length} Karten im Pool</span><strong>${who}</strong><small>${note ? esc(note) : 'Der Spieler legt die Karte auf seinem Handy – das System prüft automatisch.'}</small></div>
       <details class="rank-secret"><summary>🔒 Werte (nur für dich)</summary><p class="microcopy">Auf der Leiste:</p><div class="chip-row">${placed || '–'}</div><p class="microcopy">Im Pool:</p><div class="chip-row">${secret || '–'}</div></details>
       <div class="duel-secondary">${turnMs(q) ? (game.phase === 'paused' ? '<button type="button" class="btn btn--small" data-duel="resume">▶ Weiter</button>' : `<button type="button" class="btn btn--small" data-duel="pause" ${playing ? '' : 'disabled'}>⏸ Pause</button>`) : ''}<button type="button" class="btn btn--small" data-duel="skip" ${playing ? '' : 'disabled'}>⏭ Zug überspringen</button><button type="button" class="btn btn--ghost btn--small" data-duel="stop">🏁 Spiel beenden</button></div>
       <div class="answer-review">${chips}</div></div>`;
@@ -396,6 +435,8 @@
       else if (r.reason === 'timeout') text = `<strong>${REASON.timeout}</strong> ${loss}`;
       else text = `<strong>${REASON.skip}</strong> ${esc(name(r.by))}`;
       if (outNow) text += ` · <em>${esc(name(r.by))} ist raus!</em>`;
+      const roundNote = phaseNote(game, name);
+      if (roundNote) text += `<small class="rank-round">${esc(roundNote)}</small>`;
     } else if (game.phase === 'paused') text = '<strong>⏸ Pause</strong>';
     else if (game.phase === 'play') {
       const note = phaseNote(game, name);
@@ -404,7 +445,7 @@
         ? `<strong>Du bist dran!</strong> ${sel.sent ? 'Wird geprüft …' : 'Wähle eine Karte und leg sie an die richtige Stelle.'}${last}`
         : `<strong>${esc(name(game.active))}</strong> ist dran.${last}`;
       tone = game.active === me ? 'me' : 'info';
-    } else if (isOver(game)) { text = `<strong>${esc(endText(game, name))}</strong>${game.phase === 'uncovered' ? ' · Komplette Reihenfolge' : ''}`; tone = game.winner ? 'correct' : 'info'; }
+    } else if (isOver(game)) { text = `<strong>${esc(endText(game, name))}</strong>${game.phase === 'uncovered' ? ' · Komplette Reihenfolge' : ''}`; tone = game.winners?.length ? 'correct' : 'info'; }
     if (ctx.reveal && !game) text = '<strong>Komplette Reihenfolge</strong>';
     text += '<span class="rank-timer"></span>';
     banner.hidden = !text.replace('<span class="rank-timer"></span>', '');
@@ -463,10 +504,10 @@
     const maxLives = livesOf(q);
     const playersHTML = order.map(id => {
       const p = players.get(id) || { name: 'Spieler', avatar: '🙂' };
-      const out = game?.eliminated?.includes(id);
+      const out = game?.eliminated?.includes(id) && !(game.shootout?.players.includes(id) && !isOver(game)); // Stecher sind nicht „raus“
       const active = game && game.active === id && !isOver(game);
       const lives = game ? toNumber(game.lives[id], 0) : maxLives;
-      return `<div class="rank-player${active ? ' is-active' : ''}${out ? ' is-out' : ''}${id === me ? ' is-me' : ''}${game?.winner === id ? ' is-winner' : ''}"><span class="rank-avatar">${esc(App.avatar(p.avatar))}</span><span class="rank-pname">${esc(p.name)}${id === me ? ' <small>(du)</small>' : ''}</span><span class="rank-lives" aria-label="${lives} Leben">${game?.shootout?.players.includes(id) && !isOver(game) ? '⚔️ Stechen' : out ? 'raus' : hearts(lives, maxLives)}</span><b class="rank-score">✓ ${game ? toNumber(game.correct[id], 0) : 0}</b></div>`;
+      return `<div class="rank-player${active ? ' is-active' : ''}${out ? ' is-out' : ''}${id === me ? ' is-me' : ''}${isWinner(game, id) ? ' is-winner' : ''}"><span class="rank-avatar">${esc(App.avatar(p.avatar))}</span><span class="rank-pname">${esc(p.name)}${id === me ? ' <small>(du)</small>' : ''}</span><span class="rank-lives" aria-label="${lives} Leben">${game?.shootout?.players.includes(id) && !isOver(game) ? '⚔️ Stechen' : out ? 'raus' : hearts(lives, maxLives)}</span><b class="rank-score">✓ ${game ? toNumber(game.correct[id], 0) : 0}</b></div>`;
     }).join('');
     const playersBox = root.querySelector('.rank-players');
     if (playersBox.dataset.html !== playersHTML) { playersBox.dataset.html = playersHTML; playersBox.innerHTML = playersHTML; }
@@ -738,12 +779,13 @@
       const names = options.names || {};
       const game = normalizeGame(options.game);
       const players = placements(game).map(p => Object.assign(p, { name: String(names[p.playerId] || 'Spieler') }));
-      return { kind: 'ranking', players, winner: game?.winner || '', winnerName: game?.winner ? String(names[game.winner] || 'Spieler') : '', endReason: game?.endReason || '' };
+      const winners = game?.winners || [];
+      return { kind: 'ranking', players, winner: game?.winner || '', winners, winnerName: winners.map(id => String(names[id] || 'Spieler')).join(' & '), endReason: game?.endReason || '' };
     },
     score(q, answer, { base, result, playerId }) {
       const p = (result?.players || []).find(x => x.playerId === playerId);
       if (!p) return { points: 0, detail: 'Nicht am Spiel beteiligt' };
-      return { points: pointsFor(q, p, base), detail: `${p.rank}. Platz · ${p.correct} ${p.correct === 1 ? 'Karte' : 'Karten'} richtig${p.winner ? ' · 🏆 Sieger' : ''}` };
+      return { points: pointsFor(q, p, base), detail: `${p.rank}. Platz${p.tied ? ' (geteilt)' : ''} · ${p.correct} ${p.correct === 1 ? 'Karte' : 'Karten'} richtig${p.winner ? ' · 🏆 Sieger' : ''}` };
     },
     solutionText(q, result) {
       if (result?.winnerName) return `🏆 ${result.winnerName}`;

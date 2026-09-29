@@ -1,5 +1,18 @@
 # Sylasphere – Changelog
 
+## v32 – Fragetypen verfeinern
+- **Einordnen – neue Stechen-Regel (ersetzt die „letzte Chance“):** Gespielt wird in Runden, jeder mit Leben ist pro Runde genau einmal dran. Wer auf 0 fällt, scheidet aus, die Runde wird aber zu Ende gespielt. Nach jeder vollen Runde: genau einer mit Leben → Sieg; mehrere → weiter; keiner → Stechen zwischen den in dieser Runde Ausgeschiedenen (pro Stechrunde eine Karte je Stecher, genau einer richtig → Sieger, Falsche fliegen raus, nach max. 3 Stechrunden oder wenn die Karten ausgehen entscheiden die richtig gelegten Karten, sonst geteilter Platz). Karten aus vor der Entscheidung: Rang nach Leben, dann Karten. Platzierung mit geteilten Plätzen (gleiche Punkte). Moderator-Panel und Beamer zeigen „Runde n · noch dran: …“ bzw. „Stechen · Runde n/3“. Nach Spielende löst die Leertaste auf.
+- **Gleich gedacht (Dilemma):** Punkte nur, wenn die meistgewählte Antwort mindestens 2 Stimmen hat. Wählen alle unterschiedlich (auch 1:1), gibt es „Keine Mehrheit“ und 0 Punkte. Bei Gleichstand (z. B. 2:2) bekommen weiter alle Mehrheitsgruppen Punkte.
+- **Schätzfrage (Beamer + Moderator):** vor der Auflösung „Zwischen X und Y“ statt leerem Regler, bei der Auflösung groß die Lösung, alle Tipps als Avatare auf der Skala und die Lösungsnadel mit kurzer Animation.
+- **Hotspot (Beamer):** bei der Auflösung alle Klickpunkte mit Avatar und Name, dazu der Zielbereich.
+- **Song-Enthüllung (Beamer):** live, wer bei welcher Stufe eingeloggt hat (Avatar an der Stufe), die Antwort erst nach der Auflösung; der Song steht nicht mehr doppelt da; Status „2 von 3 eingeloggt“.
+- **Präsentations-Ansicht pro Fragetyp** (Beamer und Moderator-Mitte): Zuordnen in zwei Spalten statt Dropdowns, Fight List ohne leeres Textfeld, Sortieren als Karten ohne ↑↓. Neue Registry-Felder `present`, `presentLive`, `presentShowsSolution`, `mark`.
+- **Beamer scrollt nie** (1920×1080 und 1280×720): Bilder passen sich der Höhe an und werden bei der Auflösung kleiner, „Alle Antworten“ steht kompakt nebeneinander, notfalls wird stufenlos verkleinert.
+- **Moderator:** Hinweis nennt den Knopf „✓ Auflösen“; der Timer-Ring verschwindet nach dem Schließen statt „0“ zu zeigen.
+- **3×3-Grid-Editor:** „📋 Alle Felder einfügen“ – 9 Zeilen, eine pro Feld (oben links → unten rechts), Antworten mit Komma getrennt, Vorschau vor dem Übernehmen.
+- **Beitreten:** Fehlermeldung direkt am betroffenen Feld, das Feld wird rot markiert.
+- Neuer Test: `tests/v32-fragetypen.js`. Keine Änderung an den Firebase-Regeln.
+
 ## v31 – Usability Spielablauf
 - **Moderator: ein großer Knopf „Nächster Schritt“** (auch mit der Leertaste): ▶ Spiel starten → ❓ Frage öffnen → ⏹ Antworten schließen → ✓ Auflösen → ➜ Nächste Frage → 🏁 Zur Siegerehrung. Buzzer und Mini-Spiele (Zeitduell, Einordnen) haben passende Schritte. Zurück, Überspringen und Beenden stehen klein darunter.
 - **Deaktivierte Knöpfe sind grau** statt farbig (in allen Designs).

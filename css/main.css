@@ -713,7 +713,7 @@ button.rank-card--pool:hover{border-color:rgba(var(--accent-rgb),.6)}
 .rank-players{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .rank-player{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:8px;align-items:center;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:rgba(var(--overlay-rgb),.04)}
 .rank-avatar{grid-row:1/3;font-size:1.4rem}
-.rank-pname{font-weight:800;min-width:0;overflow-wrap:anywhere}
+.rank-pname{font-weight:800;min-width:0;overflow-wrap:break-word;hyphens:auto}
 .rank-pname small{color:var(--muted);font-weight:600}
 .rank-lives{grid-column:2;color:var(--danger-text);letter-spacing:.08em;font-size:.85rem}
 .rank-score{grid-column:3;grid-row:1/3;font-variant-numeric:tabular-nums}
@@ -1359,3 +1359,104 @@ html[data-motion="reduced"] .beamer-avatar.is-new{animation:none}
   .hero.hero--compact h1{font-size:clamp(2.2rem,11vw,3.2rem);margin:10px auto 10px}
   .hero.hero--compact p{display:none}
 }
+
+/* =====================================================================
+   v32 – Präsentations-Ansichten (Beamer + Moderator-Mitte), Fragetypen verfeinert
+   ===================================================================== */
+.present-pin{display:inline-grid;justify-items:center;gap:1px;pointer-events:auto;max-width:90px}
+.present-pin i{font-style:normal;display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--surface-hi);border:2px solid var(--accent);font-size:1.15rem;box-shadow:0 3px 10px rgba(var(--shadow-rgb),.35)}
+.present-pin small{font-size:.66rem;font-weight:800;line-height:1.1;max-width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:1px 5px;border-radius:6px;background:rgba(var(--bg-rgb),.82);color:var(--text)}
+.present-note{padding:18px;border:1px dashed var(--line);border-radius:14px;text-align:center;font-size:1.15rem;font-weight:800;color:var(--text-soft)}
+/* Schätzfrage */
+.estimate-present{display:grid;gap:14px;padding:10px 0}
+.estimate-range-text{text-align:center;font-size:clamp(1.3rem,2.4vw,2.4rem);font-weight:700;color:var(--text-soft);padding:18px;border:1px dashed var(--line);border-radius:16px}
+.estimate-range-text b{color:var(--text)}
+.estimate-scale{position:relative;padding-top:calc(var(--rows,1) * 62px + 8px)}
+.estimate-pins{position:absolute;left:0;right:0;top:0;height:calc(var(--rows,1) * 62px)}
+.estimate-pin-wrap{position:absolute;bottom:calc(var(--row,0) * 62px);translate:-50% 0;display:grid;justify-items:center;animation:estPin .5s ease both;animation-delay:calc(.9s + var(--row,0) * .08s)}
+.estimate-pin-wrap em{display:none}
+.estimate-pin-wrap.is-hit .present-pin i{border-color:var(--success);box-shadow:0 0 0 3px rgba(var(--success-rgb),.35)}
+.estimate-track{position:relative;height:12px;border-radius:999px;background:rgba(var(--overlay-rgb),.12)}
+.estimate-needle{position:absolute;top:-16px;bottom:-16px;width:4px;border-radius:3px;background:var(--success);translate:-50% 0;box-shadow:0 0 0 4px rgba(var(--success-rgb),.25);animation:estNeedle .8s cubic-bezier(.2,1.4,.4,1) both}
+.estimate-needle b{position:absolute;top:100%;left:50%;translate:-50% 4px;white-space:nowrap;font-size:.8rem;color:var(--success-text)}
+.estimate-present .range-labels{margin-top:18px}
+@keyframes estNeedle{0%{transform:scaleY(0);opacity:0}100%{transform:none;opacity:1}}
+@keyframes estPin{0%{opacity:0;transform:translateY(-14px) scale(.6)}100%{opacity:1;transform:none}}
+html[data-motion="reduced"] .estimate-needle,html[data-motion="reduced"] .estimate-pin-wrap{animation:none}
+/* Hotspot */
+.hotspot-pin{position:absolute;translate:-50% -17px;z-index:3;pointer-events:auto}
+.hotspot-pin .present-pin i{width:30px;height:30px;font-size:1rem}
+.hotspot-pin.is-hit .present-pin i{border-color:var(--success)}
+.hotspot-stage.is-present{cursor:default}
+/* Song-Enthüllung: Avatare an der Stufe */
+.song-stage.has-pins{padding-bottom:6px}
+.song-stage-pins{display:flex;flex-wrap:wrap;gap:3px;justify-content:center;margin-top:5px}
+.song-stage-pins .present-pin i{width:28px;height:28px;font-size:.95rem}
+.song-stage-pins .present-pin small{font-size:.6rem;max-width:64px}
+/* Zuordnen: zwei Spalten */
+.match-present{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.match-col{display:grid;gap:9px;align-content:start}
+.match-col span{display:flex;align-items:center;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);font-weight:750}
+.match-col i{font-style:normal;flex:none;width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:rgba(var(--accent-rgb),.16);font-weight:900}
+.match-col.is-right i{background:rgba(var(--accent2-rgb),.16)}
+.match-present.is-revealed{grid-template-columns:1fr}
+.match-pair{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center;padding:11px 14px;border:1px solid rgba(var(--success-rgb),.4);border-radius:13px;background:rgba(var(--success-rgb),.08);font-weight:750}
+.match-pair b{color:var(--success-text)}
+/* Sortieren: Karten ohne Pfeile */
+.sort-present{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+.sort-present li{padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface);font-weight:750}
+.sort-present.is-revealed{counter-reset:sp}
+.sort-present.is-revealed li{counter-increment:sp;display:flex;gap:12px;align-items:center;border-color:rgba(var(--success-rgb),.4)}
+.sort-present.is-revealed li::before{content:counter(sp);width:28px;height:28px;display:grid;place-items:center;border-radius:8px;background:rgba(var(--success-rgb),.2);font-weight:900}
+/* Beamer: größer */
+.beamer .present-pin i{width:44px;height:44px;font-size:1.5rem}
+.beamer .present-pin small{font-size:.8rem;max-width:110px}
+.beamer .estimate-scale{padding-top:calc(var(--rows,1) * 76px + 8px)}
+.beamer .estimate-pins{height:calc(var(--rows,1) * 76px)}
+.beamer .estimate-pin-wrap{bottom:calc(var(--row,0) * 76px)}
+.beamer .match-col span,.beamer .sort-present li,.beamer .match-pair{font-size:clamp(1.1rem,1.6vw,1.8rem);padding:14px 18px}
+.beamer .estimate-present .estimate-value{font-size:clamp(3rem,6vw,6rem)}
+.beamer .present-note{font-size:clamp(1.3rem,2vw,2rem)}
+@media(max-width:760px){.match-present{grid-template-columns:1fr}}
+/* Beitreten: Fehler direkt am Feld */
+.input.is-invalid{border-color:var(--danger);box-shadow:0 0 0 3px rgba(var(--danger-rgb),.22);background:rgba(var(--danger-rgb),.06)}
+.field-error{color:var(--danger-text);font-size:.86rem;font-weight:700}
+.field-error::before{content:"⚠ "}
+/* Grid-Editor: alle Felder einfügen */
+.grid9-paste{margin-top:14px;border:1px solid var(--line);border-radius:14px;padding:10px 14px;display:grid;gap:10px}
+.grid9-paste[open]{background:rgba(var(--overlay-rgb),.03)}
+.grid9-paste summary{font-weight:800}
+.grid9-paste-board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+.grid9-paste-board>div{display:grid;gap:3px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--surface);min-width:0}
+.grid9-paste-board small{color:var(--muted);font-size:.72rem}
+.grid9-paste-board span{font-size:.85rem;font-weight:700;overflow-wrap:anywhere}
+.grid9-paste .btn{justify-self:start}
+@media(max-width:560px){.grid9-paste-board{grid-template-columns:1fr}}
+/* v32: Beamer scrollt nie – Bilder an die Höhe, Antwortliste kompakt, notfalls stufenlos verkleinert (--fit, spectator-view.js) */
+@media(min-width:901px){.beamer-page{overflow:hidden}}
+.beamer .presenter-main>*,.beamer .presenter-side>*{zoom:var(--fit,1)}
+.beamer .question-image,.beamer .question-image img{max-height:40vh}
+.beamer[data-phase="resolved"] .question-image,.beamer[data-phase="resolved"] .question-image img{max-height:24vh}
+.beamer .hotspot-stage{--hs-max:52vh}
+.beamer[data-phase="resolved"] .hotspot-stage{--hs-max:44vh}
+.beamer .all-answers{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:6px}
+.beamer .all-answers-title{grid-column:1/-1}
+.beamer .all-answers-row{margin:0}
+.beamer .stat-cards{margin-top:8px}
+.beamer[data-phase="resolved"] .stat-bars{gap:6px}
+.song-stage.is-past.has-pins{opacity:1}
+.song-stage.is-past.has-pins>b,.song-stage.is-past.has-pins>span,.song-stage.is-past.has-pins>small{opacity:.45}
+.match-col i,.sort-present.is-revealed li::before{width:1.6em;height:1.6em;font-size:.8em;line-height:1;flex:none}
+.sort-present.is-revealed li::before{display:grid;place-items:center}
+/* Beamer-Auflösung: Statistik und Antworten nebeneinander statt untereinander */
+.beamer[data-phase="resolved"] #spectator-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:10px 18px;align-items:start}
+.beamer[data-phase="resolved"] #spectator-stats>.reveal-box,.beamer[data-phase="resolved"] #spectator-stats>.notice{grid-column:1/-1}
+.beamer[data-phase="resolved"] #spectator-stats>*{margin-top:0}
+.beamer[data-phase="resolved"] .all-answers{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+@media(max-height:800px){
+  .beamer .question-image,.beamer .question-image img{max-height:32vh}
+  .beamer[data-phase="resolved"] .question-image,.beamer[data-phase="resolved"] .question-image img{max-height:20vh}
+  .beamer-progress strong{font-size:1.3rem}
+}
+.beamer .rank-players,.mod-stage .rank-players{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
+.rank-pname{word-break:normal}

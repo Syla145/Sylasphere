@@ -132,12 +132,18 @@
   /** Punkte für alle Spieler vergeben, auch ohne eigene Antwort */
   function scoresAllPlayers(question) { return Boolean(typeDef(question?.type)?.scoresAllPlayers); }
   function answerEntries(question, answers, nameOf) {
-    return Object.entries(answers || {}).map(([playerId, record]) => ({
-      playerId, name: String(nameOf(playerId) || 'Spieler'),
-      answer: answerLabel(question, record?.answer),
-      points: Math.round(Number(record?.awardedPoints) || 0),
-      correct: Number(record?.awardedPoints) > 0
-    })).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'de'));
+    const markOf = typeDef(question?.type)?.mark;
+    return Object.entries(answers || {}).map(([playerId, record]) => {
+      const entry = {
+        playerId, name: String(nameOf(playerId) || 'Spieler'),
+        answer: answerLabel(question, record?.answer),
+        points: Math.round(Number(record?.awardedPoints) || 0),
+        correct: Number(record?.awardedPoints) > 0
+      };
+      const mark = markOf ? markOf(question, record?.answer) : null; // v32: z. B. Schätzwert oder Klickpunkt für die Anzeige
+      if (mark != null) entry.mark = mark;
+      return entry;
+    }).sort((a, b) => b.points - a.points || a.name.localeCompare(b.name, 'de'));
   }
   /** Punkte für eine Antwort. result = Ergebnis aus resolveResult (falls der Typ eins hat). */
   function scoreAnswer(question, answer, multiplier = 1, result = null, playerId = '') {

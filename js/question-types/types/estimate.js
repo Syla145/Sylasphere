@@ -100,6 +100,33 @@
       if (!hasAnswer && !ctx.readOnly) ctx.onAnswer?.(value);
     },
 
+    // v32: Beamer/Moderator – „Zwischen X und Y“, bei der Auflösung Lösung + alle Tipps als Avatare auf der Skala
+    presentShowsSolution: true,
+    mark(q, answer) { const n = Number(answer); return answer == null || answer === '' || !Number.isFinite(n) ? null : n; },
+    present(q, container, ctx) {
+      const { el, escapeHTML } = Kit;
+      const wrap = Kit.baseQuestion(q);
+      const min = Number(q.min), max = Number(q.max);
+      const pos = v => Kit.clamp((Number(v) - min) / Math.max(0.000001, max - min) * 100, 0, 100);
+      const block = el('div', `estimate-present${ctx.reveal ? ' is-revealed' : ''}`);
+      if (!ctx.reveal) {
+        block.innerHTML = `<div class="estimate-range-text">Zwischen <b>${escapeHTML(withUnit(min, q.unit))}</b> und <b>${escapeHTML(withUnit(max, q.unit))}</b></div>`;
+      } else {
+        const entries = (ctx.result?.entries || []).filter(e => Number.isFinite(Number(e.mark)));
+        // Tipps übereinander stapeln, wenn sie zu dicht liegen
+        const rows = []; const pins = entries.slice().sort((a, b) => a.mark - b.mark).map(e => {
+          const p = pos(e.mark); let row = rows.findIndex(last => p - last >= 7); if (row < 0) { row = rows.length; rows.push(p); } else rows[row] = p;
+          const player = Kit.playerOf(ctx.players, e.playerId);
+          return `<span class="estimate-pin-wrap${e.correct ? ' is-hit' : ''}" style="left:${p}%;--row:${row}">${Kit.pinHTML(player, '', withUnit(e.mark, q.unit))}<em>${escapeHTML(withUnit(e.mark, q.unit))}</em></span>`;
+        }).join('');
+        block.style.setProperty('--rows', String(Math.max(1, rows.length)));
+        block.innerHTML = `<output class="estimate-value">${escapeHTML(withUnit(q.correctAnswer, q.unit))}</output>
+          <div class="estimate-scale"><div class="estimate-pins">${pins}</div><div class="estimate-track"><span class="estimate-needle" style="left:${pos(q.correctAnswer)}%"><b>${escapeHTML(withUnit(q.correctAnswer, q.unit))}</b></span></div>
+          <div class="range-labels"><span>${escapeHTML(withUnit(min, q.unit))}</span><span>${escapeHTML(withUnit(max, q.unit))}</span></div></div>`;
+      }
+      wrap.append(block); container.replaceChildren(wrap);
+    },
+
     editor(q, ui, box) {
       const { div, input, labelField } = ui;
       const grid = div('dynamic-grid');

@@ -48,6 +48,43 @@
     // Zielposition vor der Auflösung verstecken
     hideSolution(pq) { delete pq.targetX; delete pq.targetY; delete pq.radius; },
 
+    // v32: Beamer/Moderator – bei der Auflösung alle Klickpunkte mit Avatar + Zielbereich
+    presentShowsSolution: true,
+    mark(q, answer) {
+      if (!answer || typeof answer !== 'object') return null;
+      const x = Number(answer.x), y = Number(answer.y);
+      return Number.isFinite(x) && Number.isFinite(y) ? { x, y } : null;
+    },
+    present(q, container, ctx) {
+      const { el } = Kit;
+      const App = window.SchmobinApp;
+      const wrap = Kit.baseQuestion(q);
+      const src = App.sanitizeURL(q.image || q.imageUrl || '');
+      if (!src) { wrap.append(el('div', 'empty-state compact', 'Keine Bildquelle.')); container.replaceChildren(wrap); return; }
+      const stage = el('div', 'hotspot-stage is-readonly is-present');
+      const img = document.createElement('img'); img.src = src; img.alt = q.imageAlt || 'Hotspot-Bild'; img.draggable = false;
+      const fit = () => stage.style.setProperty('--hs-ratio', String(img.naturalWidth ? img.naturalHeight / img.naturalWidth : (Number(q.imageRatio) || 1)));
+      if (Number(q.imageRatio) > 0) fit();
+      img.addEventListener('load', fit);
+      stage.append(img);
+      if (ctx.reveal) {
+        const zone = el('span', 'hotspot-zone');
+        zone.style.left = `${q.targetX}%`; zone.style.top = `${q.targetY}%`; zone.style.width = `${q.radius * 2}%`;
+        const target = el('span', 'hotspot-marker hotspot-marker--target');
+        target.style.left = `${q.targetX}%`; target.style.top = `${q.targetY}%`;
+        stage.append(zone, target);
+        (ctx.result?.entries || []).forEach(e => {
+          if (!e.mark || !Number.isFinite(Number(e.mark.x))) return;
+          const pin = el('span', `hotspot-pin${e.correct ? ' is-hit' : ''}`);
+          pin.style.left = `${e.mark.x}%`; pin.style.top = `${e.mark.y}%`;
+          pin.innerHTML = Kit.pinHTML(Kit.playerOf(ctx.players, e.playerId));
+          stage.append(pin);
+        });
+      }
+      wrap.append(stage);
+      container.replaceChildren(wrap);
+    },
+
     render(q, container, ctx) {
       const { el } = Kit;
       const App = window.SchmobinApp;

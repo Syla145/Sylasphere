@@ -50,11 +50,11 @@
     const form = content().querySelector('[data-home-join]');
     if (!form) return;
     const input = form.querySelector('input');
-    input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); });
+    input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6); input.classList.remove('is-invalid'); input.removeAttribute('aria-invalid'); form.querySelector('[data-join-error]').textContent = ''; });
     form.addEventListener('submit', event => {
       event.preventDefault();
       const code = input.value.trim();
-      if (code.length !== 6) { form.querySelector('[data-join-error]').textContent = 'Bitte den 6-stelligen Raumcode eingeben (steht beim Moderator oder auf dem Beamer).'; input.focus(); return; }
+      if (code.length !== 6) { form.querySelector('[data-join-error]').textContent = 'Bitte den 6-stelligen Raumcode eingeben (steht beim Moderator oder auf dem Beamer).'; input.classList.add('is-invalid'); input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
       location.href = `./spieler.html?code=${encodeURIComponent(code)}`;
     });
   }

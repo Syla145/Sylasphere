@@ -68,7 +68,12 @@
       game: null,            // Mini-Spiel mit eigenem Spielstand (state.game), z. B. Zeitduell – vom Moderator-Gerät gesteuert
       hidden: false,         // v24: im Editor nicht mehr neu auswählbar (alte Quizze funktionieren weiter)
       scoresAllPlayers: false, // Punkte für alle Spieler vergeben, auch ohne eigene Antwort (z. B. Platzierung im Zeitduell)
-      interaction: 'answer'
+      interaction: 'answer',
+      // v32: Präsentation für Beamer und Moderator-Mitte (ohne Eingabefelder). Fehlt sie, wird render schreibgeschützt genutzt.
+      present: null,         // (q, container, ctx) – ctx: { reveal, result, stage, players, answers, role }
+      presentLive: false,    // Präsentation bei jeder neuen Antwort neu zeichnen (z. B. Song-Enthüllung: wer bei welcher Stufe)
+      presentShowsSolution: false, // Präsentation zeigt die Lösung selbst – kein zusätzlicher Lösungskasten
+      mark: null             // (q, answer) => kleine Zahl/Punkt für die Auflösung (Tipps auf der Skala, Klickpunkte)
     }, definition);
     types.set(def.type, Object.freeze(def));
     return def;

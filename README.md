@@ -194,7 +194,7 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ✎ | Fight List | Möglichst viele passende Begriffe sammeln. Das System zählt die Treffer, auch mit kleinen Tippfehlern, und du kannst die Zahl pro Spieler anpassen |
 | ⌖ | Hotspot | Auf einem Bild die gesuchte Stelle treffen |
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
-| ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit |
+| ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit – nur ab 2 Stimmen; wählen alle unterschiedlich, gibt es „Keine Mehrheit“ und 0 Punkte |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
 | 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, am Ende entscheidet ein Stechen. Punkte pro Karte plus Platzierung |
 | ▦ | 3×3-Grid | Neun Felder, jedes muss zu seiner Zeile und Spalte passen. Alle tippen gleichzeitig, das System prüft pro Feld vor, du drehst Fehler per Tipp um. Punkte pro Feld plus Bonus fürs volle Grid |
@@ -218,12 +218,14 @@ Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 17 Typen. (Higher
    - Leben pro Spieler (Standard 3) und Zeit pro Zug (0 = ohne).
    - **Werte zeigen:** sofort beim richtigen Einordnen oder erst beim Aufdecken (Standard). Den Anker-Wert kann man zur Orientierung zeigen oder verstecken.
    - **Punkte:** pro richtiger Karte (Standard 10) plus Platzierung in % der Fragenpunkte (Standard 100 / 60 / 30). Der Editor rechnet ein Beispiel vor.
-3. **Spielen:** Frage öffnen, dann **🎲 Spiel starten**. Der Zufall bestimmt, wer anfängt. Wer dran ist, zieht auf dem Handy eine Karte an eine Stelle (oder tippt Karte und ＋ an) und bestätigt. Das System prüft sofort. Falsch heißt: Die Karte geht zurück in den Pool und der Spieler verliert ein Leben.
-4. **Ende:**
-   - Bleibt nur einer übrig, muss er noch **eine Karte richtig legen**, um zu gewinnen.
-   - Vergibt er, gibt es ein **Stechen** mit dem zuletzt Ausgeschiedenen: abwechselnd, und wer vergibt, während der andere trifft, verliert.
-   - Gehen die Karten aus, entscheidet die Rangfolge.
-   - Danach **👁 Aufdecken** (zeigt alle Werte) und **✨ Frage auflösen**.
+3. **Spielen (in Runden, seit v32):** Frage öffnen, dann **🎲 Spiel starten**. Der Zufall legt die Reihenfolge fest. In jeder **Runde** ist jeder Spieler mit Leben genau einmal dran. Wer dran ist, zieht auf dem Handy eine Karte an eine Stelle (oder tippt Karte und ＋ an) und bestätigt. Das System prüft sofort. Falsch heißt: Die Karte geht zurück in den Pool und der Spieler verliert ein Leben. Wer auf 0 fällt, scheidet aus – die Runde wird aber zu Ende gespielt. Moderator und Beamer zeigen „Runde n · noch dran: …“.
+4. **Nach jeder vollen Runde:**
+   - Hat **genau einer** noch Leben, gewinnt er sofort.
+   - Haben **mehrere** noch Leben, geht es weiter.
+   - Hat **keiner** mehr Leben, gibt es ein **Stechen** zwischen den in dieser Runde Ausgeschiedenen: Pro Stechrunde legt jeder eine Karte. Genau einer richtig → Sieger. Liegen einige richtig und andere falsch, fliegen die Falschen raus. Nach höchstens 3 Stechrunden (oder wenn die Karten ausgehen) gewinnt, wer im ganzen Spiel mehr Karten richtig gelegt hat, sonst teilen sie sich Platz 1.
+   - Gehen die Karten vorher aus: Rang nach übrigen Leben, dann richtigen Karten.
+   - **Platzierung:** später ausgeschieden = besser; in derselben Runde entscheiden das Stechen und dann die richtigen Karten, sonst ist der Platz geteilt (gleiche Punkte).
+   - Danach **👁 Aufdecken** (zeigt alle Werte) und **✓ Auflösen**.
 
 Hinweis: Wie beim Zeitduell führt das Moderator-Gerät den Spielstand und sollte während des Spiels geöffnet bleiben.
 

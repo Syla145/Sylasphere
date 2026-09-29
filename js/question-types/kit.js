@@ -339,7 +339,18 @@
     return { kind: best.score <= 1 ? 'exact' : 'fuzzy', solution: String(solutions[best.index]), index: best.index };
   }
 
+  /** v32: Spieler zu einer ID (für Avatare in Präsentationen) */
+  function playerOf(players, id) {
+    const p = (players || []).find(x => String(x.id) === String(id));
+    return { name: p?.name || 'Spieler', avatar: App()?.avatar ? App().avatar(p?.avatar) : (p?.avatar || '🙂') };
+  }
+  /** Avatar-Pin mit kleinem Namen (Name auch als Tooltip) */
+  function pinHTML(player, extraClass = '', extra = '') {
+    return `<span class="present-pin ${extraClass}" title="${escapeHTML(player.name)}${extra ? ` · ${escapeHTML(extra)}` : ''}"><i>${escapeHTML(player.avatar)}</i><small>${escapeHTML(player.name)}</small></span>`;
+  }
+
   window.SylasphereTypeKit = {
+    playerOf, pinHTML,
     clone, numberOr, clamp, normalizeTerm, escapeHTML, cleanTerm, matchTerm, editDistance,
     nextOptionId, MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,
     normalizeOptions, optionById, correctOption, defaultOptions, validateOptions, seededShuffle,
