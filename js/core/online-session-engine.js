@@ -357,6 +357,7 @@
         questionEndsAt: pub.questionEndsAt == null ? null : Firebase.toLocalTime(this.context, pub.questionEndsAt),
         currentPublicQuestion: pub.currentQuestion ? clone(pub.currentQuestion) : null,
         stage: Math.max(0, Number(pub.stage) || 0),
+        stageReveal: pub.stageReveal ? clone(pub.stageReveal) : null, // v37: aufgedeckte Hinweise/Bildstufe (vom Moderator-Gerät)
         media: pub.media ? Object.assign(clone(pub.media), { at: Firebase.toLocalTime(this.context, pub.media.at) }) : null,
         game: pub.game ? this.gameTimes(pub.game, -1) : null,
         answers,
@@ -508,7 +509,7 @@
       const question = quiz.rounds[ri]?.questions[qi] || null;
       await this.patchPublic({
         status: 'playing', currentRoundIndex: ri, currentQuestionIndex: qi,
-        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, stageReveal: null, media: null, game: null, answerLock: false,
         currentQuestionId: question?.id || '', currentQuestion: null, questionResult: null, publicStats: null, scoreDeltas: null, roundSummaries: summaries
       });
     }
@@ -616,7 +617,7 @@
         currentQuestion: publicQuestion(question, false),
         questionResult: question.type === 'buzzer' ? clean(initialBuzzerState(question)) : null, publicStats: null, scoreDeltas: null,
         // Stufen-Fragen: Stufe 1 aktiv; answerLock = Antwort nach Abgabe gesperrt (von den Firebase-Regeln geprüft)
-        stage: 0, media: null, game: null, answerLock: Quiz.locksOnSubmit(question)
+        stage: 0, stageReveal: null, media: null, game: null, answerLock: Quiz.locksOnSubmit(question)
       });
     }
 
@@ -640,6 +641,18 @@
       if (!state.questionOpen) throw new Error('Die Antworten sind bereits geschlossen.');
       const stage = Math.min((Number(state.stage) || 0) + 1, stages.length - 1);
       await this.patchPublic({ stage, media: this.mediaCommand(question, 'snippet', stage) });
+    }
+    // v37: Stufe direkt setzen (Rückgängig) und aufgedeckten Stand veröffentlichen (Spieler sehen nur public/stageReveal)
+    async setStage(stage) {
+      this.assertModerator();
+      const state = this.load();
+      const stages = Quiz.stagesOf(this.getCurrent(state).question);
+      if (!stages || !state.questionStartedAt) return;
+      await this.patchPublic({ stage: Math.max(0, Math.min(stages.length - 1, Math.round(Number(stage) || 0))) });
+    }
+    async setStageReveal(value) {
+      this.assertModerator();
+      await this.patchPublic({ stageReveal: value ? clean(value) : null });
     }
     async playReveal() {
       this.assertModerator();
@@ -914,7 +927,7 @@
       const nextQuestion = quiz.rounds[ri]?.questions[qi] || null;
       await this.patchPublic({
         status, finishedAt, currentRoundIndex: ri, currentQuestionIndex: qi,
-        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, stageReveal: null, media: null, game: null, answerLock: false,
         currentQuestionId: nextQuestion?.id || '', currentQuestion: null,
         questionResult: null, publicStats: null, scoreDeltas: null,
         roundSummaries: summaries
@@ -946,7 +959,7 @@
       await this.resetScores();
       await this.patchPublic({
         status: 'lobby', currentRoundIndex: 0, currentQuestionIndex: 0,
-        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, stageReveal: null, media: null, game: null, answerLock: false,
         currentQuestionId: this.raw.hostQuiz?.quiz?.rounds?.[0]?.questions?.[0]?.id || '', currentQuestion: null,
         questionResult: null, publicStats: null, scoreDeltas: null, finishedAt: null, highlights: null, paused: null, show: null
       });

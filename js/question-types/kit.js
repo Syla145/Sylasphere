@@ -356,8 +356,154 @@
     return String((Array.isArray(value) ? value[index ?? 0] : value) || '');
   }
 
+  // ---------- v37: Stufen-Spielmodi mit Einloggen (Hinweis-Kaskade, Bild-Enthüllung) ----------
+  /*
+   * Gemeinsame Logik: Stufen werden nacheinander aufgedeckt, jeder loggt EINMAL eine Freitext-Antwort ein
+   * (gesperrt, Stufe stempelt die Engine). Punkte = Fragenpunkte × Prozent der Stufe, falsch = 0.
+   * Prüfung: exakt/Variante = ✓, Tippfehler (matchTerm „fuzzy“) = ≈ (zählt als richtig), sonst ✗ – der Moderator kann umdrehen.
+   * Aufgedeckte Inhalte kommen online nur über state.stageReveal (schreibt das Moderator-Gerät), nie über die Frage selbst.
+   */
+  const Stages = (() => {
+    const defaultPercents = n => Array.from({ length: n }, (_, i) => Math.max(0, 100 - 20 * i));
+    const list = value => (Array.isArray(value) ? value : String(value ?? '').split(/\n|\|/)).map(v => String(v).trim()).filter(Boolean);
+    function normalize(q, count) {
+      q.timer = 0;
+      q.solution = String(q.solution ?? q.correctAnswer ?? '').trim().slice(0, 120);
+      q.aliases = list(q.aliases).map(v => v.slice(0, 120)).slice(0, 20);
+      const given = Array.isArray(q.percents) ? q.percents : [];
+      const defaults = defaultPercents(count);
+      q.percents = defaults.map((d, i) => clamp(Math.round(numberOr(given[i], d)), 0, 100));
+      q.autoAdvance = clamp(Math.round(numberOr(q.autoAdvance, 0)), 0, 600); // 0 = Moderator schaltet weiter
+    }
+    function validate(q, report, count) {
+      if (!q.solution) report.error('solution', 'Lösung fehlt.');
+      q.percents.forEach((pct, i) => { if (i && pct > q.percents[i - 1]) report.warn('percents', `Stufe ${i + 1} gibt mehr Punkte als Stufe ${i}.`); });
+      if (q.autoAdvance > 0 && q.autoAdvance < 5) report.warn('autoAdvance', 'Automatisch weiter unter 5 Sekunden ist sehr knapp.');
+      if (count < 2) report.error('stages', 'Mindestens zwei Stufen sind nötig.');
+    }
+    const solutions = q => [q.solution, ...(q.aliases || [])].filter(Boolean);
+    const textOf = answer => (answer && typeof answer === 'object' ? String(answer.text || '').trim() : '');
+    const count = q => (Array.isArray(q.percents) && q.percents.length) || 1;
+    const stageOf = (q, answer) => clamp(Math.round(numberOr(answer?.stage, 0)), 0, count(q) - 1);
+    /** true (✓ exakt/Variante), 'fuzzy' (≈ Tippfehler), false (✗) */
+    function check(q, answer) {
+      const text = textOf(answer);
+      if (!text) return false;
+      const m = matchTerm(text, solutions(q));
+      return m.kind === 'exact' ? true : m.kind === 'fuzzy' ? 'fuzzy' : false;
+    }
+    function isRight(q, answer, result, playerId) {
+      const v = result?.verdicts ? result.verdicts[playerId] : undefined;
+      if (typeof v === 'boolean') return v && Boolean(textOf(answer));
+      return check(q, answer) !== false;
+    }
+    function score(q, answer, { base, result, playerId }) {
+      if (!textOf(answer)) return { points: 0, detail: 'Nicht eingeloggt' };
+      const s = stageOf(q, answer); const pct = q.percents[s] ?? 0;
+      const ok = isRight(q, answer, result, playerId);
+      return { points: ok ? Math.round(base * pct / 100) : 0, detail: `Stufe ${s + 1} · ${pct} % · ${ok ? 'richtig' : 'falsch'}` };
+    }
+    const judge = (q, answer, { result, playerId } = {}) => Boolean(textOf(answer)) && isRight(q, answer, result, playerId);
+    const answerLabel = (q, answer) => (textOf(answer) ? `${textOf(answer)} · Stufe ${stageOf(q, answer) + 1}` : '–');
+    const mark = (q, answer) => (textOf(answer) ? { s: stageOf(q, answer), f: check(q, answer) === 'fuzzy' ? 1 : 0 } : null);
+    const recordStage = r => { const v = r?.answer?.stage ?? r?.stage; return v == null ? NaN : Number(v); };
+
+    /** Stufen-Leiste; mit ctx.answers + players: Avatare derer, die bei der Stufe eingeloggt haben */
+    function rail(q, ctx, { vertical = false, pins = true } = {}) {
+      const box = el('div', `stage-rail${vertical ? ' is-vertical' : ''}`);
+      const current = clamp(Math.round(numberOr(ctx.stage, 0)), 0, count(q) - 1);
+      const records = Object.entries(ctx.answers || {});
+      q.percents.forEach((pct, i) => {
+        const chip = el('div', 'stage-chip');
+        chip.dataset.stage = String(i);
+        chip.innerHTML = `<b>${vertical ? `Stufe ${i + 1}` : i + 1}</b><small>${pct} %</small>`;
+        if (pins) {
+          const who = records.filter(([, r]) => Number.isFinite(recordStage(r)) && clamp(recordStage(r), 0, count(q) - 1) === i);
+          if (who.length) { const p = el('div', 'stage-pins'); p.innerHTML = who.map(([id]) => pinHTML(playerOf(ctx.players, id))).join(''); chip.append(p); }
+        }
+        box.append(chip);
+      });
+      markRail(box, current, ctx.reveal);
+      return box;
+    }
+    function markRail(root, current, reveal) {
+      root.querySelectorAll('.stage-chip').forEach(chip => {
+        const i = Number(chip.dataset.stage);
+        chip.classList.toggle('is-current', !reveal && i === current);
+        chip.classList.toggle('is-past', !reveal && i < current);
+        chip.classList.toggle('is-future', !reveal && i > current);
+      });
+    }
+    /** Auflösung: Lösung groß, dann pro Spieler Stufe + Antwort + Punkte */
+    function resultCard(q, ctx) {
+      const card = el('div', 'stage-result');
+      const head = el('div', 'stage-solution');
+      head.append(el('span', 'eyebrow', 'Lösung'), el('strong', '', q.solution || '–'));
+      card.append(head);
+      const entries = Array.isArray(ctx.result?.entries) ? ctx.result.entries : [];
+      if (ctx.players?.length) {
+        const byId = new Map(entries.map(e => [String(e.playerId), e]));
+        const rows = ctx.players.map(p => ({ p, e: byId.get(String(p.id)) }))
+          .sort((a, b) => (b.e?.points || 0) - (a.e?.points || 0) || (numberOr(a.e?.mark?.s, 99) - numberOr(b.e?.mark?.s, 99)));
+        const listBox = el('div', 'stage-result-list');
+        listBox.innerHTML = rows.map(({ p, e }) => {
+          const who = playerOf(ctx.players, p.id);
+          if (!e) return `<div class="stage-result-row is-missing"><span class="stage-who"><i>${escapeHTML(who.avatar)}</i><strong>${escapeHTML(who.name)}</strong></span><span>–</span><span>nicht eingeloggt</span><b>0</b></div>`;
+          const text = String(e.answer || '').replace(/ · Stufe \d+$/, '');
+          const sign = e.correct ? (e.mark?.f ? '≈✓' : '✓') : '✗';
+          return `<div class="stage-result-row ${e.correct ? 'is-right' : 'is-wrong'}"><span class="stage-who"><i>${escapeHTML(who.avatar)}</i><strong>${escapeHTML(who.name)}</strong></span><span>${e.mark ? `Stufe ${numberOr(e.mark.s, 0) + 1}` : ''}</span><span>„${escapeHTML(text)}“ ${sign}</span><b>+${Math.round(e.points || 0)}</b></div>`;
+        }).join('');
+        card.append(listBox);
+      }
+      return card;
+    }
+    /** Handy: Eingabe + Hinweis; eingeloggt = gesperrt */
+    function loginArea(q, ctx) {
+      const box = el('div', 'stage-login');
+      const answer = ctx.currentAnswer && typeof ctx.currentAnswer === 'object' ? ctx.currentAnswer : null;
+      if (ctx.reveal) {
+        if (textOf(answer)) box.append(el('div', 'song-own-answer', `Deine Antwort: ${answerLabel(q, answer)}`));
+        return box;
+      }
+      if (ctx.readOnly) {
+        if (textOf(answer)) box.append(el('div', 'song-own-answer is-locked', `🔒 Deine Antwort: „${textOf(answer)}“`));
+        return box;
+      }
+      const input = document.createElement('input');
+      input.className = 'input stage-input'; input.type = 'text'; input.maxLength = 120; input.autocomplete = 'off'; input.spellcheck = false;
+      input.placeholder = 'Deine Antwort …'; input.value = textOf(answer); input.setAttribute('aria-label', 'Deine Antwort');
+      input.addEventListener('input', () => { const t = input.value.trim(); ctx.onAnswer?.(t ? { text: input.value.slice(0, 120) } : null); });
+      box.append(input, el('p', 'question-hint', 'Einloggen ist fest – danach kannst du nichts mehr ändern. Wer bis zur letzten Stufe nicht einloggt, bekommt 0.'));
+      return box;
+    }
+    /** Editor: Lösung + Varianten, Punkte je Stufe, Weiterschalten (gemeinsam für beide Stufen-Modi) */
+    function editorCommon(q, ui, box, stageLabel = 'Stufe') {
+      const { div, input, labelField } = ui;
+      const sol = input('text', q.solution || '', 'input'); sol.maxLength = 120; sol.placeholder = 'z. B. Tokio';
+      sol.addEventListener('input', e => { q.solution = e.target.value; ui.queueSave(); });
+      const area = document.createElement('textarea'); area.className = 'input textarea'; area.rows = 2; area.value = (q.aliases || []).join('\n'); area.placeholder = 'z. B. Tokyo';
+      area.addEventListener('input', e => { q.aliases = list(e.target.value); ui.queueSave(); });
+      const g = div('dynamic-grid'); g.append(labelField('Lösung', sol), labelField('Weitere gültige Lösungen / Schreibweisen (je Zeile)', area));
+      box.append(g, div('editor-help', 'Tippfehler erkennt das System selbst (≈) – du kannst vor der Auflösung jede Antwort umdrehen.'));
+      const pctBox = div('stage-percent-editor');
+      pctBox.append(div('field-label', `Punkte je ${stageLabel} (% der Fragenpunkte)`));
+      const row = div('stage-percent-row');
+      q.percents.forEach((pct, i) => {
+        const f = input('number', pct, 'input'); f.min = '0'; f.max = '100'; f.step = '5'; f.setAttribute('aria-label', `${stageLabel} ${i + 1} in Prozent`);
+        f.addEventListener('input', e => { q.percents[i] = clamp(Math.round(Number(e.target.value) || 0), 0, 100); ui.queueSave(); });
+        row.append(labelField(`${i + 1}`, f));
+      });
+      pctBox.append(row);
+      const auto = input('number', q.autoAdvance || 0, 'input'); auto.min = '0'; auto.max = '600'; auto.step = '5';
+      auto.addEventListener('input', e => { q.autoAdvance = clamp(Math.round(Number(e.target.value) || 0), 0, 600); ui.queueSave(); });
+      const ga = div('dynamic-grid'); ga.append(labelField('Automatisch weiter alle … Sekunden (0 = Moderator mit „Nächster Schritt“/Leertaste)', auto));
+      box.append(pctBox, ga);
+    }
+    return { defaultPercents, normalize, validate, solutions, textOf, stageOf, check, isRight, score, judge, answerLabel, mark, rail, markRail, resultCard, loginArea, list, editorCommon };
+  })();
+
   window.SylasphereTypeKit = {
-    modeText,
+    modeText, Stages,
     playerOf, pinHTML,
     clone, numberOr, clamp, normalizeTerm, escapeHTML, cleanTerm, matchTerm, editDistance,
     nextOptionId, MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,

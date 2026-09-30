@@ -12,8 +12,8 @@ const ids=s=>s.quiz.rounds.map(r=>r.questions.map(q=>q.id));
 const byId=s=>Object.fromEntries(M.flat(s).map(x=>[x.question.id,JSON.stringify(x.question)]).sort((a,b)=>a[0].localeCompare(b[0])));
 // ---------- Grundlagen ----------
 let s=fresh();const n=M.total(s);
-ok(n===17&&M.flat(s)[16].n===17,'Showtime: 17 Fragen in der Gliederung');
-ok(new Set(M.flat(s).map(x=>x.question.type)).size===17,'Showtime enthält alle 17 Fragetypen');
+ok(n===21&&M.flat(s)[20].n===21,'Showtime: 21 Fragen in der Gliederung (v37: +4 Enthüllungen)');
+ok(new Set(M.flat(s).map(x=>x.question.type)).size===19,'Showtime enthält alle 19 Spielmodi');
 ok(M.numberOf(s,1,0)===s.quiz.rounds[0].questions.length+1,'laufende Nummer über Runden hinweg');
 ok(JSON.stringify(M.step(s,{kind:'question',ri:0,qi:s.quiz.rounds[0].questions.length-1},1))===JSON.stringify({kind:'question',ri:1,qi:0}),'› springt in die nächste Runde');
 ok(JSON.stringify(M.step(s,{kind:'question',ri:0,qi:0},-1))===JSON.stringify({kind:'question',ri:0,qi:0}),'‹ bleibt bei der ersten Frage');
@@ -22,7 +22,7 @@ ok(M.preview('  Sehr   lange Frage '.repeat(10),20).length===20&&M.preview('')==
 // ---------- Verschieben (auch zwischen Runden), nichts geht verloren ----------
 s=fresh();const before=byId(s);const first=s.quiz.rounds[0].questions[0].id;
 let sel=M.moveQuestion(s,0,0,1,1);
-ok(sel.ri===1&&sel.qi===1&&s.quiz.rounds[1].questions[1].id===first&&M.total(s)===17,'Frage in andere Runde gezogen');
+ok(sel.ri===1&&sel.qi===1&&s.quiz.rounds[1].questions[1].id===first&&M.total(s)===21,'Frage in andere Runde gezogen');
 ok(JSON.stringify(byId(s))===JSON.stringify(before),'beim Verschieben geht nichts verloren');
 s=fresh();sel=M.moveQuestion(s,0,0,0,3);ok(s.quiz.rounds[0].questions[2].id===first&&sel.qi===2,'innerhalb der Runde nach unten (Index vor dem Entfernen)');
 s=fresh();const lastInR0=s.quiz.rounds[0].questions.length-1;const mover=s.quiz.rounds[0].questions[lastInR0].id;
@@ -33,13 +33,13 @@ s=fresh();const r0=s.quiz.rounds[0].id;sel=M.moveRound(s,0,2);ok(s.quiz.rounds[1
 ok(JSON.stringify(byId(s))===JSON.stringify(before),'Runde verschieben: nichts verloren');
 // ---------- Duplizieren, Löschen, Einfügen ----------
 s=fresh();sel=M.duplicateQuestion(s,0,1);const orig=s.quiz.rounds[0].questions[1],copy=s.quiz.rounds[0].questions[2];
-ok(M.total(s)===18&&copy.id!==orig.id&&copy.text===`${orig.text} (Kopie)`&&sel.qi===2,'Frage duplizieren (Strg+D)');
+ok(M.total(s)===22&&copy.id!==orig.id&&copy.text===`${orig.text} (Kopie)`&&sel.qi===2,'Frage duplizieren (Strg+D)');
 {s.quiz.rounds[3].questions.push({id:'hl1',type:'higher-lower',text:'x',category:'x',points:1,timer:1,cards:[{id:'k1',label:'A',value:1},{id:'k2',label:'B',value:2}]});
  const d=M.duplicateQuestion(s,3,s.quiz.rounds[3].questions.length-1);const c=s.quiz.rounds[d.ri].questions[d.qi];
  ok(c.cards.every(card=>!['k1','k2'].includes(card.id)),'Duplikat bekommt neue Karten-IDs (Higher/Lower)');s.quiz.rounds[3].questions.splice(-2,2);}
-sel=M.deleteQuestion(s,0,2);ok(M.total(s)===17&&sel.kind==='question'&&sel.qi===2,'Frage löschen, Auswahl bleibt sinnvoll');
-s=fresh();sel=M.duplicateRound(s,1);ok(s.quiz.rounds.length===5&&s.quiz.rounds[2].title.endsWith('(Kopie)')&&new Set(M.flat(s).map(x=>x.question.id)).size===M.total(s),'Runde duplizieren mit neuen IDs');
-sel=M.deleteRound(s,2);ok(s.quiz.rounds.length===4&&sel.kind==='round','Runde löschen');
+sel=M.deleteQuestion(s,0,2);ok(M.total(s)===21&&sel.kind==='question'&&sel.qi===2,'Frage löschen, Auswahl bleibt sinnvoll');
+s=fresh();sel=M.duplicateRound(s,1);ok(s.quiz.rounds.length===6&&s.quiz.rounds[2].title.endsWith('(Kopie)')&&new Set(M.flat(s).map(x=>x.question.id)).size===M.total(s),'Runde duplizieren mit neuen IDs');
+sel=M.deleteRound(s,2);ok(s.quiz.rounds.length===5&&sel.kind==='round','Runde löschen');
 sel=M.addRound(s,0);ok(s.quiz.rounds[1].questions.length===0&&sel.ri===1,'neue Runde nach der gewählten');
 const q=V.validate({quiz:{title:'x',rounds:[{questions:[{type:'estimate',text:'neu',category:''}]}]}}).normalized.quiz.rounds[0].questions[0];
 sel=M.insertQuestion(s,{kind:'question',ri:0,qi:1},q);ok(sel.ri===0&&sel.qi===2&&s.quiz.rounds[0].questions[2]===q&&q.category===s.quiz.rounds[0].questions[1].category,'+ Frage landet hinter der gewählten und übernimmt das Thema');

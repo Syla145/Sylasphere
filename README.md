@@ -196,6 +196,8 @@ Alle Spielmodi mit Erklärung und spielbarer Demo stehen auf **`spielmodi.html`*
 | ▣ | Bilderquiz | Bild plus Antwortoptionen |
 | ♪ | Audio-Quiz | Audio-Clip plus Antwortoptionen |
 | 🎧 | Song-Enthüllung | Song in Stufen anspielen (0,1 s → 10 s). Wer früher richtig liegt, bekommt mehr Punkte, der Moderator prüft. Lautstärke pro Song einstellbar, Stille am Anfang wird übersprungen |
+| 🕵️ | Hinweis-Kaskade | „Wer/Was bin ich?“: 3–5 Hinweise von schwer nach leicht, Stufe für Stufe per Leertaste oder automatisch. Jeder loggt einmal ein – je früher, desto mehr Punkte (100/80/60/40/20 %). Tippfehler erkennt das System (≈), der Moderator prüft |
+| 🖼️ | Bild-Enthüllung | Ein Bild wird in 4–5 Stufen enthüllt: verpixelt, Zoom oder Kacheln. Einloggen und Punkte wie bei der Hinweis-Kaskade. Das Moderator-Gerät zeichnet die Stufen, Spieler bekommen das scharfe Bild erst bei der Auflösung |
 | ≈ | Schätzfrage | Wert per Regler schätzen. Wertung wählbar: **Nächste/r gewinnt** (Standard), **nur innerhalb der Toleranz** oder **je näher, desto mehr** |
 | ↕ | Sortierquiz | Elemente per Drag & Drop in die richtige Reihenfolge bringen |
 | ⇄ | Zuordnen | Paare bilden, zum Beispiel Land ↔ Hauptstadt |
@@ -209,9 +211,9 @@ Alle Spielmodi mit Erklärung und spielbarer Demo stehen auf **`spielmodi.html`*
 | ▦ | 3×3-Grid | Neun Felder, jedes muss zu seiner Zeile und Spalte passen. Alle tippen gleichzeitig, das System prüft pro Feld vor, du drehst Fehler per Tipp um. Punkte pro Feld plus Bonus fürs volle Grid |
 | ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 17 Spielmodi. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
+Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 19 Spielmodi. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
 
-**Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung gibt es weiter „Abschicken“, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Spielmodus ergänzt, steht in `js/question-types/README.md`.
+**Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung („Abschicken“), der Hinweis-Kaskade und der Bild-Enthüllung („Einloggen“) gibt man die Antwort bewusst ab, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Spielmodus ergänzt, steht in `js/question-types/README.md`.
 
 ### 3×3-Grid im Detail
 
@@ -255,7 +257,7 @@ Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geö
 
 Eine Runde kann statt „Normale Runde“ das Format **▦ Themen-Brett** haben (Editor → Runde → Format).
 - **Aufbau:** Standard 5 Themen × 3 Fragen mit 100 / 300 / 500 Punkten. Anzahl der Themen, Fragen pro Thema und die Punkte je Zeile sind einstellbar. Im Editor siehst du das Raster: Frage antippen = bearbeiten, am Griff ⠿ in ein anderes Feld ziehen (tauscht die Fragen). Am Handy geht das über „Frage … in Feld … verschieben“.
-- **Erlaubte Spielmodi:** Multiple Choice, Schätzfrage und Song-Enthüllung – jeweils **richtig oder falsch, keine Teilpunkte**. Schätzfrage: richtig, wenn der Tipp innerhalb der Toleranz liegt (ohne Toleranz nur exakt).
+- **Erlaubte Spielmodi:** Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade und Bild-Enthüllung – jeweils **richtig oder falsch, keine Teilpunkte**. Schätzfrage: richtig, wenn der Tipp innerhalb der Toleranz liegt (ohne Toleranz nur exakt).
 - **Ablauf:** Reihum in der Lobby-Reihenfolge. Wer dran ist, wählt am Handy ein Feld und antwortet allein: richtig = Feldwert, falsch = 0. Der Beamer zeigt das große Brett, wer dran ist und wer als Nächstes kommt; gespielte Felder werden grau mit Avatar.
 - **Mitraten** (im Editor abschaltbar, Standard an): Die anderen sehen die Frage und raten ohne Punkte mit. Bei der Auflösung steht „Hätten es auch gewusst: …“.
 - **Nur volle Runden:** Reicht der Rest nicht mehr für eine volle Runde (jeder einmal), spielen alle die übrigen Felder gemeinsam mit normaler Wertung. Das nächste Brett beginnt bei dem, der als Nächstes dran gewesen wäre.
@@ -264,7 +266,7 @@ Eine Runde kann statt „Normale Runde“ das Format **▦ Themen-Brett** haben 
 
 ### Einsatz-Finale (seit v34)
 
-Im Editor (Quiz-Einstellungen) **„💰 Letzte Frage als Einsatz-Finale“** anhaken. Die letzte Frage des Quiz (Multiple Choice, Schätzfrage oder Song-Enthüllung, nicht in einem Brett) wird dann so gespielt:
+Im Editor (Quiz-Einstellungen) **„💰 Letzte Frage als Einsatz-Finale“** anhaken. Die letzte Frage des Quiz (Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade oder Bild-Enthüllung, nicht in einem Brett) wird dann so gespielt:
 1. **💰 Einsätze einsammeln:** Alle sehen nur das Thema und setzen geheim 0 bis alle eigenen Punkte (wer 0 oder weniger hat, bis 100).
 2. Dann läuft die Frage normal. **Richtig = +Einsatz, falsch = −Einsatz.**
 3. **Auflösung Spieler für Spieler** vom Letzten zum Ersten: Antwort → Einsatz → neue Punkte, jeweils per Leertaste. Die Rangliste bleibt bis zum Ende verborgen.

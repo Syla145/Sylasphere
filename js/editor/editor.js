@@ -706,7 +706,7 @@
     const grid = div('ed-type-grid');
     const round = state.quiz.rounds[selection.ri];
     const onlyBoard = Quiz.isBoardRound(round); // v34: im Brett nur Multiple Choice, Schätzfrage, Song-Enthüllung
-    if (onlyBoard) grid.append(div('microcopy ed-type-note', 'Im Themen-Brett gehen nur Multiple Choice, Schätzfrage und Song-Enthüllung (richtig oder falsch, keine Teilpunkte).'));
+    if (onlyBoard) grid.append(div('microcopy ed-type-note', 'Im Themen-Brett gehen nur Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade und Bild-Enthüllung (richtig oder falsch, keine Teilpunkte).'));
     Quiz.SUPPORTED_TYPES.filter(t => (!Quiz.typeDef(t)?.hidden || t === current) && (!onlyBoard || Quiz.BOARD_TYPES.includes(t))).forEach(t => {
       const wrap = div(`ed-type-tile${t === current ? ' is-current' : ''}`);
       const tile = document.createElement('button');
@@ -847,7 +847,7 @@
     const finalCheck = document.createElement('input'); finalCheck.type = 'checkbox'; finalCheck.checked = state.quiz.settings.finalWager === true;
     finalCheck.addEventListener('change', e => { state.quiz.settings.finalWager = e.target.checked; refreshValidation(); queueSave(); });
     finalLabel.append(finalCheck, document.createTextNode(' 💰 Letzte Frage als Einsatz-Finale'));
-    finalBox.append(finalLabel, div('microcopy', 'Vor der letzten Frage setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100). Richtig: +Einsatz, falsch: −Einsatz. Die letzte Frage muss Multiple Choice, Schätzfrage oder Song-Enthüllung sein und in einer eigenen Runde (kein Brett) stehen.'));
+    finalBox.append(finalLabel, div('microcopy', 'Vor der letzten Frage setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100). Richtig: +Einsatz, falsch: −Einsatz. Die letzte Frage muss Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade oder Bild-Enthüllung sein und in einer eigenen Runde (kein Brett) stehen.'));
     // v35: Spielmodi erklären
     const explainBox = div('field-group ed-section');
     const explainLabel = document.createElement('label'); explainLabel.className = 'ed-check';

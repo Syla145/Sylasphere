@@ -2,7 +2,7 @@
   "quiz": {
     "id": "quiz_jh_showtime_v5",
     "title": "Sylasphere: Showtime",
-    "description": "Vier abwechslungsreiche Runden mit allen Spielmodi – inklusive Audio, Publikums-Duell, Dilemma und Hotspot.",
+    "description": "Abwechslungsreiche Runden mit allen Spielmodi – inklusive Audio, Publikums-Duell, Dilemma und Hotspot.",
     "settings": {
       "defaultTimer": 25,
       "defaultPoints": 100,
@@ -790,6 +790,139 @@
                 ]
               }
             ]
+          }
+        ]
+      },
+      {
+        "id": "show_round_reveal",
+        "title": "Enthüllungen",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "show_clue_einstein",
+            "type": "clue-cascade",
+            "category": "Geschichte",
+            "points": 100,
+            "text": "Wer bin ich?",
+            "clues": [
+              {
+                "text": "Ich wurde 1879 in Ulm geboren.",
+                "image": ""
+              },
+              {
+                "text": "Ich habe als Prüfer in einem Patentamt in Bern gearbeitet.",
+                "image": ""
+              },
+              {
+                "text": "1921 bekam ich den Nobelpreis für Physik.",
+                "image": ""
+              },
+              {
+                "text": "E = mc²",
+                "image": ""
+              }
+            ],
+            "solution": "Albert Einstein",
+            "aliases": [
+              "Einstein"
+            ],
+            "percents": [
+              100,
+              80,
+              60,
+              40
+            ],
+            "autoAdvance": 0
+          },
+          {
+            "id": "show_clue_tokio",
+            "type": "clue-cascade",
+            "category": "Geografie",
+            "points": 100,
+            "text": "Welche Stadt suchen wir?",
+            "clues": [
+              {
+                "text": "In meinem Großraum leben fast 40 Millionen Menschen.",
+                "image": ""
+              },
+              {
+                "text": "Hier fanden 1964 und 2021 Olympische Sommerspiele statt.",
+                "image": ""
+              },
+              {
+                "text": "An meiner Kreuzung in Shibuya laufen Tausende gleichzeitig über die Straße.",
+                "image": ""
+              },
+              {
+                "text": "Ich bin die Hauptstadt eines Inselstaats.",
+                "image": ""
+              },
+              {
+                "text": "Das ist die Flagge meines Landes.",
+                "image": "./assets/flaggen/japan.svg"
+              }
+            ],
+            "solution": "Tokio",
+            "aliases": [
+              "Tokyo",
+              "Tōkyō"
+            ],
+            "percents": [
+              100,
+              80,
+              60,
+              40,
+              20
+            ],
+            "autoAdvance": 20
+          },
+          {
+            "id": "show_reveal_flag",
+            "type": "image-reveal",
+            "category": "Geografie",
+            "points": 100,
+            "text": "Welches Land hat diese Flagge?",
+            "image": "./assets/flaggen/indien.svg",
+            "imageAlt": "Flagge von Indien",
+            "mode": "pixel",
+            "solution": "Indien",
+            "aliases": [
+              "India"
+            ],
+            "percents": [
+              100,
+              80,
+              60,
+              40,
+              20
+            ],
+            "autoAdvance": 0
+          },
+          {
+            "id": "show_reveal_zoom",
+            "type": "image-reveal",
+            "category": "Allgemeinwissen",
+            "points": 100,
+            "text": "Was ist auf dem Bild?",
+            "image": "./assets/duell/schneemann.svg",
+            "imageAlt": "Schneemann",
+            "mode": "zoom",
+            "zoomX": 0.55,
+            "zoomY": 0.42,
+            "zoomMax": 10,
+            "solution": "Schneemann",
+            "aliases": [
+              "Schneefrau",
+              "Snowman"
+            ],
+            "percents": [
+              100,
+              80,
+              60,
+              40,
+              20
+            ],
+            "autoAdvance": 0
           }
         ]
       }

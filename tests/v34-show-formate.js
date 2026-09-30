@@ -15,7 +15,7 @@ const boardQuiz=(extra={})=>({quiz:{title:'Show',settings:{finalWager:true},roun
 let v=V.validate(boardQuiz());let R=v.normalized.quiz.rounds[0];
 ok(v.valid&&R.format==='board'&&R.board.values.join()==='100,300,500'&&R.board.coGuess===true,'Brett normalisiert (Standard 5×3, 100/300/500, Mitraten an)');
 ok(R.questions.every(q=>q.cell)&&new Set(R.questions.map(q=>`${q.cell.t}:${q.cell.v}`)).size===15&&R.questions[0].points===100&&R.questions[2].points===500,'jede Frage hat ein Feld, Punkte = Feldwert');
-{const bad=boardQuiz();bad.quiz.rounds[0].questions[3]={id:'x',type:'fight-list',text:'x',category:'x',correctAnswers:['a']};const r=V.validate(bad);ok(!r.valid&&r.errors.some(e=>/nur Multiple Choice, Schätzfrage und Song/.test(e.message)),'andere Fragetypen im Brett → Fehler');}
+{const bad=boardQuiz();bad.quiz.rounds[0].questions[3]={id:'x',type:'fight-list',text:'x',category:'x',correctAnswers:['a']};const r=V.validate(bad);ok(!r.valid&&r.errors.some(e=>/nur Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade, Bild-Enthüllung erlaubt/.test(e.message)),'andere Fragetypen im Brett → Fehler');}
 {const bad=boardQuiz();bad.quiz.rounds[1].questions[0]={id:'fin',type:'buzzer',text:'x',category:'x'};ok(V.validate(bad).errors.some(e=>/Einsatz-Finale/.test(e.message)),'Einsatz-Finale nur mit erlaubtem Typ');}
 ok(Q.isFinalWager(v.normalized,1,0)&&!Q.isFinalWager(v.normalized,0,14),'letzte Frage = Einsatz-Finale');
 // Richtig/falsch ohne Teilpunkte

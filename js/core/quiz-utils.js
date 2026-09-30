@@ -65,7 +65,7 @@
    *   Jede Frage bekommt cell: { t: Themen-Index, v: Zeilen-Index }; ihre Punkte = Feldwert.
    *   Fragen ohne (gültiges/freies) Feld rücken in das nächste freie Feld (Thema für Thema, von oben nach unten).
    */
-  const BOARD_TYPES = ['multiple-choice', 'estimate', 'song-reveal'];
+  const BOARD_TYPES = ['multiple-choice', 'estimate', 'song-reveal', 'clue-cascade', 'image-reveal'];
   function normalizeBoard(r) {
     const b = r.board && typeof r.board === 'object' ? r.board : {};
     const values = (Array.isArray(b.values) ? b.values : String(b.values ?? '').split(/[,;\s]+/)).map(Number).filter(n => Number.isFinite(n) && n >= 0);

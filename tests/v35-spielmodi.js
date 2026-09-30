@@ -19,7 +19,7 @@ const checkHelp=(id,h)=>{
 T.list().forEach(def=>{checkHelp(def.type,def.help);ok(def.description===def.help.short,`${def.type}: description kommt aus help.short`);});
 M.SHOW_MODES.forEach(m=>checkHelp(m.id,m.help));
 const all=M.list();
-ok(all.length===19&&all.some(m=>m.id==='board')&&all.some(m=>m.id==='final')&&!all.some(m=>m.id==='higher-lower'),'Galerie: 17 Spielmodi + Brett + Einsatz-Finale, versteckte nicht');
+ok(all.length===21&&all.some(m=>m.id==='board')&&all.some(m=>m.id==='final')&&!all.some(m=>m.id==='higher-lower'),'Galerie: 19 Spielmodi + Brett + Einsatz-Finale, versteckte nicht');
 ok(groups.every(g=>all.some(m=>m.help.group===g)),'jede Gruppe hat Spielmodi');
 ok(T.get('consensus').label==='Dilemma'&&!Object.values(Q.TYPE_LABELS).includes('Gleich gedacht'),'„Gleich gedacht“ heißt jetzt „Dilemma“ (Typ bleibt consensus)');
 ok(Kit.modeText('consensus')===T.get('consensus').help.short&&Kit.modeText('sort','steps',1)===T.get('sort').help.steps[1],'Hinweistexte in der Frage kommen aus help');

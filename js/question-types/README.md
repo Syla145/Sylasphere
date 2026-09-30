@@ -110,6 +110,8 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
 | `publishAnswers: true` | Nach der Auflösung sehen alle Spieler und Zuschauer die Antworten der anderen. |
 | `reviewParts(q)` | Getrennte Prüfung mehrerer Teile, z. B. `[{ key: 'title', label: 'Titel' }, { key: 'artist', label: 'Interpret' }]`. Die Entscheidung kommt dann als Objekt `verdicts[playerId] = { title: true, artist: false }`. |
 | `stages(q)` | Stufen-Frage: `[{ duration, percent }]`. Der Moderator schaltet die Stufen weiter, die Antwort bekommt automatisch `answer.stage` (Beispiel: `song-reveal.js`). |
+| `stageFlow: 'step'` | v37: „Nächster Schritt“/Leertaste deckt die nächste Stufe auf, Handy-Knopf „Einloggen bei Stufe n (= x Punkte)“ (Beispiel: `clue-cascade.js`, `image-reveal.js`; gemeinsame Logik `Kit.Stages`). |
+| `stageReveal(q, stage)` | v37: Was bei Stufe n für alle sichtbar ist (darf ein Promise sein). Das Moderator-Gerät veröffentlicht es als `ctx.stageReveal`; alles andere mit `hideSolution` aus der Spieler-Frage entfernen. |
 | `lockOnSubmit: true` | Antwort kann nach dem Abschicken nicht mehr geändert werden (online von den Firebase-Regeln geprüft). |
 | `mediaClip(q, media)` / `revealMedia: true` | Was bei einem Abspiel-Befehl auf allen Geräten läuft: `{ url, offset, duration, fade }`; mit `revealMedia` automatisch beim Auflösen. |
 | `update(q, container, ctx)` | Anzeige aktualisieren ohne Neuzeichnen (z. B. neue Stufe), damit Eingabefelder den Fokus behalten. |

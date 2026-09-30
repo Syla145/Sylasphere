@@ -478,6 +478,7 @@
     const stages = Quiz.stagesOf(current.question);
     const stage = Number(state.stage) || 0;
     const locked = Quiz.locksOnSubmit(current.question) && Boolean(answerRecord);
+    const stepStages = Quiz.typeDef(current.question.type)?.stageFlow === 'step'; // v37: Einloggen bei Stufe n
 
     if (answerWindowOpen && locked) {
       // Antwort ist abgegeben und gesperrt (z. B. Song-Enthüllung)
@@ -485,7 +486,9 @@
       renderQuestion(current.question, { currentAnswer: answerRecord.answer, readOnly: true, reveal: false, result: questionResult, stage });
       els['submit-answer'].hidden = true;
       const at = stages ? stages[Math.min(stages.length - 1, Number(answerRecord.answer?.stage) || 0)] : null;
-      els['answer-feedback'].innerHTML = `<div class="notice notice--success">🔒 Antwort abgegeben${at ? ` in Stufe ${(Number(answerRecord.answer?.stage) || 0) + 1} (${at.percent} % der Punkte)` : ''}. Der Moderator prüft sie bei der Auflösung.</div>`;
+      els['answer-feedback'].innerHTML = stepStages
+        ? `<div class="notice notice--success">🔒 Eingeloggt bei Stufe ${(Number(answerRecord.answer?.stage) || 0) + 1} – warte auf die Auflösung …</div>`
+        : `<div class="notice notice--success">🔒 Antwort abgegeben${at ? ` in Stufe ${(Number(answerRecord.answer?.stage) || 0) + 1} (${at.percent} % der Punkte)` : ''}. Der Moderator prüft sie bei der Auflösung.</div>`;
     } else if (answerWindowOpen) {
       App.setText(els['game-status'], 'Frage läuft');
       // v24: Ohne „Abschicken“ – jede Änderung wird automatisch gespeichert; was beim Zeitablauf drinsteht, zählt.
@@ -493,8 +496,12 @@
       const manual = Quiz.locksOnSubmit(current.question);
       renderQuestion(current.question, { currentAnswer: draftAnswer, readOnly: false, reveal: false, result: questionResult, stage, onAnswer: value => { draftAnswer = value; updateSubmit(); if (!manual) scheduleAutoSave(current.question.id); } });
       els['submit-answer'].hidden = !manual; els['submit-answer'].disabled = draftAnswer == null;
-      els['submit-answer'].textContent = stages ? `Abschicken · ${stages[Math.min(stages.length - 1, stage)].percent} %` : 'Antwort abschicken';
-      els['answer-feedback'].innerHTML = manual
+      const pct = stages ? stages[Math.min(stages.length - 1, stage)].percent : 100;
+      const mult = Number(current.round?.pointsMultiplier); const onBoard = Quiz.isBoardRound(current.round) || Quiz.isFinalWager(state.quiz, state.currentRoundIndex, state.currentQuestionIndex);
+      const worth = Math.round((Number(current.question.points) || 0) * (Number.isFinite(mult) ? Math.max(0, mult) : 1) * pct / 100);
+      els['submit-answer'].textContent = stepStages ? `🔒 Einloggen bei Stufe ${Math.min(stages.length - 1, stage) + 1}${onBoard ? '' : ` (= ${worth} Punkte)`}` : stages ? `Abschicken · ${pct} %` : 'Antwort abschicken';
+      els['answer-feedback'].innerHTML = stepStages ? ''
+        : manual
         ? '<div class="notice">Du kannst nur einmal abschicken – danach ist deine Antwort gesperrt.</div>'
         : `<div class="notice autosave-note${answerRecord ? ' is-saved' : ''}">${answerRecord ? '✓ Gespeichert – du kannst bis zum Ende noch ändern.' : '✎ Deine Antwort wird automatisch gespeichert. Was beim Zeitablauf drinsteht, zählt.'}</div>`;
     } else if (!resolved) {
@@ -518,6 +525,7 @@
    * so kein Neuzeichnen mehr aus – Textfelder behalten den Fokus, Regler springen nicht.
    */
   function renderQuestion(question, ctx) {
+    ctx = Object.assign({ stageReveal: state.stageReveal || null }, ctx); // v37: aufgedeckte Hinweise/Bildstufe
     const host = els['game-question'];
     const frozenAnswer = ctx.readOnly || ctx.reveal ? (ctx.currentAnswer ?? null) : null;
     const key = JSON.stringify([question.id, Boolean(ctx.readOnly), Boolean(ctx.reveal), ctx.result ?? null, frozenAnswer]);

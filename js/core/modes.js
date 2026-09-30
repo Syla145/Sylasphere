@@ -36,7 +36,7 @@
           'Dann ist der Nächste dran. Achtung: Hinter manchen Feldern steckt ein 💎 Doppel-Feld mit Einsatz.'
         ],
         scoring: 'Richtig = Feldwert, falsch = 0. Doppel-Feld: Du setzt vorher Punkte – richtig = +Einsatz, falsch = 0. Felder, die nicht mehr für eine ganze Runde reichen, spielen alle gemeinsam.',
-        moderator: 'Der Show-Höhepunkt ab 3 Spielern. Vorbereiten: bei der Runde das Format „Themen-Brett“ wählen, Themen benennen und das Raster mit Multiple Choice, Schätzfragen oder Song-Enthüllungen füllen. Du kannst für jemanden ein Feld wählen oder einen Zug überspringen.'
+        moderator: 'Der Show-Höhepunkt ab 3 Spielern. Vorbereiten: bei der Runde das Format „Themen-Brett“ wählen, Themen benennen und das Raster mit Multiple Choice, Schätzfragen, Song-Enthüllungen, Hinweis-Kaskaden oder Bild-Enthüllungen füllen. Du kannst für jemanden ein Feld wählen oder einen Zug überspringen.'
       }
     },
     {
@@ -50,7 +50,7 @@
           'Die Auflösung läuft Spieler für Spieler, vom Letzten zum Ersten.'
         ],
         scoring: 'Richtig = +Einsatz, falsch = −Einsatz. Wer 0 oder weniger Punkte hat, darf bis 100 setzen.',
-        moderator: 'Spannender Abschluss, bei dem noch alles kippen kann. Vorbereiten: im Quiz „Letzte Frage als Einsatz-Finale“ anhaken; die letzte Frage ist Multiple Choice, Schätzfrage oder Song-Enthüllung. Tipp: eine mittelschwere Frage wählen – ist sie zu leicht, setzen alle alles.'
+        moderator: 'Spannender Abschluss, bei dem noch alles kippen kann. Vorbereiten: im Quiz „Letzte Frage als Einsatz-Finale“ anhaken; die letzte Frage ist Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade oder Bild-Enthüllung. Tipp: eine mittelschwere Frage wählen – ist sie zu leicht, setzen alle alles.'
       }
     }
   ];

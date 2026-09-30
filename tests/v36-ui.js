@@ -31,7 +31,8 @@ if(base){pages.forEach(f=>{let old='';try{old=execSync(`git show ${base}:${f}`,{
  const lostData=[...grab(old,/\s(data-[a-z-]+)/g)].filter(x=>!grab(now,/\s(data-[a-z-]+)/g).has(x));
  const cls=h=>new Set([...h.matchAll(/class="([^"]+)"/g)].flatMap(m=>m[1].split(/\s+/)));const lostCls=[...cls(old)].filter(x=>!cls(now).has(x));
  ok(!lost.length&&!lostData.length&&!lostCls.length,`${f}: alle IDs/data-/Klassen erhalten ${[...lost,...lostData,...lostCls].join(',')}`);});
- const jsFiles=execSync(`git diff --name-only ${base} -- js`,{cwd:root}).toString().trim().split('\n').filter(Boolean).sort();ok(jsFiles.join()==='js/core/app.js,js/views/spectator-view.js','JS: nur Versionsnummer + Beamer-Neumessung geändert ('+jsFiles.join()+')');
+ let v36='';try{v36=execSync('git rev-list -n1 --grep="^v36:" HEAD',{cwd:root}).toString().trim()}catch(e){} // v37: spätere Versionen dürfen JS ändern – geprüft wird der v36-Stand
+ const jsFiles=execSync(`git diff --name-only ${base} ${v36} -- js`,{cwd:root}).toString().trim().split('\n').filter(Boolean).sort();ok(jsFiles.join()==='js/core/app.js,js/views/spectator-view.js','JS: nur Versionsnummer + Beamer-Neumessung geändert ('+jsFiles.join()+')');
  const rules=execSync(`git diff --name-only ${base} -- firebase-database.rules.json storage.rules firestore.rules`,{cwd:root}).toString().trim();ok(rules==='','keine Änderung an den Firebase-Regeln');}
 ok(/APP_VERSION = 'v(3[6-9]|[4-9]\d)'/.test(code('js/core/app.js'))&&code('CHANGELOG.md').includes('## v36'),'Version v36 + Changelog');
 console.log(`PASS ${pass} / FAIL ${fail}`);process.exit(fail?1:0);

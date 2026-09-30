@@ -142,7 +142,7 @@
       const action = btn.dataset.songAction;
       window.SylasphereMedia?.unlock();
       if (action === 'play') safe(() => engine.playStage());
-      if (action === 'next') safe(() => engine.advanceStage());
+      if (action === 'next') { if (isStepStages(engine.getCurrent(state)?.question)) nextStage(); else safe(() => engine.advanceStage()); }
       if (action === 'reveal') safe(() => engine.playReveal());
       if (action === 'mute') { const m = window.SylasphereMedia; m?.setEnabled(!m.status().enabled); renderQuestion(engine.getCurrent(state)); }
     });
@@ -348,6 +348,7 @@
     App.setText(els['mod-share-code'], `Code ${state.code}`);
     renderQbar(current, qIndexGlobal, total);
     hostShow(); // v34: Brett/Finale – Moderator-Rechner führt den Stand
+    hostStages(current); // v37: Stufen-Spielmodi – aufgedeckten Stand veröffentlichen, Auto-Weiter
     renderPlayers(); renderQuestion(current); augmentShowResult(current); renderTimer(); renderButtons(current);
     if (state.status === 'finished') saveResults(); // v28: XP & Statistiken beim Spielende
     window.SylasphereSfx?.observe(state, { current }); // v27 (auf der Moderator-Seite standardmäßig aus)
@@ -355,6 +356,53 @@
     const qrBox = document.getElementById('join-qr-small');
     const qrKey = `${state.code}|${transport}`;
     if (qrBox && qrBox.dataset.key !== qrKey && window.SylasphereJoin) { qrBox.dataset.key = qrKey; qrBox.innerHTML = window.SylasphereJoin.joinCard(state.code, transport, { size: 'small', title: 'QR für Spieler' }); }
+  }
+
+  // ---------------------------------------------------------------- v37: Stufen-Spielmodi (Hinweis-Kaskade, Bild-Enthüllung)
+  const stageHost = { publishing: '', clockKey: '', elapsed: 0, last: 0, timer: 0 };
+  const isStepStages = q => Quiz.typeDef(q?.type)?.stageFlow === 'step';
+  /** Das Moderator-Gerät veröffentlicht, was bei der aktuellen Stufe sichtbar ist (Hinweise bzw. verfremdetes Bild) */
+  function hostStages(current) {
+    const q = current?.question;
+    const def = Quiz.typeDef(q?.type);
+    if (!q || !def?.stageReveal || !engine?.setStageReveal || !state.questionStartedAt || state.scoredQuestionIds?.includes(q.id)) return;
+    const stage = Number(state.stage) || 0;
+    const key = `${q.id}:${stage}`;
+    const sr = state.stageReveal;
+    if ((sr && sr.qid === q.id && Number(sr.stage) === stage) || stageHost.publishing === key) return;
+    stageHost.publishing = key;
+    Promise.resolve(def.stageReveal(q, stage))
+      .then(value => { const fresh = engine.getCurrent(state).question; if (fresh?.id === q.id && (Number(state.stage) || 0) === stage) return engine.setStageReveal(value); })
+      .catch(error => App.toast(transport === 'online' ? Firebase.friendlyError(error) : error.message, 'error'))
+      .finally(() => { if (stageHost.publishing === key) stageHost.publishing = ''; if (state) hostStages(engine.getCurrent(state)); });
+    if (!stageHost.timer) stageHost.timer = setInterval(stageTick, 500);
+  }
+  /** Auto-Weiter: zählt nur, solange die Frage offen und nicht pausiert ist */
+  function stageTick() {
+    if (!engine || !state) return;
+    const q = engine.getCurrent(state)?.question;
+    const now = Date.now();
+    const seconds = Number(q?.autoAdvance) || 0;
+    const stages = Quiz.stagesOf(q);
+    const stage = Number(state.stage) || 0;
+    const key = q ? `${q.id}:${stage}` : '';
+    if (key !== stageHost.clockKey) { stageHost.clockKey = key; stageHost.elapsed = 0; stageHost.last = now; }
+    const running = isStepStages(q) && seconds > 0 && stages && stage < stages.length - 1 && state.status === 'playing' && state.questionOpen && !state.paused && !state.scoredQuestionIds?.includes(q.id);
+    if (running) stageHost.elapsed += now - stageHost.last;
+    stageHost.last = now;
+    const left = running ? Math.max(0, Math.ceil(seconds - stageHost.elapsed / 1000)) : null;
+    const out = document.querySelector('[data-stage-countdown]');
+    if (out) out.textContent = left == null ? (state.paused ? '⏸ pausiert' : '') : `nächste Stufe in ${left} s`;
+    if (running && stageHost.elapsed >= seconds * 1000 && !stepping) { stageHost.elapsed = -1e9; nextStage(); }
+  }
+  async function nextStage() {
+    const q = engine.getCurrent(state)?.question;
+    if (!q || !Quiz.stagesOf(q)) return;
+    const before = Number(state.stage) || 0;
+    undoStack.push({ label: `Stufe ${before + 2}`, stage: before, questionId: q.id });
+    if (undoStack.length > 10) undoStack.shift();
+    updateTools();
+    await safe(() => engine.advanceStage());
   }
 
   function statusLabel(s) {
@@ -617,6 +665,10 @@
     const entry = undoStack.pop();
     updateTools();
     if (!entry) return;
+    if (entry.stage != null) { // v37: „Nächste Stufe“ zurücknehmen
+      if (engine.getCurrent(state).question?.id === entry.questionId && engine.setStage) { await safe(() => engine.setStage(entry.stage)); App.toast(`Zurück zu Stufe ${entry.stage + 1}.`, 'success'); }
+      return;
+    }
     const current = engine.getCurrent(state).question?.id || '';
     const unresolve = entry.unresolve && entry.unresolve === current ? entry.unresolve : '';
     await safe(() => engine.restoreScores(entry.snapshot, { unresolve }));
@@ -731,8 +783,8 @@
       const live = Renderers.presentLive(current.question) ? Object.entries(liveAnswers).map(([id, r]) => `${id}:${r?.answer?.stage ?? ''}`).sort().join(',') : '';
       const key = JSON.stringify([current.question.id, resolved, questionResult ?? null, live, state.players.length]);
       const area = els['question-area'];
-      if (area.dataset.presentKey === key && area.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, area, { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage });
-      else { Renderers.renderPresent(current.question, area, { reveal: resolved, result: questionResult, stage: state.stage, players: state.players, answers: liveAnswers, role: 'moderator' }); area.dataset.presentKey = key; }
+      if (area.dataset.presentKey === key && area.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, area, { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage, stageReveal: state.stageReveal || null, players: state.players, answers: liveAnswers });
+      else { Renderers.renderPresent(current.question, area, { reveal: resolved, result: questionResult, stage: state.stage, stageReveal: state.stageReveal || null, players: state.players, answers: liveAnswers, role: 'moderator' }); area.dataset.presentKey = key; }
     } else { els['question-area'].dataset.presentKey = ''; Renderers.renderModerator(current.question, els['question-area'], { readOnly: true, reveal: resolved, result: questionResult, stage: state.stage }); }
     window.SylasphereMedia?.sync(state.media, current.question); // Ton auch auf dem Moderator-Gerät (abschaltbar)
     const answers = state.answers[current.question.id] || {};
@@ -922,6 +974,7 @@
     const explicit = reviews[question.id]?.[playerId]?.[part];
     if (typeof explicit === 'boolean') return { value: explicit, source: 'moderator' };
     const suggestion = Quiz.autoCheck(question, answer, part);
+    if (suggestion === 'fuzzy') return { value: true, source: 'auto', fuzzy: true }; // v37: ≈ Tippfehler erkannt – zählt als richtig
     return typeof suggestion === 'boolean' ? { value: suggestion, source: 'auto' } : { value: null, source: 'open' };
   }
   function resolveOptions() {
@@ -974,7 +1027,8 @@
       const verdicts = parts.map(part => verdictFor(question, pid, a.answer, part.key));
       open += verdicts.filter(v => v.value === null).length;
       const cls = verdicts.every(v => v.value === true) ? 'is-right' : verdicts.some(v => v.value === null) ? 'is-open' : verdicts.some(v => v.value === true) ? 'is-partial' : 'is-wrong';
-      const auto = verdicts.some(v => v.source === 'auto') ? '<small>Vorschlag: exakter Treffer</small>' : '';
+      const auto = verdicts.some(v => v.fuzzy) ? '<small class="review-fuzzy">≈ Tippfehler erkannt – zählt als richtig</small>'
+        : verdicts.some(v => v.source === 'auto') ? `<small>Vorschlag: ${verdicts.every(v => v.value === true) ? '✓ Treffer' : '✗ kein Treffer'}</small>` : '';
       const stageNote = stages && a.answer && typeof a.answer === 'object' ? `<small>Stufe ${(Number(a.answer.stage) || 0) + 1} · ${stages[Math.min(stages.length - 1, Number(a.answer.stage) || 0)].percent} %</small>` : '';
       const shown = parts.length > 1 && a.answer && typeof a.answer === 'object'
         ? parts.map(part => `<span class="review-part-answer"><em>${App.escapeHTML(part.label)}:</em> ${App.escapeHTML(String(a.answer[part.key] || '–'))}</span>`).join('')
@@ -993,8 +1047,15 @@
     const media = window.SylasphereMedia?.status() || { enabled: false };
     const perStage = stages.map(() => 0);
     Object.values(state.answers[question.id] || {}).forEach(record => { const i = Math.min(stages.length - 1, Number(record?.answer?.stage) || 0); perStage[i]++; });
-    const chips = stages.map((s, i) => `<div class="song-stage${!resolved && i === stage ? ' is-current' : ''}${!resolved && i < stage ? ' is-past' : ''}"><b>${i + 1}</b><span>${String(s.duration).replace('.', ',')} s</span><small>${s.percent} % · ${perStage[i]} Antw.</small></div>`).join('');
     const last = stage >= stages.length - 1;
+    if (isStepStages(question)) {
+      // v37: Hinweis-Kaskade / Bild-Enthüllung – Stufen mit Einlogg-Zahl, Weiter (= Leertaste), Auto-Weiter-Anzeige
+      const chipsStep = stages.map((s, i) => `<div class="song-stage${!resolved && i === stage ? ' is-current' : ''}${!resolved && i < stage ? ' is-past' : ''}"><b>${i + 1}</b><small>${s.percent} % · ${perStage[i]} eingeloggt</small></div>`).join('');
+      const auto = Number(question.autoAdvance) > 0 ? `<span class="microcopy" data-stage-countdown aria-live="polite"></span>` : '';
+      const controlsStep = resolved || !state.questionOpen ? '' : `<button type="button" class="btn btn--primary" data-song-action="next" ${state.questionOpen && !last && !state.paused ? '' : 'disabled'}>⏭ Nächste Stufe${last ? ' – letzte erreicht' : ` (${stage + 2}/${stages.length})`}</button>${auto}`;
+      return `<div class="song-control"><div class="song-stages">${chipsStep}</div>${controlsStep ? `<div class="song-control-actions">${controlsStep}</div>` : ''}<p class="microcopy">${Number(question.autoAdvance) > 0 ? `Automatisch weiter alle ${Number(question.autoAdvance)} s (pausiert mit ⏸). ` : ''}Leertaste = nächste Stufe. Eingeloggte Antworten sind fest; wer bis zur letzten Stufe nicht einloggt, bekommt 0.</p></div>`;
+    }
+    const chips = stages.map((s, i) => `<div class="song-stage${!resolved && i === stage ? ' is-current' : ''}${!resolved && i < stage ? ' is-past' : ''}"><b>${i + 1}</b><span>${String(s.duration).replace('.', ',')} s</span><small>${s.percent} % · ${perStage[i]} Antw.</small></div>`).join('');
     const sound = `<button type="button" class="btn btn--small${media.enabled ? '' : ' is-off'}" data-song-action="mute">${media.enabled ? '🔊 Ton hier an' : '🔇 Ton hier aus'}</button>`;
     const controls = resolved
       ? `<button type="button" class="btn" data-song-action="reveal">▶ Auflösung erneut abspielen</button>${sound}`
@@ -1101,6 +1162,7 @@
       started: Boolean(q && state.questionStartedAt), open: Boolean(state.questionOpen), resolved,
       isFirst: index <= 0, isLast: index >= total - 1,
       isBuzzer: q?.type === 'buzzer', contender: Boolean(buzz?.contenderId),
+      stageStep: isStepStages(q), stage: Number(state.stage) || 0, stageLast: Math.max(0, (Quiz.stagesOf(q)?.length || 1) - 1), paused: Boolean(state.paused),
       isGame: Boolean(Game), gameRunning: Boolean(Game && game), gameDone: Boolean(Game && game && (Game.isOver ? Game.isOver(game) : game.phase === 'done'))
     };
   }
@@ -1135,6 +1197,7 @@
       if (key === 'start-game') await engine.startGame();
       else if (key === 'open') await engine.startQuestion();
       else if (key === 'close') await engine.lockQuestion();
+      else if (key === 'stage') await nextStage();
       else if (key === 'resolve') {
         const q = engine.getCurrent(state).question;
         if (state.questionOpen && q?.type !== 'buzzer') await engine.lockQuestion();

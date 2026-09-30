@@ -136,8 +136,8 @@
     // v32: Präsentations-Ansicht (ohne Eingabefelder); Song-Enthüllung zeichnet bei neuen Antworten neu (Avatare an den Stufen)
     const live = Renderers.presentLive(current.question) ? Object.entries(answers).map(([id, r]) => `${id}:${r?.answer?.stage ?? r?.stage ?? ''}`).sort().join(',') : '';
     const key = JSON.stringify([current.question.id, resolved, result ?? null, live, state.players.length]);
-    if (shown.dataset.renderKey === key && shown.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, shown, { readOnly: true, reveal: resolved, result, stage: state.stage });
-    else { Renderers.renderPresent(current.question, shown, { reveal: resolved, result, stage: state.stage, players: state.players, answers, role: 'spectator' }); shown.dataset.renderKey = key; }
+    if (shown.dataset.renderKey === key && shown.querySelector('.question-shell')) Quiz.typeDef(current.question.type)?.update?.(current.question, shown, { readOnly: true, reveal: resolved, result, stage: state.stage, stageReveal: state.stageReveal || null, players: state.players, answers });
+    else { Renderers.renderPresent(current.question, shown, { reveal: resolved, result, stage: state.stage, stageReveal: state.stageReveal || null, players: state.players, answers, role: 'spectator' }); shown.dataset.renderKey = key; }
     let html = ''; // v31: „x von y haben geantwortet“ steht groß in der Kopfzeile
     if (pendingReveal) html += '<div class="notice notice--warning reveal-wait"><strong>Antworten geschlossen</strong><span>Die Auflösung folgt durch den Moderator.</span></div>';
     if (resolved) {

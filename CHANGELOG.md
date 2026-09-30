@@ -1,5 +1,17 @@
 # Sylasphere – Changelog
 
+## v37 – Neue Spielmodi: Hinweis-Kaskade + Bild-Enthüllung
+- **🕵️ Hinweis-Kaskade („Wer/Was bin ich?“):** 3–5 Hinweise von schwer nach leicht (Text, optional Bild). Beamer zeigt alle bisher aufgedeckten Hinweise untereinander (neuester hervorgehoben), das Handy dasselbe kompakt. Editor: Hinweise als Liste, Reihenfolge per Ziehen (⠿) oder ↑/↓, Lösung + gültige Varianten, Punkte je Hinweis.
+- **🖼️ Bild-Enthüllung:** ein Bild (auch Upload) in 4–5 Stufen – **verpixelt** (wird schärfer), **Zoom** (starker Ausschnitt → ganzes Bild; Startpunkt im Editor per Tippen aufs Bild) oder **Kacheln** (6×4-Raster, pro Stufe verschwinden zufällig Kacheln, feste Reihenfolge je Frage, im Editor neu mischbar). Editor zeigt eine Vorschau aller Stufen. Beamer: Bild so groß wie möglich, Stufen daneben.
+- **Gemeinsame Regeln (eine Logik für beide, `Kit.Stages` in `kit.js`):** Alle spielen gleichzeitig, die Stufen deckt der Moderator mit **„Nächster Schritt“ (Leertaste)** auf – oder **automatisch alle X Sekunden** (im Editor, pausiert mit ⏸). Jeder tippt seine Antwort und **loggt sie einmal ein** („🔒 Einloggen bei Stufe n (= x Punkte)“), danach ist sie fest. Punkte nach Stufe (Standard 100/80/60/40/20 %, einstellbar), falsch = 0, nicht eingeloggt = 0.
+- **Prüfliste vor der Auflösung:** ✓ exakt/Variante, **≈ Tippfehler erkannt** (zählt als richtig), ✗ kein Treffer – jede Antwort per Klick umdrehbar.
+- **Beamer:** live, wer bei welcher Stufe eingeloggt hat (Avatar an der Stufe), die Antworten erst bei der Auflösung: Lösung groß, dann je Spieler Stufe + Antwort + Punkte.
+- **Spick-Schutz:** Online stehen Hinweise, Lösung und die Bildadresse **nicht** in der Frage für die Spieler. Das Moderator-Gerät veröffentlicht je Stufe nur, was aufgedeckt ist (`public/stageReveal`); bei der Bild-Enthüllung zeichnet es die Stufe selbst und schickt nur das verfremdete Bild. Grenzen: lokaler Modus (alles im selben Browser), Beispiel-Quizze im öffentlichen Repo, und Bilder fremder Seiten, deren Server das Zeichnen verbietet (dann wird ersatzweise im Browser der Spieler verfremdet – der Editor warnt).
+- **Überall dabei:** Rückgängig nimmt auch „Nächste Stufe“ zurück, Pause stoppt Auto-Weiter und die Leertaste, Wiederverbinden zeigt „Eingeloggt bei Stufe n“, erlaubt im **Themen-Brett** und **Einsatz-Finale** (dort zählt richtig/falsch, die Stufe ist egal), Neu-Karte + Erklärung auf `spielmodi.html`, Editor-Vorschau, alle Designs.
+- **Demo:** neue Runde „Enthüllungen“ im Showtime-Quiz mit je 2 Fragen (Einstein, Tokio mit Auto-Weiter, Flagge verpixelt, Schneemann im Zoom).
+- Keine Änderung an den Firebase-Regeln (`public` darf nur der Raumbesitzer schreiben; die Stufe beim Einloggen prüfen die Regeln schon seit v16).
+- Neue Dateien: `js/question-types/types/clue-cascade.js`, `js/question-types/types/image-reveal.js`, `tests/v37-stufen.js`.
+
 ## v36 – UI-Modernisierung
 - **Nur das Aussehen ist neu** – keine Funktion, kein Ablauf, keine Datenstruktur, keine Firebase-Regeln geändert. Alle IDs, data-Attribute und Klassen bleiben.
 - **Neue zentrale Oberflächen-Schicht `css/ui.css`** (nach `main.css`, vor den Designs): Schrift, Abstände, Flächen, Knöpfe, Felder, Chips, Listen und Antwort-Kacheln an einer Stelle. Einheitliche Ecken (Flächen 16 px, Bedienelemente 10 px, Chips rund).

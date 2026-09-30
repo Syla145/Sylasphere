@@ -11,7 +11,7 @@
    * (🎲 Spiel starten, danach steuert das Spiel selbst, am Ende ✓ Auflösen).
    *
    * facts: { status, players, hasQuestion, started, open, resolved, isLast, isFirst,
-   *          isBuzzer, contender, isGame, gameRunning, gameDone }
+   *          isBuzzer, contender, isGame, gameRunning, gameDone, stageStep, stage, stageLast, paused }
    * → { key, label, disabled, hint, prev, skip, finish } (prev/skip/finish = { disabled })
    */
   function next(f) {
@@ -35,7 +35,9 @@
       if (!f.gameDone) return step('wait', '⏱ Spiel läuft …', { disabled: true, hint: 'Steuerung direkt an der Frage' });
       return step('resolve', '✓ Auflösen');
     }
-    if (f.open) return step('close', '⏹ Antworten schließen');
+    // v37: Stufen-Spielmodi – „Nächster Schritt“ deckt die nächste Stufe auf, nach der letzten: Antworten schließen
+    if (f.open && f.stageStep && f.stage < f.stageLast) return step('stage', `⏭ Nächste Stufe (${f.stage + 2}/${f.stageLast + 1})`, { disabled: Boolean(f.paused), hint: f.paused ? 'Pausiert – erst fortsetzen' : 'Wer noch nicht eingeloggt hat, kann weiter raten' });
+    if (f.open) return step('close', f.stageStep ? '⏹ Einloggen beenden' : '⏹ Antworten schließen', f.stageStep ? { hint: 'Letzte Stufe – danach Prüfliste und Auflösung' } : {});
     return step('resolve', '✓ Auflösen');
   }
 

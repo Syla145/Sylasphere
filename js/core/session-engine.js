@@ -196,7 +196,7 @@
           const entry = { roundId: round.id, title: round.title, standings: state.players.slice().sort((a, b) => b.score - a.score).map(p => ({ id: p.id, name: p.name, score: p.score })), at: Date.now() };
           const i = state.roundSummaries.findIndex(x => x.roundId === entry.roundId); if (i >= 0) state.roundSummaries[i] = entry; else state.roundSummaries.push(entry);
         }
-        state.questionOpen = false; state.questionEndsAt = null; state.questionStartedAt = null; state.stage = 0; state.media = null; state.game = null;
+        state.questionOpen = false; state.questionEndsAt = null; state.questionStartedAt = null; state.stage = 0; state.stageReveal = null; state.media = null; state.game = null;
         if (ri >= quiz.rounds.length) { state.status = 'finished'; state.finishedAt = Date.now(); return; }
         state.status = 'playing'; state.currentRoundIndex = ri; state.currentQuestionIndex = qi;
       });
@@ -263,7 +263,7 @@
         state.questionEndsAt = duration > 0 ? Date.now() + duration * 1000 : null;
         state.answers[question.id] = state.answers[question.id] || {};
         if (question.type === 'buzzer') state.questionResults[question.id] = this.initialBuzzerState(question);
-        state.stage = 0;       // Stufen-Fragen beginnen bei Stufe 1 (Index 0)
+        state.stage = 0; state.stageReveal = null;       // Stufen-Fragen beginnen bei Stufe 1 (Index 0)
         state.media = null;    // letzter Abspiel-Befehl
         state.game = null;     // Mini-Spiel (Zeitduell) startet der Moderator separat
       });
@@ -290,6 +290,19 @@
         state.stage = Math.min((Number(state.stage) || 0) + 1, stages.length - 1);
         state.media = this.mediaCommand(state, question, 'snippet');
       });
+    }
+    /** v37: Stufe direkt setzen (Rückgängig bei „Nächste Stufe“) */
+    setStage(stage) {
+      this.mutate(state => {
+        const { question } = this.getCurrent(state);
+        const stages = Quiz.stagesOf(question);
+        if (!question || !stages || !state.questionStartedAt) return;
+        state.stage = Math.max(0, Math.min(stages.length - 1, Math.round(Number(stage) || 0)));
+      });
+    }
+    /** v37: Aufgedeckter Stand einer Stufe (Hinweise bzw. verfremdetes Bild) – schreibt nur das Moderator-Gerät */
+    setStageReveal(value) {
+      this.mutate(state => { state.stageReveal = value ? Quiz.clone(value) : null; });
     }
     /** Auflösungs-Ausschnitt (z. B. Refrain) erneut abspielen */
     playReveal() {
@@ -467,7 +480,7 @@
         if (unresolved) throw new Error('Bitte die aktuelle Frage zuerst auflösen.');
         state.questionOpen = false;
         state.questionEndsAt = null;
-        state.stage = 0; state.media = null; state.game = null; state.questionStartedAt = null;
+        state.stage = 0; state.stageReveal = null; state.media = null; state.game = null; state.questionStartedAt = null;
         const quiz = state.quiz.quiz;
         let ri = state.currentRoundIndex;
         let qi = state.currentQuestionIndex + direction;
@@ -502,7 +515,7 @@
         state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = [];
         state.status = 'lobby'; state.currentRoundIndex = 0; state.currentQuestionIndex = 0;
         state.questionOpen = false; state.questionStartedAt = null; state.questionEndsAt = null;
-        state.stage = 0; state.media = null; state.game = null; state.finishedAt = null; state.highlights = null;
+        state.stage = 0; state.stageReveal = null; state.media = null; state.game = null; state.finishedAt = null; state.highlights = null;
         state.paused = null; state.show = null; state.players.forEach(p => { p.ready = false; p.pick = null; });
       });
     }
