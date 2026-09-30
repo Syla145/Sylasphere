@@ -18,7 +18,7 @@
           {
             "id": "duel_spoken",
             "type": "time-duel",
-            "category": "Bilderrätsel",
+            "category": "Allgemeinwissen",
             "text": "Was ist auf dem Bild? (mündlich)",
             "points": 300,
             "timer": 0,
@@ -101,7 +101,7 @@
           {
             "id": "duel_typed",
             "type": "time-duel",
-            "category": "Bilderrätsel",
+            "category": "Allgemeinwissen",
             "text": "Was ist auf dem Bild? (tippen)",
             "points": 300,
             "timer": 0,

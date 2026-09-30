@@ -6,7 +6,17 @@
     type: 'image-quiz',
     label: 'Bilderquiz',
     icon: '▣',
-    description: 'Bild plus Antwortoptionen – ideal für Orte, Logos oder Details.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Bild',
+      short: 'Schau dir das Bild an und wähle die passende Antwort.',
+      steps: [
+        'Das Bild erscheint auf dem Beamer und auf deinem Handy.',
+        'Tippe auf die richtige Antwort.'
+      ],
+      scoring: 'Richtig = volle Punkte, falsch = 0.',
+      moderator: 'Für Orte, Flaggen, Logos, Promis oder Bildausschnitte. Vorbereiten: ein Bild hochladen und 2–6 Antworten eintragen. Tipp: Querformat wirkt auf dem Beamer am besten – kleine Details vorher auch am Handy ansehen.'
+    },
 
     defaults: () => ({ options: Kit.defaultOptions(), correctAnswer: 'a', image: './assets/demo-landmark.svg' }),
 

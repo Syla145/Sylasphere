@@ -8,7 +8,18 @@
     type: 'estimate',
     label: 'Schätzfrage',
     icon: '≈',
-    description: 'Wert auf einer Skala schätzen; Nähe zum Zielwert bringt Punkte.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Schätzen',
+      short: 'Keiner weiß es genau – schätz so gut du kannst.',
+      steps: [
+        'Stell deine Schätzung mit dem Regler ein.',
+        'Schick ab, bevor die Zeit abläuft.',
+        'Bei der Auflösung siehst du alle Tipps auf der Skala.'
+      ],
+      scoring: 'Je nach Einstellung: Wer am nächsten dran ist, gewinnt – oder alle innerhalb der Toleranz bekommen Punkte – oder je näher, desto mehr Punkte.',
+      moderator: 'Für Zahlen, Jahreszahlen, Entfernungen und Rekorde – auch wer nichts weiß, kann mitspielen. Vorbereiten: Lösung, sinnvollen Bereich (Min/Max), Einheit und Wertung wählen. Stolperfalle: Ist der Bereich zu groß, lässt sich der Regler kaum genau einstellen.'
+    },
 
     defaults: () => ({ min: 0, max: 100, step: 1, correctAnswer: 50, unit: '' }),
 

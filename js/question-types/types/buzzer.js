@@ -12,7 +12,18 @@
     type: 'buzzer',
     label: 'Buzzer',
     icon: '⚡',
-    description: 'Geschwindigkeit zählt: Der erste Spieler buzzert oder sendet eine Schnellantwort, der Moderator entscheidet.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Show-Formate & Spiele',
+      short: 'Wer zuerst buzzert, darf antworten.',
+      steps: [
+        'Hör dir die Frage an.',
+        'Drück den Buzzer, sobald du die Antwort weißt.',
+        'Wer zuerst gedrückt hat, antwortet – laut oder am Handy, je nach Einstellung. Liegt er falsch, dürfen die anderen nochmal buzzern.'
+      ],
+      scoring: 'Richtige Antwort = volle Punkte. Eine falsche Antwort kann Minuspunkte kosten, wenn der Moderator das eingestellt hat.',
+      moderator: 'Für schnelle Wissensrunden mit Nervenkitzel. Vorbereiten: Frage und Musterlösung; wähle „mündlich“ (Antwort laut sagen) oder „tippen“. Du entscheidest mit ✓/✗. Tipp: Die Frage zusätzlich laut vorlesen.'
+    },
     interaction: 'buzzer',
     noTimer: true,
 

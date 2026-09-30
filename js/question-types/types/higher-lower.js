@@ -10,7 +10,17 @@
     label: 'Higher / Lower',
     icon: '↗',
     hidden: true, // v24: aus der Auswahl entfernt (Feedback Quizabend), bestehende Fragen laufen weiter
-    description: 'Werte paarweise als höher oder niedriger einschätzen.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Schätzen',
+      short: 'Ist der Wert höher oder niedriger?',
+      steps: [
+        'Du siehst Karten mit Begriffen.',
+        'Schätze jeweils, ob der Wert höher oder niedriger ist.'
+      ],
+      scoring: 'Jede richtige Einschätzung bringt ihren Anteil der Punkte.',
+      moderator: 'Nicht mehr neu auswählbar, bestehende Fragen laufen weiter. Für neue Quizze eignet sich „Einordnen“ besser.'
+    },
 
     defaults: () => {
       const uid = window.SchmobinApp.uid;

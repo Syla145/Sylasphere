@@ -18,7 +18,7 @@
 
   async function init() {
     await window.SylasphereTypes?.ready; // Fragetyp-Module sind geladen
-    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar','player-timebar','player-timebar-fill','player-topbar'].forEach(id => els[id] = document.getElementById(id));
+    ['join-panel','game-panel','room-code','player-name','join-btn','join-error','avatar-options','game-code','game-status','game-mode','game-question','submit-answer','answer-feedback','player-score','leaderboard','player-timer','player-progress','player-identity','player-progress-bar','player-timebar','player-timebar-fill','player-topbar','mode-help'].forEach(id => els[id] = document.getElementById(id));
     els['game-question'].addEventListener('quiz:interaction-end', () => { if (deferredState) render(deferredState); });
     const code = (App.getParam('code') || Session.lastCode() || Online?.lastCode?.() || '').toUpperCase(); if (code) els['room-code'].value = code;
     if (App.getParam('code') && !els['player-name'].value) setTimeout(() => els['player-name'].focus({ preventScroll: true }), 50); // v31: von der Startseite – direkt Namen eingeben
@@ -268,7 +268,7 @@
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
     if (els['game-mode']) { const offline = transport === 'online' && state.onlineConnected === false; els['game-mode'].hidden = !offline; els['game-mode'].textContent = offline ? '↻ Verbindung …' : ''; els['game-mode'].classList.toggle('is-offline', offline); } // v31: kein Lokal/Online-Hinweis mehr, nur bei Verbindungsproblemen
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
-    renderLeaderboard(); renderStatus(current); augmentShow(current); renderTimer(current);
+    renderLeaderboard(); renderStatus(current); augmentShow(current); renderModeHelp(current); renderTimer(current);
     if (state.paused && state.status === 'playing') App.setText(els['game-status'], 'Pause'); // v33
     window.SylasphereSfx?.observe(state, { current, playerId }); // v27: Soundeffekte + Vibration
   }
@@ -390,6 +390,41 @@
     return me?.ready
       ? `<div class="ready-box is-ready"><strong>✓ Du bist bereit</strong><span>${ready} von ${state.players.length} bereit</span><button type="button" class="link-btn" data-ready>doch nicht bereit</button></div>`
       : `<div class="ready-box"><button type="button" class="btn btn--primary ready-btn" data-ready>✋ Bereit</button><span>${ready} von ${state.players.length} bereit</span></div>`;
+  }
+
+  // v35: Spielmodi erklären – beim ersten Mal eine Karte zum Wegtippen, danach ein „?“ an der Frage
+  const modeOkKey = () => `sylasphere:modes-ok:${state?.code || ''}`;
+  function modesOk() { try { return new Set(JSON.parse(sessionStorage.getItem(modeOkKey()) || '[]')); } catch (error) { return new Set(); } }
+  function markModeOk(id) { const set = modesOk(); set.add(id); try { sessionStorage.setItem(modeOkKey(), JSON.stringify([...set])); } catch (error) { /* privat */ } }
+  function renderModeHelp(current) {
+    const box = els['mode-help'];
+    const Modes = window.SylasphereModes;
+    if (!box || !Modes) return;
+    const id = state.status === 'playing' && current?.question && !state.paused ? Modes.target(state, current) : '';
+    const mode = id ? Modes.get(id) : null;
+    if (!mode) { box.hidden = true; box.dataset.key = ''; box.innerHTML = ''; return; }
+    const resolved = state.scoredQuestionIds?.includes(current.question.id);
+    const fresh = Modes.enabled(state) && Modes.isNew(state, id) && !modesOk().has(id) && !resolved;
+    const key = `${id}:${fresh}`;
+    box.hidden = false;
+    if (box.dataset.key === key) return;
+    box.dataset.key = key;
+    box.innerHTML = fresh
+      ? Modes.cardHTML(id, { variant: 'phone', dismiss: '✓ Verstanden' })
+      : `<button type="button" class="mode-chip" data-mode-open aria-label="${App.escapeHTML(mode.label)} – so geht's"><span aria-hidden="true">${App.escapeHTML(mode.icon)}</span> ${App.escapeHTML(mode.label)} <b class="mode-q" aria-hidden="true">?</b></button>`;
+    box.querySelector('[data-mode-dismiss]')?.addEventListener('click', () => { markModeOk(id); renderModeHelp(engine.getCurrent(state)); });
+    box.querySelector('[data-mode-open]')?.addEventListener('click', () => openModeHelp(id));
+  }
+  function openModeHelp(id) {
+    const Modes = window.SylasphereModes;
+    document.getElementById('mode-help-modal')?.remove();
+    const layer = document.createElement('div'); layer.id = 'mode-help-modal'; layer.className = 'mode-modal'; layer.setAttribute('role', 'dialog'); layer.setAttribute('aria-modal', 'true');
+    layer.innerHTML = Modes.cardHTML(id, { isNew: false, variant: 'modal', dismiss: 'Schließen' });
+    const close = () => layer.remove();
+    layer.addEventListener('click', event => { if (event.target === layer || event.target.closest('[data-mode-dismiss]')) close(); });
+    document.addEventListener('keydown', function esc(event) { if (event.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
+    document.body.append(layer);
+    layer.querySelector('[data-mode-dismiss]')?.focus();
   }
 
   function renderStatus(current) {

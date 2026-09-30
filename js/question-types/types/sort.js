@@ -128,7 +128,7 @@
     let values = Array.isArray(ctx.currentAnswer) && ctx.currentAnswer.length ? ctx.currentAnswer.slice() : (question.items || []).slice();
     if (!ctx.currentAnswer && !ctx.readOnly) values = values.slice().sort(() => Math.random() - 0.5);
     const correct = question.correctOrder || question.items || [];
-    if (!ctx.readOnly) { list.classList.add('is-interactive'); wrap.append(el('p', 'question-hint sort-hint', '↕ Ziehe die Karten in die richtige Reihenfolge.')); }
+    if (!ctx.readOnly) { list.classList.add('is-interactive'); wrap.append(el('p', 'question-hint sort-hint', `↕ ${Kit.modeText('sort', 'steps', 1)}`)); }
     values.forEach((value, index) => {
       const item = el('li', 'sort-item'); item.dataset.value = value; item.dataset.pos = String(index + 1);
       if (ctx.reveal) item.classList.add(Kit.normalizeTerm(value) === Kit.normalizeTerm(correct[index]) ? 'is-correct' : 'is-wrong');
@@ -160,7 +160,18 @@
     type: 'sort',
     label: 'Sortierquiz',
     icon: '↕',
-    description: 'Elemente in die richtige Reihenfolge bringen.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Wissen',
+      short: 'Bring die Karten in die richtige Reihenfolge.',
+      steps: [
+        'Die Karten kommen gemischt auf dein Handy.',
+        'Zieh sie in die richtige Reihenfolge, z. B. von alt nach neu.',
+        'Schick deine Reihenfolge ab.'
+      ],
+      scoring: 'Jede Karte an der richtigen Stelle bringt ihren Anteil der Punkte.',
+      moderator: 'Für Zeitleisten, Größen, Rankings oder Abläufe. Vorbereiten: 3–6 Einträge in der richtigen Reihenfolge – gemischt wird automatisch. Tipp: In der Frage klar sagen, wie herum sortiert wird („von klein nach groß“).'
+    },
 
     defaults: () => ({ items: ['Element 1', 'Element 2', 'Element 3'], correctOrder: ['Element 1', 'Element 2', 'Element 3'] }),
 

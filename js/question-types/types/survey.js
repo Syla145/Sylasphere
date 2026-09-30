@@ -26,7 +26,18 @@
     type: 'survey',
     label: 'Publikums-Duell',
     icon: '▥',
-    description: 'Wie hat das Publikum abgestimmt? Die stärkste Umfrage-Antwort gewinnt.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Schätzen',
+      short: 'Was hat das Publikum am häufigsten geantwortet?',
+      steps: [
+        'Die Frage wurde vorher in einer Umfrage gestellt.',
+        'Tippe auf die Antwort, die du für die häufigste hältst.',
+        'Bei der Auflösung siehst du alle Umfrage-Ergebnisse in Prozent.'
+      ],
+      scoring: 'Die häufigste Umfrage-Antwort bringt volle Punkte, alle anderen 0.',
+      moderator: 'Bauchgefühl statt Wissen – wie bei den bekannten Umfrage-Duellen im Fernsehen. Vorbereiten: Antworten mit Prozentwerten aus einer echten oder ausgedachten Umfrage. Tipp: Eine kleine Umfrage im Freundeskreis vorab macht es persönlich.'
+    },
     solutionLabel: 'Top-Antwort',
 
     defaults: () => ({ options: [{ id: 'a', text: 'Antwort A', value: 40 }, { id: 'b', text: 'Antwort B', value: 30 }, { id: 'c', text: 'Antwort C', value: 20 }, { id: 'd', text: 'Antwort D', value: 10 }] }),
@@ -64,7 +75,7 @@
         winners: winnerIds(q),
         detail: option => `<small>${Kit.escapeHTML(option.value)}%</small>`,
         strength: option => (Number(option.value) || 0) / max * 100,
-        hint: '📊 Gesucht ist die häufigste Antwort aus der hinterlegten Publikums-Umfrage.'
+        hint: `📊 ${Kit.modeText('survey')}`
       });
     },
 

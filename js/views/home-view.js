@@ -63,6 +63,7 @@
     content().innerHTML = `${joinBox()}
       <div class="home-secondary">
         <a class="home-secondary-link" href="./zuschauer.html"><span>📺</span><span><strong>Zuschauen</strong><small>Große Ansicht für Beamer, TV oder Stream</small></span></a>
+        <a class="home-secondary-link" href="./spielmodi.html"><span>🎲</span><span><strong>Spielmodi</strong><small>So geht's – mit Demo zum Ausprobieren</small></span></a>
         <button type="button" class="home-secondary-link" data-choice="login"><span>🔑</span><span><strong>Anmelden</strong><small>Quiz moderieren, XP sammeln, Statistik</small></span></button>
       </div>`;
     content().querySelector('[data-choice="login"]').addEventListener('click', () => { view = 'login'; render(); });
@@ -98,7 +99,8 @@
     else if (user && role === 'none') extra = '<a class="notice home-note home-note--link" href="./moderator.html">Du möchtest selbst ein Quiz moderieren? <strong>Moderator-Zugang anfragen →</strong></a>';
     const profile = user ? '<a class="notice home-note home-note--link home-profile" href="./profil.html"><span data-home-level>⭐</span> <strong>Dein Profil</strong> – Stufe, XP, Statistik und Bestenliste →</a>' : '';
     const shown = keys.filter(key => key !== 'play'); // v31: „Mitspielen“ ist jetzt das Raumcode-Feld oben
-    content().innerHTML = `${greeting}${joinBox()}${profile}<div class="role-grid home-roles home-roles--${shown.length}">${shown.map(card).join('')}</div>${extra}`;
+    const modes = '<a class="notice home-note home-note--link" href="./spielmodi.html">🎲 <strong>Spielmodi</strong> – so geht\'s, mit Demo zum Ausprobieren →</a>'; // v35
+    content().innerHTML = `${greeting}${joinBox()}${profile}<div class="role-grid home-roles home-roles--${shown.length}">${shown.map(card).join('')}</div>${extra}${modes}`;
     bindJoin();
     content().querySelector('[data-login]')?.addEventListener('click', () => { view = 'login'; render(); });
     if (user) showLevel(user.uid);

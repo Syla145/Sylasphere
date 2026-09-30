@@ -96,7 +96,7 @@
       App.setText(els['spectator-progress'], window.SylasphereShowUI.progressText(current.round, state.show));
     }
     if (showState.finalHidden) els['beamer-side'].hidden = true; // Finale: Rangliste erst nach der Auflösung
-    renderQuestion(current); renderLeaderboard(); renderTimer(); renderPause();
+    renderQuestion(current); renderLeaderboard(); renderTimer(); renderPause(); renderModeCard(current);
     scheduleFit();
     window.SylasphereSfx?.observe(state, { current }); // v27
   }
@@ -220,6 +220,31 @@
     if (box.dataset.html !== html) { box.dataset.html = html; box.innerHTML = html; }
   }
 
+  // v35: „Neu: <Spielmodus> – so geht's“ – kommt ein Spielmodus zum ersten Mal dran, erscheint vor dem Start kurz eine Karte.
+  // Sie liegt über dem Bild (kein Scrollen), blockiert nichts und verschwindet mit dem Start der Frage oder per Leertaste/Klick.
+  const dismissedModes = new Set();
+  function renderModeCard(current) {
+    const Modes = window.SylasphereModes;
+    let box = document.getElementById('beamer-mode-card');
+    const id = Modes && state.status === 'playing' && !state.questionStartedAt && !state.paused ? Modes.newTarget(state, current) : '';
+    if (!id || dismissedModes.has(id)) { box?.remove(); return; }
+    if (!box) {
+      box = document.createElement('div'); box.id = 'beamer-mode-card'; box.className = 'beamer-mode-card'; box.setAttribute('role', 'status');
+      box.addEventListener('click', hideModeCard);
+      els['spectator-live'].append(box);
+    }
+    if (box.dataset.mode !== id) { box.dataset.mode = id; box.innerHTML = `${Modes.cardHTML(id, { variant: 'beamer' })}<small class="mode-card-hint">Leertaste oder Klick: ausblenden</small>`; }
+  }
+  function hideModeCard() {
+    const box = document.getElementById('beamer-mode-card');
+    if (!box) return false;
+    dismissedModes.add(box.dataset.mode); box.remove(); return true;
+  }
+  document.addEventListener('keydown', event => {
+    if (![' ', 'Enter', 'Escape'].includes(event.key) || event.target.closest?.('input, textarea, select, button')) return;
+    if (hideModeCard()) event.preventDefault();
+  });
+
   // v32: Der Beamer scrollt nie – passt der Inhalt nicht auf den Bildschirm, wird er stufenlos verkleinert
   let fitFrame = 0;
   let fitLate = 0;
@@ -245,11 +270,19 @@
 
   // v31: Lobby „Wer ist da?“ – QR-Code links, Avatare rechts; neue Spieler ploppen einzeln auf
   const lobbySeen = new Set();
+  // v35: Lobby – welche Spielmodi heute dran sind, mit Link zur Spielmodi-Seite
+  function modesStrip() {
+    const Modes = window.SylasphereModes;
+    const ids = Modes ? Modes.inQuiz(state.quiz) : [];
+    if (!ids.length) return '';
+    const chips = ids.map(id => Modes.get(id)).filter(Boolean).map(m => `<span class="beamer-mode-chip">${App.escapeHTML(m.icon)} ${App.escapeHTML(m.label)}</span>`).join('');
+    return `<div class="beamer-modes"><span class="eyebrow">Heute im Quiz</span><div class="beamer-mode-chips">${chips}</div><a class="link-btn" href="./spielmodi.html?nur=${encodeURIComponent(ids.join(','))}" target="_blank" rel="noopener">🎲 Spielmodi ansehen</a></div>`;
+  }
   function renderLobby(shown) {
     const key = `lobby|${state.code}|${transport}`;
     if (shown.dataset.renderKey !== key) {
       shown.dataset.renderKey = key; lobbySeen.clear();
-      shown.innerHTML = `<div class="beamer-lobby"><div class="beamer-lobby-join"><span class="eyebrow">Gleich geht's los</span><h1 class="beamer-title">${App.escapeHTML(state.quiz.quiz.title)}</h1>${window.SylasphereJoin ? window.SylasphereJoin.joinCard(state.code, transport, { size: 'large' }) : ''}</div><div class="beamer-lobby-players"><h2>Wer ist da? <span class="beamer-lobby-count">0</span></h2><div class="beamer-avatars"></div><p class="beamer-lobby-empty">Noch niemand – QR-Code scannen!</p></div></div>`;
+      shown.innerHTML = `<div class="beamer-lobby"><div class="beamer-lobby-join"><span class="eyebrow">Gleich geht's los</span><h1 class="beamer-title">${App.escapeHTML(state.quiz.quiz.title)}</h1>${window.SylasphereJoin ? window.SylasphereJoin.joinCard(state.code, transport, { size: 'large' }) : ''}${modesStrip()}</div><div class="beamer-lobby-players"><h2>Wer ist da? <span class="beamer-lobby-count">0</span></h2><div class="beamer-avatars"></div><p class="beamer-lobby-empty">Noch niemand – QR-Code scannen!</p></div></div>`;
     }
     const box = shown.querySelector('.beamer-avatars');
     if (!box) return;

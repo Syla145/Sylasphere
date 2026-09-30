@@ -2,7 +2,7 @@
   "quiz": {
     "id": "quiz_jh_showtime_v5",
     "title": "Sylasphere: Showtime",
-    "description": "Vier abwechslungsreiche Runden mit allen Fragetypen – inklusive Audio, Publikums-Duell, Mehrheitsfrage und Hotspot.",
+    "description": "Vier abwechslungsreiche Runden mit allen Spielmodi – inklusive Audio, Publikums-Duell, Dilemma und Hotspot.",
     "settings": {
       "defaultTimer": 25,
       "defaultPoints": 100,
@@ -14,13 +14,13 @@
       "Musik & Sounds",
       "Wissenschaft",
       "Community & Popkultur",
-      "Dilemma",
-      "Bilderrätsel",
       "Weltraum",
       "Wortwissen",
       "Rekorde",
       "Sprache & Wörter",
-      "Musik"
+      "Musik",
+      "Reisen",
+      "Mode & Lifestyle"
     ],
     "rounds": [
       {
@@ -58,7 +58,7 @@
           {
             "id": "show_image_eiffel",
             "type": "image-quiz",
-            "category": "Bilderrätsel",
+            "category": "Reisen",
             "text": "In welcher Stadt steht dieses Wahrzeichen?",
             "image": "./assets/demo-landmark.svg",
             "imageAlt": "Stilisierte Silhouette des Eiffelturms",
@@ -167,7 +167,7 @@
           {
             "id": "show_consensus_week",
             "type": "consensus",
-            "category": "Dilemma",
+            "category": "Mode & Lifestyle",
             "text": "Was wäre für eine Woche am schwierigsten zu verzichten? Denk wie die Gruppe!",
             "options": [
               {
@@ -193,7 +193,7 @@
           {
             "id": "show_hotspot_eiffel",
             "type": "hotspot",
-            "category": "Bilderrätsel",
+            "category": "Reisen",
             "text": "Treffe die Spitze des Eiffelturms so genau wie möglich.",
             "image": "./assets/demo-landmark.svg",
             "imageAlt": "Stilisierter Eiffelturm",
@@ -252,7 +252,7 @@
           {
             "id": "show_buzzer_capital",
             "type": "buzzer",
-            "category": "Speed & Wissen",
+            "category": "Geografie",
             "text": "Welche Hauptstadt liegt an der Themse?",
             "points": 150,
             "timer": 0,
@@ -357,7 +357,7 @@
           {
             "id": "show_duel",
             "type": "time-duel",
-            "category": "Bilderrätsel",
+            "category": "Allgemeinwissen",
             "text": "Zeitduell: Was ist auf dem Bild?",
             "points": 300,
             "timer": 0,

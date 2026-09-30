@@ -15,7 +15,17 @@
     type: 'matching',
     label: 'Zuordnen',
     icon: '⇄',
-    description: 'Begriffe richtig zuordnen, z. B. Land ↔ Hauptstadt. Jede richtige Zuordnung zählt.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Wissen',
+      short: 'Ordne jedem Begriff das passende Gegenstück zu.',
+      steps: [
+        'Links stehen die Begriffe, rechts wählst du das Gegenstück.',
+        'Wähle für jeden Begriff das passende Gegenstück aus und schick ab.'
+      ],
+      scoring: 'Jede richtige Zuordnung bringt ihren Anteil der Punkte.',
+      moderator: 'Für Paare wie Land ↔ Hauptstadt, Film ↔ Regie oder Song ↔ Band. Vorbereiten: 3–6 Paare. Tipp: Ähnliche Gegenstücke machen es spannend, zu viele Paare werden am Handy unübersichtlich.'
+    },
 
     defaults: () => ({
       text: 'Ordne jedem Land seine Hauptstadt zu.',
@@ -120,7 +130,7 @@
       });
       refreshUsed();
       wrap.append(list);
-      if (!ctx.reveal && !ctx.readOnly) wrap.append(el('p', 'question-hint', '⇄ Wähle für jeden Begriff das passende Gegenstück.'));
+      if (!ctx.reveal && !ctx.readOnly) wrap.append(el('p', 'question-hint', `⇄ ${Kit.modeText('matching')}`));
       container.replaceChildren(wrap);
     },
 

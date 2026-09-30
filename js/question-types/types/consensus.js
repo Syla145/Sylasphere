@@ -21,9 +21,20 @@
 
   window.SylasphereTypes.register({
     type: 'consensus',
-    label: 'Gleich gedacht',
+    label: 'Dilemma',
     icon: '◎',
-    description: 'Es gibt kein Vorwissen: Punkte gibt es für die Antwort der Mehrheit (mindestens 2 Stimmen).',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Schätzen',
+      short: 'Kein Richtig oder Falsch: Wähle, was die Mehrheit wählt.',
+      steps: [
+        'Lies die Frage und die Antworten.',
+        'Wähle die Antwort, von der du glaubst, dass die meisten anderen sie auch wählen.',
+        'Bei der Auflösung siehst du, wie die Gruppe abgestimmt hat.'
+      ],
+      scoring: 'Alle in der größten Gruppe bekommen volle Punkte (mindestens 2 Stimmen). Wählen alle etwas anderes, gibt es keine Punkte. Bei Gleichstand gewinnen alle größten Gruppen.',
+      moderator: 'Perfekt zum Auflockern und für Diskussionen – niemand braucht Vorwissen. Vorbereiten: eine Frage mit 2–4 Antworten, eine Lösung ist nicht nötig. Tipp: Funktioniert ab 3 Spielern, richtig gut ab 5.'
+    },
     solutionLabel: 'Mehrheit',
 
     defaults: () => ({ options: Kit.defaultOptions() }),
@@ -62,7 +73,7 @@
       Kit.renderChoice(q, container, ctx, {
         winners: (ctx.result?.winningOptionIds || []).map(String),
         detail: option => { const n = Math.round(Number(counts[option.id]) || 0); return `<small>${n} Stimme${n === 1 ? '' : 'n'}</small>`; },
-        hint: '🎯 Ziel: Wähle die Antwort, von der du glaubst, dass die meisten anderen sie ebenfalls wählen.'
+        hint: `🎯 ${Kit.modeText('consensus')}`
       });
     },
 

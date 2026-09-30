@@ -15,7 +15,17 @@
     type: 'true-false',
     label: 'Wahr oder falsch',
     icon: '⚖',
-    description: 'Eine Aussage ist wahr oder falsch – schnell und ideal zum Auflockern.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Wissen',
+      short: 'Stimmt die Aussage – wahr oder falsch?',
+      steps: [
+        'Lies die Aussage.',
+        'Tippe auf „Wahr“ oder „Falsch“.'
+      ],
+      scoring: 'Richtig = volle Punkte, falsch = 0.',
+      moderator: 'Schnell und locker – gut zwischendurch und für überraschende Fakten. Vorbereiten: eine Aussage und ob sie stimmt. Stolperfalle: Mit Raten liegt man zur Hälfte richtig – lieber weniger Punkte oder wenig Zeit geben.'
+    },
 
     defaults: () => ({ text: 'Der Eiffelturm steht in Paris.', correctAnswer: 'true' }),
 

@@ -2,7 +2,7 @@
   "quiz": {
     "id": "quiz_demo_komplett_2026",
     "title": "Die große Sylasphere Demo",
-    "description": "Drei Runden mit allen Fragetypen, vielen Kategorien, Umlauten, Sonderzeichen und unterschiedlichen Timern.",
+    "description": "Drei Runden mit allen Spielmodi, vielen Themen, Umlauten, Sonderzeichen und unterschiedlichen Timern.",
     "settings": {
       "defaultTimer": 30,
       "defaultPoints": 100,
@@ -19,9 +19,8 @@
       "Technik",
       "Gaming",
       "Internet & Popkultur",
-      "Schätzfragen",
-      "Bilderrätsel",
-      "Café & Kultur"
+      "Café & Kultur",
+      "Reisen"
     ],
     "rounds": [
       {
@@ -59,7 +58,7 @@
           {
             "id": "demo_q2",
             "type": "estimate",
-            "category": "Schätzfragen",
+            "category": "Geografie",
             "text": "Wie viele Kilometer beträgt der Erdumfang am Äquator ungefähr?",
             "min": 30000,
             "max": 50000,
@@ -73,7 +72,7 @@
           {
             "id": "demo_q3",
             "type": "image-quiz",
-            "category": "Bilderrätsel",
+            "category": "Reisen",
             "text": "Welches Wahrzeichen ist hier stilisiert dargestellt?",
             "image": "./assets/demo-landmark.svg",
             "imageAlt": "Stilisierte Zeichnung des Eiffelturms",

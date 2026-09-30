@@ -6,7 +6,17 @@
     type: 'multiple-choice',
     label: 'Multiple Choice',
     icon: '◉',
-    description: 'Klassische Auswahl mit einer richtigen Antwort.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Wissen',
+      short: 'Eine Frage, mehrere Antworten – genau eine ist richtig.',
+      steps: [
+        'Lies die Frage auf dem Beamer oder auf deinem Handy.',
+        'Tippe auf die Antwort, die du für richtig hältst. Bis die Zeit abläuft, kannst du noch wechseln.'
+      ],
+      scoring: 'Richtig = volle Punkte, falsch oder keine Antwort = 0.',
+      moderator: 'Der Klassiker für jede Runde und ideal zum Aufwärmen. Vorbereiten: Frage, 2–6 Antworten, eine davon als richtig markieren. Tipp: Die falschen Antworten sollten plausibel klingen, sonst wird es zu leicht.'
+    },
 
     defaults: () => ({ options: Kit.defaultOptions(), correctAnswer: 'a' }),
 

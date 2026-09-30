@@ -20,7 +20,18 @@
     type: 'gap-text',
     label: 'Lückentext',
     icon: '✍',
-    description: 'Fehlendes Wort eintippen – der Moderator bestätigt, Rechtschreibung ist egal.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Wissen',
+      short: 'Ergänze das fehlende Wort.',
+      steps: [
+        'Lies den Satz mit der Lücke.',
+        'Tipp das fehlende Wort ein – Rechtschreibung ist egal.',
+        'Der Moderator prüft alle Antworten.'
+      ],
+      scoring: 'Richtig = volle Punkte, falsch = 0. Kleine Tippfehler zählen trotzdem.',
+      moderator: 'Für Zitate, Sprichwörter, Liedzeilen oder Fachbegriffe. Vorbereiten: Satz mit ___ als Lücke und alle gültigen Lösungen (auch Schreibvarianten). Nach dem Schließen bestätigst du jede Antwort mit ✓/✗ – eindeutige Treffer sind schon vorgeschlagen.'
+    },
     review: 'manual',
     publishAnswers: true,
 
@@ -87,7 +98,7 @@
       } else if (answerText && parts.length < 2) {
         wrap.append(el('div', 'gap-own-answer', `Deine Antwort: ${answerText}`));
       }
-      if (!ctx.reveal) wrap.append(el('p', 'question-hint', '✍ Rechtschreibung ist egal – der Moderator prüft jede Antwort.'));
+      if (!ctx.reveal) wrap.append(el('p', 'question-hint', `✍ ${Kit.modeText('gap-text', 'steps', 1)}`));
       container.replaceChildren(wrap);
     },
 

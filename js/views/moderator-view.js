@@ -526,6 +526,24 @@
     }
     return null;
   }
+  /** v35: Lobby – Link „Spielmodi ansehen“ (nur die Spielmodi dieses Quiz) */
+  function modesLink() {
+    const ids = window.SylasphereModes?.inQuiz(state.quiz) || [];
+    if (!ids.length) return '';
+    const labels = ids.map(id => window.SylasphereModes.get(id)).filter(Boolean).map(m => `${m.icon} ${m.label}`).join(' · ');
+    return `<p class="lobby-modes"><a class="btn btn--small" href="./spielmodi.html?nur=${encodeURIComponent(ids.join(','))}" target="_blank" rel="noopener">🎲 Spielmodi ansehen</a><span class="microcopy">Heute: ${App.escapeHTML(labels)}</span></p>`;
+  }
+  /** v35: Kommt ein Spielmodus zum ersten Mal dran, erklären Beamer und Handys ihn kurz – hier der Hinweis + Tipps für den Moderator */
+  let modeNoticeOpen = false; // aufgeklappt lassen, auch wenn neu gezeichnet wird
+  document.addEventListener('toggle', event => { if (event.target.matches?.('.mode-notice > details')) modeNoticeOpen = event.target.open; }, true);
+  function modeNoticeHTML(current) {
+    const Modes = window.SylasphereModes;
+    const id = Modes && !state.questionStartedAt ? Modes.target(state, current) : '';
+    if (!id || !Modes.isNew(state, id)) return '';
+    const mode = Modes.get(id);
+    const lead = Modes.enabled(state) ? 'Beamer und Handys erklären kurz, wie es geht (Leertaste am Beamer blendet aus).' : '„Spielmodi erklären“ ist in diesem Quiz aus – ggf. kurz selbst erklären.';
+    return `<div class="notice mode-notice"><span>🆕 <b>Neu: ${App.escapeHTML(mode.icon)} ${App.escapeHTML(mode.label)}</b> – ${lead}</span><details${modeNoticeOpen ? ' open' : ''}><summary>So geht's + Tipps für dich</summary>${Modes.detailHTML(id, { open: true })}</details></div>`;
+  }
   /** Moderator-Mitte für Brett und Finale; true = gezeichnet */
   function renderShowPanel(current) {
     const area = els['question-area'];
@@ -543,11 +561,11 @@
         area.querySelectorAll('[data-qid]').forEach(btn => btn.addEventListener('click', () => { if (confirm(`Dieses Feld für ${nameOf(state.show.active)} wählen?`)) applyPick(btn.dataset.qid, true); }));
       }
       const max = show.phase === 'wager' ? Show().maxDoubleStake(state.players.find(p => p.id === show.current?.by)?.score, round) : 0;
-      els['answer-status'].innerHTML = show.phase === 'pick' ? '<p class="microcopy">Nur du siehst 💎 (Doppel-Feld). Ein Feld anklicken = für den Spieler wählen.</p>'
+      els['answer-status'].innerHTML = modeNoticeHTML(current) + (show.phase === 'pick' ? '<p class="microcopy">Nur du siehst 💎 (Doppel-Feld). Ein Feld anklicken = für den Spieler wählen.</p>'
         : show.phase === 'wager' ? `<div class="notice show-mod-stake"><span>💎 Einsatz für ${App.escapeHTML(nameOf(show.current?.by))} (0 – ${max} P):</span><input class="input" type="number" min="0" max="${max}" step="10" data-stake value="${Math.min(max, 100)}"><button type="button" class="btn btn--small" data-stake-set>Übernehmen</button></div>`
         : show.phase === 'play' ? `<div class="notice">${show.current?.shared ? '👥 Alle spielen dieses Feld mit.' : `${App.escapeHTML(nameOf(show.current?.by))} antwortet${round.board.coGuess ? ', die anderen raten ohne Punkte mit' : ''}.`} Leertaste: Frage öffnen.</div>${moderatorSolution(q, null, true)}`
         : show.phase === 'shared' ? '<div class="notice">👥 Die restlichen Felder reichen nicht mehr für eine ganze Runde – alle spielen sie gemeinsam (normale Wertung).</div>'
-        : '<div class="notice notice--success">✓ Alle Felder gespielt.</div>';
+        : '<div class="notice notice--success">✓ Alle Felder gespielt.</div>');
       els['answer-status'].querySelector('[data-stake-set]')?.addEventListener('click', () => {
         const value = Number(els['answer-status'].querySelector('[data-stake]').value);
         writeShow(Show().setStake(state.show, round, state.show.current.by, value, state.players.find(p => p.id === state.show.current.by)?.score, { force: true }));
@@ -563,7 +581,7 @@
         return `<div class="show-wager-row"><span>${App.escapeHTML(App.avatar(p.avatar))} ${App.escapeHTML(p.name)}</span><span>${App.formatPoints(p.score)}</span><b>${stake != null ? `${Math.round(stake)} P` : '⏳'}</b></div>`;
       }).join('');
       area.innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">💰 Einsatz-Finale</span><h2>${App.escapeHTML(q.category || 'Finale')}</h2><p>${show ? (show.phase === 'wager' ? 'Die Spieler setzen gerade geheim.' : 'Einsätze sind geschlossen – Frage öffnen.') : 'Zuerst setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100).'}</p></div>`;
-      els['answer-status'].innerHTML = `<div class="show-wagers"><span class="eyebrow">Einsätze (nur du siehst die Beträge)</span>${rows}</div>${moderatorSolution(q, null, true)}`;
+      els['answer-status'].innerHTML = `${modeNoticeHTML(current)}<div class="show-wagers"><span class="eyebrow">Einsätze (nur du siehst die Beträge)</span>${rows}</div>${moderatorSolution(q, null, true)}`;
       return true;
     }
     return false;
@@ -688,7 +706,7 @@
     if (state.status === 'lobby' && window.SylasphereJoin) {
       // Lobby: großer QR-Code, falls der Moderator-Bildschirm gezeigt wird
       const key = `lobby|${state.code}|${transport}`;
-      if (els['question-area'].dataset.key !== key) { els['question-area'].dataset.key = key; els['question-area'].innerHTML = `<div class="lobby-join">${window.SylasphereJoin.joinCard(state.code, transport, { size: 'large' })}</div>`; }
+      if (els['question-area'].dataset.key !== key) { els['question-area'].dataset.key = key; els['question-area'].innerHTML = `<div class="lobby-join">${window.SylasphereJoin.joinCard(state.code, transport, { size: 'large' })}${modesLink()}</div>`; }
       els['answer-status'].innerHTML = `<div class="notice">${state.players.length ? `${state.players.length} Spieler in der Lobby. Starte das Spiel, wenn alle da sind.` : 'Noch keine Spieler – QR-Code scannen oder Link teilen.'}</div>`;
       return;
     }
@@ -700,7 +718,7 @@
     if (renderShowPanel(current)) return; // v34: Brett / Einsatz-Finale
     if (!state.questionStartedAt) {
       els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.topic(current.question.category).icon}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Thema')}</h2><p>${Quiz.TYPE_ICONS[current.question.type] || '•'} ${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte${current.question.type === 'buzzer' ? ' · ohne Zeitlimit' : ` · ${current.question.timer || 0}s`}</p></div>`;
-      els['answer-status'].innerHTML = `<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>${moderatorSolution(current.question, null, true)}`; return;
+      els['answer-status'].innerHTML = `${modeNoticeHTML(current)}<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>${moderatorSolution(current.question, null, true)}`; return;
     }
 
     const questionResult = state.questionResults?.[current.question.id] || null;

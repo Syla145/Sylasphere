@@ -726,7 +726,18 @@
     type: 'ranking',
     label: 'Einordnen',
     icon: '📶',
-    description: 'Reihum Karten auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, wer keine mehr hat, ist raus.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Show-Formate & Spiele',
+      short: 'Leg die Karten reihum an die richtige Stelle auf der Leiste.',
+      steps: [
+        'Auf der Leiste liegen Karten, sortiert von niedrig nach hoch (z. B. nach Einwohnern).',
+        'Wer dran ist, legt eine neue Karte in die passende Lücke.',
+        'Falsch gelegt kostet ein Leben – wer keine Leben mehr hat, ist raus.'
+      ],
+      scoring: 'Punkte für jede richtig gelegte Karte plus Bonus nach Platzierung. Bleiben mehrere übrig, entscheidet ein Stechen.',
+      moderator: 'Für Zahlenvergleiche mit Spannung: Einwohner, Erscheinungsjahre, Höhen, Preise. Vorbereiten: 8–20 Karten mit Wert (gern mit Bild), Anzahl Leben und Punkte. Dein Gerät führt den Spielstand – bitte offen lassen.'
+    },
     solutionLabel: 'Ergebnis',
     noTimer: true,
     scoresAllPlayers: true,

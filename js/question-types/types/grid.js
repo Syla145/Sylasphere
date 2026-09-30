@@ -274,7 +274,18 @@
     type: 'grid',
     label: '3×3-Grid',
     icon: '▦',
-    description: 'Neun Felder, jedes muss zu seiner Zeile und Spalte passen. Alle tippen gleichzeitig.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Show-Formate & Spiele',
+      short: 'Finde für jedes der neun Felder eine Antwort, die zu Zeile und Spalte passt.',
+      steps: [
+        'Jedes Feld gehört zu einer Zeile (z. B. „Hauptstadt“) und einer Spalte (z. B. „Europa“).',
+        'Tipp für jedes Feld eine passende Antwort ein – alle spielen gleichzeitig.',
+        'Der Moderator prüft die Felder.'
+      ],
+      scoring: 'Jedes richtige Feld bringt Punkte, ein komplett richtiges Grid gibt einen Bonus.',
+      moderator: 'Knobelaufgabe für 2–3 Minuten. Vorbereiten: 3 Zeilen, 3 Spalten und für jedes Feld möglichst viele gültige Antworten („📋 Alle Felder einfügen“ spart Zeit). Nach dem Schließen prüfst du die Felder – bekannte Antworten und Tippfehler sind vorgeschlagen.'
+    },
     solutionLabel: 'Gültige Antworten',
     review: 'manual',
     defaults: () => ({

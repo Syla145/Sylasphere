@@ -39,10 +39,9 @@
     { name: 'Mode & Lifestyle', icon: '👗', hue: 312, aliases: ['Mode', 'Lifestyle'] },
     { name: 'Kindheit & Nostalgie', icon: '🧸', hue: 38, aliases: ['Kindheit', 'Nostalgie', '90er', '2000er'] },
     { name: 'Feiertage', icon: '🎄', hue: 128, aliases: ['Weihnachten', 'Ostern', 'Halloween'] },
-    { name: 'Rekorde', icon: '🏆', hue: 48, aliases: ['Weltrekorde'] },
-    { name: 'Bilderrätsel', icon: '🖼️', hue: 176, aliases: ['Bilder', 'Bildquiz'] },
-    { name: 'Schätzfragen', icon: '📏', hue: 58, aliases: ['Schätzen'] },
-    { name: 'Dilemma', icon: '🤔', hue: 272, aliases: ['Meinung', 'Würdest du eher'] }
+    { name: 'Rekorde', icon: '🏆', hue: 48, aliases: ['Weltrekorde'] }
+    // v35: „Bilderrätsel“, „Schätzfragen“ und „Dilemma“ sind keine Themen, sondern klingen wie Spielmodi – entfernt.
+    // Gespeicherte Quizze mit diesen Themen funktionieren weiter (automatisches Icon 🏷️).
   ];
   const FALLBACK_ICON = '🏷️';
 

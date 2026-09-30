@@ -349,7 +349,15 @@
     return `<span class="present-pin ${extraClass}" title="${escapeHTML(player.name)}${extra ? ` · ${escapeHTML(extra)}` : ''}"><i>${escapeHTML(player.avatar)}</i><small>${escapeHTML(player.name)}</small></span>`;
   }
 
+  /** v35: Hinweistext aus der Erklärung des Spielmodus (eine Textquelle: help in types/<typ>.js) */
+  function modeText(type, key = 'short', index = null) {
+    const help = window.SylasphereTypes?.get(type)?.help;
+    const value = help?.[key];
+    return String((Array.isArray(value) ? value[index ?? 0] : value) || '');
+  }
+
   window.SylasphereTypeKit = {
+    modeText,
     playerOf, pinHTML,
     clone, numberOr, clamp, normalizeTerm, escapeHTML, cleanTerm, matchTerm, editDistance,
     nextOptionId, MEDIA_FORMATS, mediaExt, mediaKindOf, mediaAdvice, validateMedia, mediaField,

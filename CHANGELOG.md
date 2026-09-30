@@ -1,5 +1,15 @@
 # Sylasphere – Changelog
 
+## v35 – Spielmodi erklären
+- **Eine Textquelle:** Jeder Spielmodus hat jetzt eine Erklärung (`help`: Gruppe, ein Satz für Spieler, 2–3 Schritte „So geht's“, Punkte, Tipps für Moderatoren) – auch Themen-Brett und Einsatz-Finale. Die bisherigen Beschreibungen und Hinweistexte in den Fragen kommen jetzt daraus (keine Doppelungen mehr).
+- **Im Spiel:** Kommt ein Spielmodus in einer Sitzung zum ersten Mal dran, zeigt der Beamer vor dem Start „Neu: <Spielmodus> – so geht's“ (blockiert nichts, verschwindet mit dem Start der Frage oder per Leertaste/Klick, der Beamer scrollt nie). Das Handy zeigt dieselbe Karte zum Wegtippen („✓ Verstanden“), danach steht über jeder Frage der Spielmodus mit **„?“** zum erneuten Öffnen. Der Moderator sieht „🆕 Neu: …“ mit aufklappbaren Tipps. Im Editor unter „⚙️ Quiz“ abschaltbar: **„🆕 Spielmodi erklären“** (Standard an).
+- **Editor:** In der Spielmodus-Auswahl hat jede Kachel **„Mehr erfahren“** mit Erklärung, Moderator-Tipps und Mini-Vorschau (Handy + Beamer) mit Beispieldaten.
+- **Neue Seite `spielmodi.html`:** Galerie aller Spielmodi mit Filter nach Gruppe (Wissen, Schätzen, Musik & Audio, Bild, Show-Formate & Spiele). Pro Spielmodus: Kurzbeschreibung, So geht's, Punkte, Moderator-Tipps (einklappbar), eine **spielbare Demo** (lokal ohne Raum, mit Mitspieler-Bots bei Dilemma, Zeitduell und Einordnen) und die Vorschau auf Handy und Beamer. Verlinkt von Startseite, Editor und Lobby (Moderator + Beamer: „🎲 Spielmodi ansehen“, dazu „Heute im Quiz“).
+- **Begriffe überall gleich:** **Spielmodus** (statt Fragetyp/Kategorie), **Thema** (inhaltliches Gebiet), **Design** (Aussehen, statt Theme). **„Gleich gedacht“ heißt jetzt „Dilemma“** (intern weiter `consensus`, alte Quizze laufen weiter).
+- **Themen aufgeräumt:** „Bilderrätsel“, „Schätzfragen“ und „Dilemma“ sind aus der Themen-Bibliothek entfernt; die Fragen in den Demo-Quizzen haben echte Themen bekommen (z. B. Reisen, Geografie). Gespeicherte Quizze mit diesen Themen funktionieren weiter.
+- Keine Änderung an den Firebase-Regeln.
+- Neue Dateien: `spielmodi.html`, `js/core/modes.js`, `js/views/mode-demo.js`, `js/views/modes-view.js`, `tests/v35-spielmodi.js`.
+
 ## v34 – Show-Formate: Themen-Brett + Einsatz-Finale
 - **Themen-Brett** (neues Runden-Format, Editor → Runde → Format „▦ Themen-Brett“):
   - Standard 5 Themen × 3 Fragen mit 100 / 300 / 500 Punkten; Themen, Fragen pro Thema und Punkte je Zeile einstellbar. Der Editor zeigt das Raster, Fragen per Ziehen (oder „Verschieben“ am Handy) in andere Felder tauschen, leere Felder mit „＋ Frage“ füllen.

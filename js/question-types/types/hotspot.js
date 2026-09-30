@@ -6,7 +6,18 @@
     type: 'hotspot',
     label: 'Hotspot',
     icon: '⌖',
-    description: 'Auf einem Bild möglichst genau die gesuchte Position treffen.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Bild',
+      short: 'Tippe auf die richtige Stelle im Bild.',
+      steps: [
+        'Das Bild erscheint auf deinem Handy.',
+        'Tippe dorthin, wo du das Gesuchte vermutest – du kannst noch korrigieren.',
+        'Bei der Auflösung siehst du den Zielbereich und alle Klickpunkte.'
+      ],
+      scoring: 'Innerhalb des Zielbereichs = volle Punkte, daneben = 0.',
+      moderator: 'Für Landkarten, Wimmelbilder oder Details auf Fotos. Vorbereiten: Bild hochladen, Zielpunkt anklicken und den Radius einstellen. Stolperfalle: Ein zu kleiner Radius frustriert am Handy – lieber etwas großzügiger.'
+    },
     solutionLabel: 'Zielbereich',
     // Der Moderator sieht den Zielbereich immer auf dem Bild
     moderatorAlwaysReveal: true,
@@ -129,7 +140,7 @@
           placeAnswer(point); ctx.onAnswer?.(point);
         });
       }
-      wrap.append(stage, el('p', 'question-hint', ctx.reveal ? '⌖ Der Zielbereich ist eingeblendet.' : '⌖ Tippe oder klicke auf die gesuchte Stelle im Bild.'));
+      wrap.append(stage, el('p', 'question-hint', ctx.reveal ? '⌖ Der Zielbereich ist eingeblendet.' : `⌖ ${Kit.modeText('hotspot')}`));
       container.replaceChildren(wrap);
     },
 

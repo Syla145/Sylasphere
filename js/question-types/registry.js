@@ -2,7 +2,7 @@
   'use strict';
 
   /*
-   * Fragetyp-Registry (v14)
+   * Registry der Spielmodi (v14; im Code „Fragetyp“ / type)
    * ------------------------------------------------------------------
    * Jeder Fragetyp liegt als eigene Datei in js/question-types/types/
    * und meldet sich mit SylasphereTypes.register({...}) an.
@@ -41,9 +41,10 @@
 
   function register(definition) {
     const missing = REQUIRED.filter(key => definition?.[key] == null);
-    if (missing.length) throw new Error(`Fragetyp „${definition?.type || '?'}“ unvollständig – fehlt: ${missing.join(', ')}`);
+    if (missing.length) throw new Error(`Spielmodus „${definition?.type || '?'}“ unvollständig – fehlt: ${missing.join(', ')}`);
     const def = Object.assign({
-      description: '',
+      description: '',       // v35: kommt aus help.short (eine Textquelle)
+      help: null,            // v35: { group, short, steps[], scoring, moderator } – Erklärung des Spielmodus
       solutionLabel: 'Lösung',
       defaults: () => ({}),
       validate: () => {},
@@ -76,6 +77,7 @@
       mark: null,            // (q, answer) => kleine Zahl/Punkt für die Auflösung (Tipps auf der Skala, Klickpunkte)
       judge: null            // v34: (q, answer, { result, playerId }) => true/false – nur für Themen-Brett und Einsatz-Finale (ohne Teilpunkte)
     }, definition);
+    if (def.help && !definition.description) def.description = def.help.short;
     types.set(def.type, Object.freeze(def));
     return def;
   }
@@ -101,7 +103,7 @@
       script.src = new URL(file, baseUrl).href + version;
       script.async = false;
       script.onload = resolve;
-      script.onerror = () => reject(new Error(`Fragetyp-Datei konnte nicht geladen werden: ${file}`));
+      script.onerror = () => reject(new Error(`Spielmodus-Datei konnte nicht geladen werden: ${file}`));
       doc.head.append(script);
     });
     return Promise.all(['kit.js', ...TYPE_FILES.map(file => `types/${file}.js`)].map(loadScript)).then(() => {

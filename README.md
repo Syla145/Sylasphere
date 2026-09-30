@@ -18,7 +18,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 3. [Konten und Moderator-Freigabe](#konten-und-moderator-freigabe) · [XP und Stufen](#xp-und-stufen)
 4. [Quizze erstellen und speichern](#quizze-erstellen-und-speichern)
 5. [Bilder, Musik und Videos](#bilder-musik-und-videos)
-6. [Fragetypen](#fragetypen)
+6. [Spielmodi](#spielmodi)
 7. [Designs](#designs)
 8. [Update einspielen](#update-einspielen)
 9. [Kosten und Grenzen](#kosten-und-grenzen)
@@ -36,6 +36,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 | `moderator.html` | Moderatoren | Quiz auswählen, Raum erstellen, Fragen öffnen, schließen, auflösen und Punkte vergeben |
 | `zuschauer.html` | Beamer/TV | Große Anzeige mit Frage, Timer, Statistik und Rangliste |
 | `editor.html` | Moderatoren | Quizze erstellen und bearbeiten, online in „Meine Quizze“ speichern (nur mit Moderator-Konto) |
+| `spielmodi.html` | alle | Alle Spielmodi erklärt – So geht's, Punkte, Moderator-Tipps und eine spielbare Demo (ab v35) |
 | `profil.html` | Angemeldete | Stufe, XP, Statistik, Emotes, Bestenliste; für Moderatoren die schwersten Fragen |
 | `admin.html` | Admin | Moderator-Anfragen freischalten, Rechte entziehen, alte Räume aufräumen |
 
@@ -78,7 +79,7 @@ Aktuelle Version: siehe `CHANGELOG.md`.
 - XP gibt es nur ab **3 Spielern** und **5 gewerteten Fragen**, nie im eigenen Raum und im lokalen Testmodus gar nicht.
 - **Stufen:** Von Stufe n auf n+1 braucht man 50 × n XP (Stufe 2: 50, 5: 500, 10: 2.250, 20: 9.500). Die Stufe steht als ⭐ neben dem Namen.
 - **Emotes:** Höhere Stufen schalten zusätzliche Reaktionen frei (🥳 ab Stufe 2 bis 🐐 ab Stufe 20). Die Liste steht in `js/core/progress.js`.
-- **Profil** (`profil.html`): Statistik pro Fragetyp und Thema, letzte Spiele und die **Bestenliste**. Dort erscheint man nur, wenn man es selbst einschaltet, und nur mit dem gewählten Spielernamen.
+- **Profil** (`profil.html`): Statistik pro Spielmodus und Thema, letzte Spiele und die **Bestenliste**. Dort erscheint man nur, wenn man es selbst einschaltet, und nur mit dem gewählten Spielernamen.
 - Die Ergebnisse speichert das Moderator-Gerät automatisch beim Spielende. Die Firebase-Regeln prüfen die Grenzen.
 
 Die Einrichtung in Firebase steht Schritt für Schritt in **`FIREBASE_SETUP.md`**.
@@ -93,7 +94,8 @@ Im **Editor** (`editor.html`):
   - In der Mitte immer genau **eine** Frage, Runde oder „⚙️ Quiz“.
   - Oben die Leiste mit Speicherstatus, ‹ › (vorige/nächste Frage), 👁 Vorschau, ✓ Prüfen und „⋯“ (JSON importieren/exportieren, Neues Quiz, Anderes Quiz öffnen, Als Kopie speichern, Moderieren).
 - **Sortieren:** Zeilen am Griff ⠿ ziehen, auch Fragen in eine andere Runde. Alternativ **Alt+↑/↓**. **Strg+D** dupliziert, **Strg+S** speichert sofort.
-- **„+ Frage“** öffnet eine Auswahl der Fragetypen als Kacheln. Die neue Frage landet hinter der gerade gewählten. Den Typ einer Frage wechselst du über „Typ ändern …“ (mit Rückfrage, weil Antworten und Lösung dabei verloren gehen).
+- **„+ Frage“** öffnet die Auswahl der Spielmodi als Kacheln. **„Mehr erfahren“** zeigt pro Spielmodus die Erklärung und eine Mini-Vorschau (Handy + Beamer). Die neue Frage landet hinter der gerade gewählten. Den Spielmodus einer Frage wechselst du über „Spielmodus ändern …“ (mit Rückfrage, weil Antworten und Lösung dabei verloren gehen).
+- **„🆕 Spielmodi erklären“** (unter „⚙️ Quiz“, Standard an): Kommt ein Spielmodus im Spiel zum ersten Mal dran, zeigen Beamer und Handys kurz „Neu: … – so geht's“.
 - **Am Handy** ist die Gliederung der Startbildschirm. Eine Frage öffnet sich bildschirmfüllend mit „← Übersicht“ und ‹ ›, weitere Aktionen stehen im „⋯“-Menü.
 - **Ausgeblendet:** Antwort-Kennungen (a/b/c) vergibt der Editor selbst, die Fragen-ID steht nur unter „Experten“. Bilder erscheinen als kleines Vorschaubild, den Pfad zeigt „🔗 Pfad“.
 - **👁 Vorschau** zeigt eine Frage so, wie Spieler sie sehen.
@@ -148,7 +150,7 @@ Im **Editor** (`editor.html`):
 |---|---|---|---|---|
 | **Bilder** (Bilderquiz, Hotspot, Albumcover) | **WebP**, **JPG** | PNG, SVG, GIF, AVIF | **HEIC** (iPhone-Fotos), TIFF, BMP | ca. 1200–1600 px breit, **unter 500 KB** |
 | **Audio** (Audio-Quiz, Song-Enthüllung) | **MP3** (128–192 kbit/s) | M4A / AAC | **WAV** (zehnmal so groß), **OGG/Opus** (läuft nicht auf älteren iPhones), FLAC, WMA | ein ganzer Song ca. 3–5 MB, ein Clip unter 1 MB |
-| **Video** (noch kein Fragetyp) | **MP4 (H.264)** | WebM | MOV, AVI, MKV | unter 25 MB |
+| **Video** (noch kein Spielmodus) | **MP4 (H.264)** | WebM | MOV, AVI, MKV | unter 25 MB |
 
 - **Bilder verkleinern oder umwandeln:** zum Beispiel mit [squoosh.app](https://squoosh.app). Das ist kostenlos und läuft im Browser.
 - **iPhone-Fotos (HEIC):** Unter Einstellungen → Kamera → Formate → **„Maximale Kompatibilität“** speichert das iPhone neue Fotos als JPG. Vorhandene HEIC-Fotos vorher mit einem HEIC-zu-JPG-Konverter umwandeln.
@@ -179,9 +181,15 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | Ganzes Repo (Empfehlung von GitHub) | unter **1 GB**, das sind grob 200 Songs als MP3 plus Bilder |
 | Datenabruf GitHub Pages | ca. **100 GB pro Monat**. Ein Quizabend mit 10 Spielern und 10 Songs braucht etwa 0,5 GB |
 
-## Fragetypen
+## Spielmodi
 
-| | Fragetyp | Kurz erklärt |
+**Begriffe (überall gleich):** Der **Spielmodus** bestimmt, wie eine Frage gespielt und gewertet wird (Multiple Choice, Buzzer, Dilemma, Themen-Brett …). Das **Thema** ist das inhaltliche Gebiet (Geografie, Musik …). Das **Design** ist das Aussehen (Neon Arena, Mario Kart …).
+
+Alle Spielmodi mit Erklärung und spielbarer Demo stehen auf **`spielmodi.html`** (verlinkt auf der Startseite, im Editor und in der Lobby). Die Texte kommen aus einer Quelle: dem Feld `help` in `js/question-types/types/<typ>.js` (Brett und Einsatz-Finale: `js/core/modes.js`).
+
+**Im Spiel (ab v35):** Kommt ein Spielmodus zum ersten Mal dran, zeigt der Beamer vor dem Start eine Karte „Neu: … – so geht's“ (verschwindet mit dem Start der Frage oder per Leertaste/Klick). Am Handy erscheint dieselbe Karte zum Wegtippen, danach steht über jeder Frage der Spielmodus mit **„?“** zum erneuten Öffnen. Der Moderator sieht dazu „🆕 Neu: …“ mit seinen Tipps.
+
+| | Spielmodus | Kurz erklärt |
 |---|---|---|
 | ◉ | Multiple Choice | Klassische Auswahl mit einer richtigen Antwort |
 | ⚖ | Wahr oder falsch | Eine Aussage ist wahr oder falsch |
@@ -195,15 +203,15 @@ Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hoch
 | ✎ | Fight List | Möglichst viele passende Begriffe sammeln. Das System zählt die Treffer, auch mit kleinen Tippfehlern, und du kannst die Zahl pro Spieler anpassen |
 | ⌖ | Hotspot | Auf einem Bild die gesuchte Stelle treffen |
 | ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
-| ◎ | Gleich gedacht | Punkte für die Antwort der Mehrheit – nur ab 2 Stimmen; wählen alle unterschiedlich, gibt es „Keine Mehrheit“ und 0 Punkte |
+| ◎ | Dilemma | Punkte für die Antwort der Mehrheit – nur ab 2 Stimmen; wählen alle unterschiedlich, gibt es „Keine Mehrheit“ und 0 Punkte |
 | ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
 | 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, am Ende entscheidet ein Stechen. Punkte pro Karte plus Platzierung |
 | ▦ | 3×3-Grid | Neun Felder, jedes muss zu seiner Zeile und Spalte passen. Alle tippen gleichzeitig, das System prüft pro Feld vor, du drehst Fehler per Tipp um. Punkte pro Feld plus Bonus fürs volle Grid |
 | ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
 
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 17 Typen. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
+Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 17 Spielmodi. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
 
-**Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung gibt es weiter „Abschicken“, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Fragetyp ergänzt, steht in `js/question-types/README.md`.
+**Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung gibt es weiter „Abschicken“, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Spielmodus ergänzt, steht in `js/question-types/README.md`.
 
 ### 3×3-Grid im Detail
 
@@ -247,7 +255,7 @@ Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geö
 
 Eine Runde kann statt „Normale Runde“ das Format **▦ Themen-Brett** haben (Editor → Runde → Format).
 - **Aufbau:** Standard 5 Themen × 3 Fragen mit 100 / 300 / 500 Punkten. Anzahl der Themen, Fragen pro Thema und die Punkte je Zeile sind einstellbar. Im Editor siehst du das Raster: Frage antippen = bearbeiten, am Griff ⠿ in ein anderes Feld ziehen (tauscht die Fragen). Am Handy geht das über „Frage … in Feld … verschieben“.
-- **Erlaubte Fragetypen:** Multiple Choice, Schätzfrage und Song-Enthüllung – jeweils **richtig oder falsch, keine Teilpunkte**. Schätzfrage: richtig, wenn der Tipp innerhalb der Toleranz liegt (ohne Toleranz nur exakt).
+- **Erlaubte Spielmodi:** Multiple Choice, Schätzfrage und Song-Enthüllung – jeweils **richtig oder falsch, keine Teilpunkte**. Schätzfrage: richtig, wenn der Tipp innerhalb der Toleranz liegt (ohne Toleranz nur exakt).
 - **Ablauf:** Reihum in der Lobby-Reihenfolge. Wer dran ist, wählt am Handy ein Feld und antwortet allein: richtig = Feldwert, falsch = 0. Der Beamer zeigt das große Brett, wer dran ist und wer als Nächstes kommt; gespielte Felder werden grau mit Avatar.
 - **Mitraten** (im Editor abschaltbar, Standard an): Die anderen sehen die Frage und raten ohne Punkte mit. Bei der Auflösung steht „Hätten es auch gewusst: …“.
 - **Nur volle Runden:** Reicht der Rest nicht mehr für eine volle Runde (jeder einmal), spielen alle die übrigen Felder gemeinsam mit normaler Wertung. Das nächste Brett beginnt bei dem, der als Nächstes dran gewesen wäre.
@@ -289,9 +297,9 @@ Es gibt acht Designs: **Neon Arena**, **Retro-Show**, **Clean Light** (gut für 
 - Die neuen Designs bringen mit: eigenen Hintergrund mit Animationen, Deko am Rand, eigene Soundeffekte, einen kurzen **Übergang** zwischen den Fragen und eine eigene **Siegerehrung**.
 - **Vorschau:** Im Editor unter dem Design „👁 Vorschau zeigen“, oder direkt `vorschau.html?theme=geo` öffnen. Dort gibt es Knöpfe für Frage, Siegerehrung, Übergang und Sounds.
 - Zum Ausprobieren `?theme=kart` (oder `retro`, `light`, `pub`, `legends`, `geo`, `tactical`) an eine Adresse anhängen.
-- Die Themes tragen die Namen ihrer Vorbilder, weil die Seite nur privat genutzt wird. Sie enthalten keine Logos, Figuren, Original-Grafiken, Original-Schriften oder Original-Sounds. **Wird die Seite öffentlich, müssen sie umbenannt werden.** Die IDs (`kart`, `legends`, `geo`, `tactical`) sind neutral, damit gespeicherte Quizze beim Umbenennen weiter funktionieren.
+- Die Designs tragen die Namen ihrer Vorbilder, weil die Seite nur privat genutzt wird. Sie enthalten keine Logos, Figuren, Original-Grafiken, Original-Schriften oder Original-Sounds. **Wird die Seite öffentlich, müssen sie umbenannt werden.** Die IDs (`kart`, `legends`, `geo`, `tactical`) sind neutral, damit gespeicherte Quizze beim Umbenennen weiter funktionieren.
 
-**Neues Theme anlegen:** Eintrag in `THEMES` in `js/core/themes.js`, Aussehen in `css/themes/<id>.css` (in `css/themes/index.css` eintragen), optional Effekte in `js/themes/<id>.js` (Deko, Übergang, Siegerehrung, Sound-Paket). Schriften nur frei lizenziert und lokal in `assets/fonts/`.
+**Neues Design anlegen:** Eintrag in `THEMES` in `js/core/themes.js`, Aussehen in `css/themes/<id>.css` (in `css/themes/index.css` eintragen), optional Effekte in `js/themes/<id>.js` (Deko, Übergang, Siegerehrung, Sound-Paket). Schriften nur frei lizenziert und lokal in `assets/fonts/`.
 
 ## Update einspielen
 
@@ -318,10 +326,10 @@ Alles läuft **kostenlos**:
 ## Projektstruktur
 
 ```
-index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html · vorschau.html
+index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html · vorschau.html · spielmodi.html
 css/main.css                    Gestaltung aller Seiten und die 4 ersten Designs
-css/themes/                     Designs ab v29 (eine Datei pro Theme, Liste in index.css)
-js/themes/                      Effekte der Themes ab v29 (Deko, Übergang, Siegerehrung, Sound-Paket)
+css/themes/                     Designs ab v29 (eine Datei pro Design, Liste in index.css)
+js/themes/                      Effekte der Designs ab v29 (Deko, Übergang, Siegerehrung, Sound-Paket)
 data/                           Beispiel-Quizze (JSON) + quiz-list.json
 assets/                         Bilder, Musik, Schriften (hier eigene Mediendateien ablegen)
 js/core/
@@ -334,6 +342,7 @@ js/core/
   sfx.js                        Soundeffekte (im Browser erzeugt) und Vibration
   reactions.js                  Emoji-Reaktionen (Leiste am Handy, Flug-Animation)
   highlights.js                 Highlights am Show-Ende
+  modes.js                      Spielmodi erklären: Neu-Karte, ?, Galerie (ab v35)
   show-formats.js               Themen-Brett + Einsatz-Finale (reine Spiellogik, ab v34)
   progress.js                   XP, Stufen, Emotes, Statistik (reine Rechenlogik)
   progress-store.js             XP & Statistik in Firebase, Bestenliste, Räume aufräumen
@@ -341,7 +350,7 @@ js/core/
   session-engine.js             lokaler Spielablauf (Testmodus)
   online-session-engine.js      Online-Spielablauf über Firebase
   quiz-utils.js · quiz-validator.js · timer-engine.js · topics.js · themes.js · media-player.js
-js/question-types/              ein Modul pro Fragetyp (+ README zum Erweitern)
+js/question-types/              ein Modul pro Spielmodus (+ README zum Erweitern)
 js/editor/                      Editor, Themenauswahl, Medien-Auswahl
 js/views/                       Startseite, Moderator-, Spieler-, Zuschauer-, Profil- und Verwaltungsansicht
 firebase-database.rules.json    Sicherheitsregeln (in Firebase veröffentlichen)
@@ -358,4 +367,4 @@ Die Tests brauchen nur [Node.js](https://nodejs.org):
 for t in tests/*.js; do node "$t"; done
 ```
 
-Jede Datei endet mit `PASS x / FAIL 0`. Geprüft werden unter anderem die Fragetypen und die Punktevergabe, der Online-Ablauf, die Buzzer-Logik und die Firebase-Regeln. Bei den Regeln geht es darum, wer was lesen und schreiben darf.
+Jede Datei endet mit `PASS x / FAIL 0`. Geprüft werden unter anderem die Spielmodi und die Punktevergabe, der Online-Ablauf, die Buzzer-Logik und die Firebase-Regeln. Bei den Regeln geht es darum, wer was lesen und schreiben darf.

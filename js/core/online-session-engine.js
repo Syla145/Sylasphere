@@ -42,6 +42,7 @@
         title: round.title,
         pointsMultiplier: Number(round.pointsMultiplier),
         ...(round.theme ? { theme: String(round.theme) } : {}), // v29: Theme der Runde
+        ...(round.format ? { format: String(round.format) } : {}), // v34/v35: Themen-Brett – Spieler sehen den Spielmodus
         questions: round.questions.map(previewQuestion)
       }))
     };

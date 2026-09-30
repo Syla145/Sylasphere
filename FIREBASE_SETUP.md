@@ -81,7 +81,7 @@ Sonst ist nichts nötig. Storage- und Firestore-Regeln bleiben unverändert, und
 | Pfad | Inhalt | Wer schreibt | Wer liest |
 |---|---|---|---|
 | `players/<uid>/profile` | Spielername, „in der Bestenliste zeigen“ | der Spieler selbst (nur mit Konto) | der Spieler selbst |
-| `players/<uid>/games/<Raum>` | Ergebnis eines Spiels (Platz, Richtige, XP, Treffer pro Fragetyp und Thema) | nur der Besitzer dieses Raums, genau einmal, nur für Spieler im Raum, nicht für sich selbst, höchstens 250 XP | der Spieler selbst, Admin |
+| `players/<uid>/games/<Raum>` | Ergebnis eines Spiels (Platz, Richtige, XP, Treffer pro Spielmodus und Thema) | nur der Besitzer dieses Raums, genau einmal, nur für Spieler im Raum, nicht für sich selbst, höchstens 250 XP | der Spieler selbst, Admin |
 | `players/<uid>/xp` | Gesamt-XP und XP des Tages | der Raumbesitzer, nur zusammen mit einem neuen Spielergebnis; die Regel prüft, dass die Summe genau stimmt, und das Tageslimit von 600 XP | alle Angemeldeten |
 | `leaderboard/<uid>` | Name + XP (nur wer „in der Bestenliste zeigen“ einschaltet) | der Spieler selbst, XP muss dem echten Stand entsprechen | alle Angemeldeten |
 | `modStats/<uid>/<Quiz>` | wie oft jede Frage gestellt und richtig beantwortet wurde | der Moderator selbst | der Moderator selbst |

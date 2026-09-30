@@ -396,7 +396,7 @@
   function renderMenu() {
     const group = els['ed-menu'].querySelector('[data-item-actions]');
     const entries = [];
-    if (selection.kind === 'question') entries.push(['q-preview', '👁 Vorschau'], ['q-dup', '⧉ Frage duplizieren · Strg+D'], ['q-up', '↑ Frage nach oben · Alt+↑'], ['q-down', '↓ Frage nach unten · Alt+↓'], ['q-type', '⇄ Fragetyp ändern …'], ['q-del', '🗑 Frage löschen']);
+    if (selection.kind === 'question') entries.push(['q-preview', '👁 Vorschau'], ['q-dup', '⧉ Frage duplizieren · Strg+D'], ['q-up', '↑ Frage nach oben · Alt+↑'], ['q-down', '↓ Frage nach unten · Alt+↓'], ['q-type', '⇄ Spielmodus ändern …'], ['q-del', '🗑 Frage löschen']);
     if (selection.kind === 'round') entries.push(['r-add', '＋ Frage in dieser Runde'], ['r-dup', '⧉ Runde duplizieren'], ['r-up', '↑ Runde nach oben'], ['r-down', '↓ Runde nach unten'], ['r-del', '🗑 Runde löschen']);
     group.innerHTML = entries.map(([key, label]) => `<button type="button" class="ed-menu-entry${key.endsWith('del') ? ' is-danger' : ''}" data-menu="${key}">${esc(label)}</button>`).join('');
     group.hidden = !entries.length;
@@ -708,17 +708,42 @@
     const onlyBoard = Quiz.isBoardRound(round); // v34: im Brett nur Multiple Choice, Schätzfrage, Song-Enthüllung
     if (onlyBoard) grid.append(div('microcopy ed-type-note', 'Im Themen-Brett gehen nur Multiple Choice, Schätzfrage und Song-Enthüllung (richtig oder falsch, keine Teilpunkte).'));
     Quiz.SUPPORTED_TYPES.filter(t => (!Quiz.typeDef(t)?.hidden || t === current) && (!onlyBoard || Quiz.BOARD_TYPES.includes(t))).forEach(t => {
+      const wrap = div(`ed-type-tile${t === current ? ' is-current' : ''}`);
       const tile = document.createElement('button');
       tile.type = 'button';
-      tile.className = `ed-type-tile${t === current ? ' is-current' : ''}`;
+      tile.className = 'ed-type-pick';
       tile.innerHTML = `<span class="ed-type-icon">${esc(Quiz.TYPE_ICONS[t] || '•')}</span><strong>${esc(Quiz.TYPE_LABELS[t] || t)}</strong><small>${esc(Quiz.TYPE_DESCRIPTIONS[t] || '')}</small>`;
       tile.addEventListener('click', () => onPick(t));
-      grid.append(tile);
+      // v35: „Mehr erfahren“ – Erklärung + Mini-Vorschau (Handy + Beamer) mit Beispieldaten
+      const more = button('Mehr erfahren', 'link-btn ed-type-more', () => showTypeInfo(box, t, current, onPick));
+      wrap.append(tile, more);
+      grid.append(wrap);
     });
-    return grid;
+    const box = div('ed-type-box');
+    const help = div('microcopy ed-type-help'); help.innerHTML = 'Nicht sicher? „Mehr erfahren“ zeigt Erklärung und Vorschau – oder <a href="./spielmodi.html" target="_blank" rel="noopener">alle Spielmodi mit Demo ansehen ↗</a>';
+    grid.prepend(help);
+    box.append(grid);
+    return box;
+  }
+  function showTypeInfo(box, t, current, onPick) {
+    const Modes = window.SylasphereModes;
+    const mode = Modes?.get(t);
+    const list = box.firstElementChild;
+    list.hidden = true;
+    box.querySelector('.ed-type-info')?.remove();
+    const info = div('ed-type-info');
+    info.innerHTML = `<button type="button" class="link-btn" data-back>← Alle Spielmodi</button>
+      <div class="mode-card-head"><span class="mode-card-icon" aria-hidden="true">${esc(mode?.icon || '•')}</span><div><span class="eyebrow">${esc(mode?.help?.group || 'Spielmodus')}</span><strong>${esc(mode?.label || t)}</strong></div></div>
+      <div class="ed-type-info-grid"><div>${Modes ? Modes.detailHTML(t, { open: true }) : ''}<p><a class="link-btn" href="./spielmodi.html#${encodeURIComponent(t)}" target="_blank" rel="noopener">🕹️ Auf der Spielmodi-Seite ausprobieren ↗</a></p></div><div class="ed-type-preview"></div></div>
+      <div class="ed-type-info-actions"><button type="button" class="btn btn--primary" data-pick>${t === current ? '✓ Bleibt so' : `${esc(mode?.icon || '')} ${esc(mode?.label || t)} wählen`}</button></div>`;
+    info.querySelector('[data-back]').addEventListener('click', () => { info.remove(); list.hidden = false; });
+    info.querySelector('[data-pick]').addEventListener('click', () => onPick(t));
+    box.append(info);
+    window.SylasphereModeDemo?.renderPreview(t, info.querySelector('.ed-type-preview'));
+    info.querySelector('[data-back]').focus();
   }
   function openTypePicker() {
-    const api = openModal('Welche Art Frage?', typeTiles('', type => {
+    const api = openModal('Welcher Spielmodus?', typeTiles('', type => {
       api.close();
       const previous = M.questionAt(state, selection);
       const q = newQuestion(usableType(type));
@@ -735,14 +760,14 @@
   function changeTypeDialog() {
     const q = M.questionAt(state, selection);
     if (!q) return;
-    const api = openModal('Fragetyp ändern', typeTiles(q.type, type => {
+    const api = openModal('Spielmodus ändern', typeTiles(q.type, type => {
       if (type === q.type) { api.close(); return; }
       const ok = confirm(`Zu „${Quiz.TYPE_LABELS[type]}“ wechseln?\n\nFragetext, Thema, Punkte und Timer bleiben erhalten. Alle Angaben, die nur zu „${Quiz.TYPE_LABELS[q.type]}“ gehören (z. B. Antworten, Lösung, Bilder), gehen verloren.`);
       if (!ok) return;
       api.close();
       selection = M.changeType(state, selection.ri, selection.qi, newQuestion(type));
       structuralChange();
-      App.toast(`Fragetyp geändert: ${Quiz.TYPE_LABELS[type]}`, 'success');
+      App.toast(`Spielmodus geändert: ${Quiz.TYPE_LABELS[type]}`, 'success');
     }), { wide: true });
   }
   function showValidationDialog(v) {
@@ -823,11 +848,18 @@
     finalCheck.addEventListener('change', e => { state.quiz.settings.finalWager = e.target.checked; refreshValidation(); queueSave(); });
     finalLabel.append(finalCheck, document.createTextNode(' 💰 Letzte Frage als Einsatz-Finale'));
     finalBox.append(finalLabel, div('microcopy', 'Vor der letzten Frage setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100). Richtig: +Einsatz, falsch: −Einsatz. Die letzte Frage muss Multiple Choice, Schätzfrage oder Song-Enthüllung sein und in einer eigenen Runde (kein Brett) stehen.'));
+    // v35: Spielmodi erklären
+    const explainBox = div('field-group ed-section');
+    const explainLabel = document.createElement('label'); explainLabel.className = 'ed-check';
+    const explainCheck = document.createElement('input'); explainCheck.type = 'checkbox'; explainCheck.checked = state.quiz.settings.explainModes !== false;
+    explainCheck.addEventListener('change', e => { state.quiz.settings.explainModes = e.target.checked; queueSave(); });
+    explainLabel.append(explainCheck, document.createTextNode(' 🆕 Spielmodi erklären'));
+    explainBox.append(explainLabel, div('microcopy', 'Kommt ein Spielmodus zum ersten Mal dran, zeigen Beamer und Handys kurz „Neu: … – so geht\'s“. Am Handy gibt es an jeder Frage ein „?“.'));
     const topics = div('field-group ed-section');
     topics.append(div('field-label', 'Themen im Quiz'));
     const topicBox = div('topic-manager'); topicBox.id = 'editor-categories';
     topics.append(topicBox, div('microcopy', 'Antippen, um Name, Icon oder Farbe anzupassen.'));
-    card.append(stats, grid, finalBox, design, topics);
+    card.append(stats, grid, finalBox, explainBox, design, topics);
     requestAnimationFrame(() => { renderTheme(); renderCategories(); });
     return card;
   }
@@ -949,8 +981,8 @@
     wrap.dataset.qid = q.id;
     const head = div('ed-q-head');
     head.append(div('pill pill--category', `${Quiz.TYPE_ICONS[q.type] || '•'} ${Quiz.TYPE_LABELS[q.type] || q.type}`));
-    const change = button('Typ ändern …', 'link-btn ed-type-change', () => changeTypeDialog());
-    change.title = 'Fragetyp wechseln (typ-spezifische Angaben gehen dabei verloren)';
+    const change = button('Spielmodus ändern …', 'link-btn ed-type-change', () => changeTypeDialog());
+    change.title = 'Spielmodus wechseln (Angaben, die nur zum bisherigen Spielmodus gehören, gehen dabei verloren)';
     head.append(change);
     wrap.append(head);
 

@@ -5,8 +5,8 @@
     "file": "quiz-show-abend.json"
   },
   {
-    "title": "Sylasphere: Showtime · alle 17 Fragetypen",
-    "description": "Showcase mit allen 17 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung, Zeitduell, Einordnen und 3×3-Grid.",
+    "title": "Sylasphere: Showtime · alle 17 Spielmodi",
+    "description": "Showcase mit allen 17 Spielmodi – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung, Zeitduell, Einordnen und 3×3-Grid.",
     "file": "quiz-showtime.json"
   },
   {
@@ -30,13 +30,13 @@
     "file": "quiz-party-mix.json"
   },
   {
-    "title": "Legacy-Referenz · 6 Fragetypen",
-    "description": "Kompaktes Legacy-Referenzquiz mit den ursprünglichen sechs Fragetypen – ideal für Regressionstests.",
+    "title": "Legacy-Referenz · 6 Spielmodi",
+    "description": "Kompaktes Legacy-Referenzquiz mit den ursprünglichen sechs Spielmodi – ideal für Regressionstests.",
     "file": "quiz-sample.json"
   },
   {
     "title": "Demo komplett – 3 Runden",
-    "description": "Umfangreicher Import- und Funktionstest mit vielen Kategorien, Timern und Punktewerten.",
+    "description": "Umfangreicher Import- und Funktionstest mit vielen Themen, Timern und Punktewerten.",
     "file": "quiz-demo-komplett.json"
   }
 ]

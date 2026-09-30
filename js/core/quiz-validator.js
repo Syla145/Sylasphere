@@ -44,9 +44,9 @@
       round.questions.forEach((q, qi) => {
         const p = `${rp}.questions[${qi}]`;
         addId(q.id, `${p}.id`);
-        if (!Quiz.SUPPORTED_TYPES.includes(q.type)) errors.push({ path: `${p}.type`, message: `Unbekannter Fragetyp „${q.type}“.` });
+        if (!Quiz.SUPPORTED_TYPES.includes(q.type)) errors.push({ path: `${p}.type`, message: `Unbekannter Spielmodus „${q.type}“.` });
         if (!q.text.trim()) errors.push({ path: `${p}.text`, message: 'Fragetext fehlt.' });
-        if (!q.category.trim()) warnings.push({ path: `${p}.category`, message: 'Kategorie fehlt; Anzeige erfolgt als „Ohne Kategorie“.' });
+        if (!q.category.trim()) warnings.push({ path: `${p}.category`, message: 'Thema fehlt – die Frage wird als „Ohne Thema“ angezeigt.' });
         if (!Number.isFinite(Number(q.timer)) || Number(q.timer) < 0) errors.push({ path: `${p}.timer`, message: 'Timer muss eine Zahl ≥ 0 sein.' });
         if (!Number.isFinite(Number(q.points)) || Number(q.points) < 0) errors.push({ path: `${p}.points`, message: 'Punkte müssen eine Zahl ≥ 0 sein.' });
 
@@ -72,7 +72,7 @@
       if (!key) return;
       const previous = categoryMap.get(key);
       if (previous && previous !== question.category) {
-        warnings.push({ path: `category:${question.category}`, message: `Kategorie unterscheidet sich nur durch Schreibweise/Leerzeichen von „${previous}“. Sie wird in Übersichten zusammengeführt.` });
+        warnings.push({ path: `category:${question.category}`, message: `Thema unterscheidet sich nur durch Schreibweise/Leerzeichen von „${previous}“. Es wird in Übersichten zusammengeführt.` });
       } else categoryMap.set(key, question.category);
     });
 

@@ -1,8 +1,8 @@
 {
   "quiz": {
     "id": "quiz_sample_all_types",
-    "title": "Sylasphere – Alle Fragetypen",
-    "description": "Referenzquiz zum Testen aller sechs Fragetypen.",
+    "title": "Sylasphere – Referenz-Spielmodi",
+    "description": "Referenzquiz zum Testen der sechs ursprünglichen Spielmodi.",
     "settings": {
       "defaultTimer": 25,
       "defaultPoints": 100,
@@ -10,11 +10,10 @@
     },
     "categories": [
       "Geografie",
-      "Schätzfragen",
-      "Bilderrätsel",
       "Geschichte",
       "Allgemeinwissen",
-      "Technik"
+      "Technik",
+      "Reisen"
     ],
     "rounds": [
       {
@@ -52,7 +51,7 @@
           {
             "id": "q_sample_estimate",
             "type": "estimate",
-            "category": "Schätzfragen",
+            "category": "Allgemeinwissen",
             "text": "Wie viele Minuten hat ein Tag?",
             "min": 1000,
             "max": 2000,
@@ -65,7 +64,7 @@
           {
             "id": "q_sample_image",
             "type": "image-quiz",
-            "category": "Bilderrätsel",
+            "category": "Reisen",
             "text": "Welches Wahrzeichen ist stilisiert dargestellt?",
             "image": "./assets/demo-landmark.svg",
             "imageAlt": "Stilisierte Zeichnung des Eiffelturms",

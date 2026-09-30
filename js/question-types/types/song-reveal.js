@@ -82,7 +82,18 @@
     type: 'song-reveal',
     label: 'Song-Enthüllung',
     icon: '🎧',
-    description: 'Song in Stufen anspielen (0,1 s → 10 s). Wer früher richtig liegt, bekommt mehr Punkte – der Moderator prüft.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Musik & Audio',
+      short: 'Erkenne den Song – je früher du abschickst, desto mehr Punkte.',
+      steps: [
+        'Der Song wird in Stufen angespielt: erst ein winziger Schnipsel, dann immer länger.',
+        'Tipp den Titel (und falls gefragt den Interpreten) ein und schick ab, sobald du ihn erkennst. Danach ist deine Antwort gesperrt.',
+        'Zum Schluss läuft der Song länger – mit Albumbild.'
+      ],
+      scoring: 'Die Punkte hängen von der Stufe ab, in der du abgeschickt hast (z. B. 100 % bei der ersten, 25 % bei der letzten). Ist der Interpret gefragt, zählen Titel und Interpret je zur Hälfte. Tippfehler sind egal – der Moderator prüft.',
+      moderator: 'Das Highlight für Musikrunden. Vorbereiten: MP3 hochladen, einen guten Startpunkt wählen (am besten den Refrain), Titel und Interpret mit Schreibvarianten eintragen. Du schaltest die Stufen weiter und bestätigst am Ende jede Antwort mit ✓/✗ – Vorschläge macht das System.'
+    },
     solutionLabel: 'Song',
     noTimer: true,
     lockOnSubmit: true,

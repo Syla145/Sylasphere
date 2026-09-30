@@ -6,7 +6,17 @@
     type: 'audio-quiz',
     label: 'Audio-Quiz',
     icon: '♪',
-    description: 'Audio-Clip plus Antwortoptionen – für Songs, Sounds und Stimmen.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Musik & Audio',
+      short: 'Hör genau hin und wähle die passende Antwort.',
+      steps: [
+        'Hör dir den Clip an.',
+        'Tippe auf die richtige Antwort.'
+      ],
+      scoring: 'Richtig = volle Punkte, falsch = 0.',
+      moderator: 'Für Songs, Geräusche, Stimmen oder Filmzitate. Vorbereiten: eine kurze Audiodatei (MP3) und 2–6 Antworten. Tipp: Lautstärke vorher testen und klären, wo der Ton läuft (Beamer-Boxen oder Handys).'
+    },
 
     defaults: () => ({ options: Kit.defaultOptions(), correctAnswer: 'a', audio: './assets/demo-tone.mp3', audioLabel: 'Audio-Hinweis' }),
 

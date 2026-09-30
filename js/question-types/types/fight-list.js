@@ -26,7 +26,17 @@
     type: 'fight-list',
     label: 'Fight List',
     icon: '✎',
-    description: 'Mehrere freie Begriffe sammeln; jeder Treffer zählt.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Wissen',
+      short: 'Nenne so viele passende Begriffe wie möglich.',
+      steps: [
+        'Lies die Aufgabe, z. B. „Nenne Kontinente“.',
+        'Tipp nacheinander deine Begriffe ein und schick ab.'
+      ],
+      scoring: 'Jeder richtige Begriff bringt Punkte – bis zur Höchstpunktzahl der Frage.',
+      moderator: 'Für Aufzählungen: Länder, Zutaten, Bandmitglieder … Vorbereiten: eine möglichst vollständige Liste der gültigen Antworten und die Punkte pro Treffer. Nach dem Schließen kannst du die Trefferzahl pro Spieler anpassen, falls eine Antwort fehlt.'
+    },
 
     defaults: () => ({ correctAnswers: ['Begriff 1', 'Begriff 2'], maxEntries: 4, pointsPerAnswer: 50 }),
 

@@ -11,7 +11,7 @@
   function unsupported(question, container) {
     const box = document.createElement('div');
     box.className = 'empty-state';
-    box.textContent = `Fragetyp „${question?.type || '?'}“ wird nicht unterstützt.`;
+    box.textContent = `Spielmodus „${question?.type || '?'}“ wird nicht unterstützt.`;
     container.replaceChildren(box);
   }
 

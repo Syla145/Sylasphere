@@ -1,7 +1,7 @@
-# Fragetypen
+# Spielmodi (im Code: Fragetypen)
 
-Jeder Fragetyp ist ein eigenes Modul in `types/`. Das Modul enthält **alles**, was zu diesem Typ gehört:
-Anzeige, Editor-Felder, Prüfung, Punktewertung, Lösungstext, Statistik und was online vor den Spielern versteckt wird.
+In der Oberfläche heißen sie **Spielmodi**, im Code `type` / Fragetyp. Jeder Spielmodus ist ein eigenes Modul in `types/`. Das Modul enthält **alles**, was dazu gehört:
+Anzeige, Editor-Felder, Prüfung, Punktewertung, Lösungstext, Statistik, was online vor den Spielern versteckt wird – und seit v35 die **Erklärung** (`help`).
 
 ```
 js/question-types/
@@ -14,7 +14,7 @@ js/question-types/
     └── …
 ```
 
-## Neuen Fragetyp hinzufügen
+## Neuen Spielmodus hinzufügen
 
 1. Datei `types/<typ>.js` anlegen (Vorlage unten). Der Dateiname muss dem `type` entsprechen.
 2. In `registry.js` den Namen in `TYPE_FILES` eintragen.
@@ -33,7 +33,15 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
     type: 'ja-nein',                    // = Dateiname (types/ja-nein.js)
     label: 'Ja oder nein',              // Anzeige in Editor und Frage
     icon: '✓',
-    description: 'Beispiel-Vorlage: Ja/Nein-Frage.',
+    // v35: Erklärung – eine Textquelle für Neu-Karte (Beamer/Handy), „?“, Editor „Mehr erfahren“ und spielmodi.html.
+    // description ergibt sich daraus (help.short).
+    help: {
+      group: 'Wissen',                  // Wissen · Schätzen · Musik & Audio · Bild · Show-Formate & Spiele
+      short: 'Ja oder nein – was stimmt?',               // 1 Satz für Spieler
+      steps: ['Lies die Frage.', 'Tippe auf „Ja“ oder „Nein“.'], // 2–3 Schritte „So geht's“
+      scoring: 'Richtig = volle Punkte, falsch = 0.',    // wie gewertet wird
+      moderator: 'Wofür geeignet, was vorbereiten, Tipps und Stolperfallen.'
+    },
     solutionLabel: 'Lösung',            // optional, z. B. 'Top-Antwort'
 
     // Startwerte für eine neue Frage im Editor

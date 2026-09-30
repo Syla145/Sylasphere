@@ -414,7 +414,18 @@
     type: 'time-duel',
     label: 'Zeitduell',
     icon: '⏱',
-    description: 'Bilder-Duell mit Schachuhr: Wer zuerst keine Zeit mehr hat, scheidet aus. Reihum, mündlich oder getippt.',
+    // v35: Erklärung für Spieler und Moderatoren (Neu-Karte, ?, Editor, spielmodi.html)
+    help: {
+      group: 'Show-Formate & Spiele',
+      short: 'Bilder-Duell mit Schachuhr: Erkenne die Bilder, bevor deine Zeit abläuft.',
+      steps: [
+        'Reihum ist immer einer dran – nur seine Uhr läuft.',
+        'Sag oder tipp, was auf dem Bild ist. Richtig: Der Nächste ist dran. Passen kostet ein paar Sekunden Strafe.',
+        'Wessen Zeit abläuft, scheidet aus. Wer übrig bleibt, gewinnt.'
+      ],
+      scoring: 'Punkte nach Platzierung, z. B. 100 % für Platz 1, 60 % für Platz 2 und 30 % für Platz 3.',
+      moderator: 'Actionreicher Höhepunkt für 2–6 Spieler. Vorbereiten: 15–40 Bilder mit Lösung (sie wird aus dem Dateinamen vorgeschlagen), Zeit pro Spieler, Strafzeit und Modus „mündlich“ oder „tippen“. Mündlich drückst du ✓ Richtig oder Passen. Wichtig: Dein Gerät führt die Uhr – nicht in den Standby gehen lassen.'
+    },
     solutionLabel: 'Ergebnis',
     noTimer: true,
     scoresAllPlayers: true,

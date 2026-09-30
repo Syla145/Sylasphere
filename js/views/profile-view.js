@@ -84,7 +84,7 @@
       </section>
       ${stats.games ? '' : '<div class="notice">Noch keine Spiele gespeichert. Tritt einem Online-Quiz mit deinem Konto bei – nach dem Spielende erscheinen hier deine XP und Statistiken.</div>'}
       <div class="profile-grid">
-        ${breakdown('Nach Fragetyp', stats.byType, type => { const def = window.SylasphereTypes?.get(type); return `${def?.icon || '•'} ${def?.label || type}`; })}
+        ${breakdown('Nach Spielmodus', stats.byType, type => { const def = window.SylasphereTypes?.get(type); return `${def?.icon || '•'} ${def?.label || type}`; })}
         ${breakdown('Nach Thema', stats.byTopic, topic => { const t = window.SylasphereTopics?.resolve(topic); return `${t?.icon || '🏷️'} ${topic}`; })}
       </div>
       ${recent(stats.recent)}

@@ -98,6 +98,7 @@
     settings.buzzerEnabled = Boolean(settings.buzzerEnabled);
     settings.theme = String(settings.theme || 'neon'); // Design (siehe js/core/themes.js)
     settings.finalWager = settings.finalWager === true; // v34: letzte Frage als Einsatz-Finale
+    settings.explainModes = settings.explainModes !== false; // v35: Spielmodi beim ersten Mal erklären (Standard an)
     let rounds = Array.isArray(raw.rounds) ? raw.rounds : [];
     if (!rounds.length && Array.isArray(raw.questions)) {
       rounds = [{ id: 'round_001', title: raw.roundTitle || 'Runde 1', pointsMultiplier: 1, questions: raw.questions }];

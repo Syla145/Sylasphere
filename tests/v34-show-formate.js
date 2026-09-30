@@ -77,7 +77,7 @@ ok(s.phase==='done'&&S.freeCells(s,R).length===0,'alle Felder gespielt → Brett
  const n=S.normalize(stripped);ok(n.used&&typeof n.used==='object'&&Array.isArray(n.doubles)&&S.freeCells(n,R).length===15,'Brett-Stand ohne leere Felder (wie aus Firebase) bleibt spielbar');
  ok(code('js/core/online-session-engine.js').includes('SylasphereShow.normalize(pub.show)'),'online: Brett-Stand wird beim Laden normalisiert');}
 // ---------- Einbindung ----------
-{const pages=['moderator.html','spieler.html','zuschauer.html'];ok(pages.every(f=>code(f).includes('js/core/show-formats.js?v=34')&&code(f).includes('js/views/show-ui.js?v=34')),'Show-Module in Moderator, Spieler, Beamer eingebunden');
+{const pages=['moderator.html','spieler.html','zuschauer.html'];ok(pages.every(f=>/js\/core\/show-formats\.js\?v=\d+/.test(code(f))&&/js\/views\/show-ui\.js\?v=\d+/.test(code(f))),'Show-Module in Moderator, Spieler, Beamer eingebunden');
  const mv=code('js/views/moderator-view.js'),pv=code('js/views/player-view.js'),sv=code('js/views/spectator-view.js'),ed=code('js/editor/editor.js'),ui=code('js/views/show-ui.js');
  ok(ed.includes('function boardEditor')&&ed.includes('Letzte Frage als Einsatz-Finale')&&ed.includes('Themen-Brett'),'Editor: Raster + Einsatz-Finale');
  ok(pv.includes('data-pick-send')&&pv.includes('data-wager-send')&&pv.includes('Die Rangliste gibt es nach der Finale-Auflösung'),'Handy: Feld wählen, Einsatz, Rangliste im Finale verborgen');

@@ -1050,8 +1050,11 @@ body.ed-is-dragging,body.ed-is-dragging *{cursor:grabbing!important;user-select:
 .ed-modal-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
 .ed-modal-head h2{margin:0}
 .ed-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
-.ed-type-tile{display:grid;gap:4px;align-content:start;min-height:108px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(var(--overlay-rgb),.04);color:var(--text);font:inherit;text-align:left;cursor:pointer}
-.ed-type-tile:hover,.ed-type-tile:focus-visible{border-color:rgba(var(--accent-rgb),.7);background:rgba(var(--accent-rgb),.14);outline:none}
+.ed-type-tile{display:grid;gap:2px;align-content:start;min-height:108px;padding:0 0 8px;border:1px solid var(--line);border-radius:14px;background:rgba(var(--overlay-rgb),.04);color:var(--text)}
+.ed-type-pick{display:grid;gap:4px;align-content:start;padding:12px 12px 4px;border:0;border-radius:14px 14px 0 0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.ed-type-pick:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.ed-type-more{justify-self:start;margin-left:12px;font-size:.8rem}
+.ed-type-tile:hover,.ed-type-tile:focus-within{border-color:rgba(var(--accent-rgb),.7);background:rgba(var(--accent-rgb),.14);outline:none}
 .ed-type-tile.is-current{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 .ed-type-icon{font-size:1.4rem}
 .ed-type-tile small{color:var(--muted);font-size:.8rem;line-height:1.35}
@@ -1378,7 +1381,7 @@ html[data-motion="reduced"] .beamer-avatar.is-new{animation:none}
 .home-join-row .btn{min-height:56px;padding-inline:26px;font-size:1.1rem}
 .home-join .error-text{min-height:0}
 .home-join .error-text:empty{display:none}
-.home-secondary{max-width:640px;margin:0 auto 60px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.home-secondary{max-width:760px;margin:0 auto 60px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .home-secondary-link{display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:14px;background:rgba(var(--overlay-rgb),.04);color:var(--text);text-align:left;cursor:pointer;font:inherit}
 .home-secondary-link:hover{border-color:rgba(var(--accent-rgb),.5);background:rgba(var(--accent-rgb),.08)}
 .home-secondary-link>span:first-child{font-size:1.5rem}
@@ -1658,3 +1661,99 @@ html[data-motion="reduced"] .show-zoom,html[data-motion="reduced"] .show-double-
 .show-wager-avatars small{font-weight:800;font-size:1rem;max-width:140px;overflow-wrap:anywhere}
 .show-wager-avatars b{color:var(--success-text)}
 @media(max-width:560px){.show-final-grid{grid-template-columns:1fr}}
+
+/* v35: Spielmodi erklären – Karte „Neu: … – so geht's“, ?-Knopf, Moderator-Hinweis */
+.mode-card{display:grid;gap:10px;padding:16px 18px;border-radius:18px;border:1px solid rgba(var(--accent-rgb),.55);background:linear-gradient(180deg,rgba(var(--accent-rgb),.16),rgba(var(--accent-rgb),.06)),var(--panel);color:var(--text);text-align:left}
+.mode-card-head{display:flex;align-items:center;gap:12px}
+.mode-card-head strong{display:block;font-size:1.25rem;line-height:1.15}
+.mode-card-icon{display:grid;place-items:center;flex:0 0 46px;width:46px;height:46px;border-radius:14px;background:rgba(var(--accent-rgb),.22);font-size:1.5rem}
+.mode-short{margin:0;font-size:1.05rem;font-weight:700}
+.mode-steps{margin:0;padding-left:1.3em;display:grid;gap:4px;color:var(--text-soft)}
+.mode-scoring{margin:0;color:var(--text-soft);font-size:.92rem}
+.mode-dismiss{justify-self:start}
+.mode-help{margin:0 0 12px}
+.mode-help[hidden]{display:none}
+.mode-chip{display:inline-flex;align-items:center;gap:6px;padding:5px 6px 5px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(var(--overlay-rgb),.05);color:var(--text-soft);font:inherit;font-size:.82rem;font-weight:700;cursor:pointer}
+.mode-chip:hover,.mode-chip:focus-visible{border-color:rgba(var(--accent-rgb),.7);color:var(--text);outline:none}
+.mode-q{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--on-accent,#fff);font-size:.8rem}
+.mode-modal{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:rgba(0,0,0,.55);animation:showZoom .25s ease both}
+.mode-modal .mode-card{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.mode-notice{display:grid;gap:6px;border-color:rgba(var(--accent-rgb),.6)}
+.mode-notice summary{cursor:pointer;font-weight:700;color:var(--accent-text)}
+.mode-detail{display:grid;gap:6px}
+.mode-detail h4{margin:8px 0 0;font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-text)}
+.mode-detail p{margin:0}
+.mode-mod{margin-top:6px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:rgba(var(--overlay-rgb),.04)}
+.mode-mod summary{cursor:pointer;font-weight:700}
+.mode-mod p{margin-top:6px;color:var(--text-soft)}
+/* Beamer: schwebt unten über dem Bild, beeinflusst die Höhe nicht (kein Scrollen) */
+.beamer-mode-card{position:fixed;left:50%;bottom:clamp(14px,3vh,40px);z-index:60;width:min(1100px,calc(100vw - 48px));max-height:58vh;overflow:hidden;transform:translateX(-50%);display:grid;gap:6px;justify-items:center;animation:modeCardIn .45s ease both;cursor:pointer}
+.beamer-mode-card .mode-card{width:100%;padding:clamp(16px,2.4vh,28px) clamp(18px,2vw,34px);box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.mode-card--beamer .mode-card-head strong{font-size:clamp(1.6rem,2.8vw,2.8rem)}
+.mode-card--beamer .mode-card-icon{flex-basis:clamp(52px,5vw,80px);width:clamp(52px,5vw,80px);height:clamp(52px,5vw,80px);font-size:clamp(1.8rem,3vw,2.8rem)}
+.mode-card--beamer .mode-short{font-size:clamp(1.2rem,1.9vw,2rem)}
+.mode-card--beamer .mode-steps,.mode-card--beamer .mode-scoring{font-size:clamp(1rem,1.35vw,1.45rem)}
+.mode-card-hint{color:var(--muted);font-size:.85rem;text-shadow:0 1px 4px rgba(0,0,0,.6)}
+@keyframes modeCardIn{from{opacity:0;transform:translate(-50%,20px)}to{opacity:1;transform:translate(-50%,0)}}
+@media (prefers-reduced-motion:reduce){.beamer-mode-card,.mode-modal{animation:none}}
+html[data-motion="reduced"] .beamer-mode-card,html[data-motion="reduced"] .mode-modal{animation:none}
+
+/* v35: Editor „Mehr erfahren“ + Mini-Vorschau Handy/Beamer */
+.ed-type-info{display:grid;gap:12px}
+.ed-type-info .mode-card-head strong{font-size:1.3rem}
+.ed-type-info-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start}
+.ed-type-info-actions{display:flex;justify-content:flex-end;position:sticky;bottom:0;padding-top:8px;background:linear-gradient(transparent,var(--panel) 40%)}
+@media (max-width:760px){.ed-type-info-grid{grid-template-columns:1fr}}
+.mode-screens{display:grid;grid-template-columns:minmax(0,.62fr) minmax(0,1.38fr);gap:12px;align-items:start}
+.mode-screen{position:relative;margin:0;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:var(--bg-deep,#0a1020);min-height:120px}
+.mode-screen-inner{transform-origin:0 0;padding:12px;pointer-events:none}
+.mode-screen figcaption{position:absolute;left:0;right:0;bottom:0;padding:4px 8px;font-size:.72rem;font-weight:800;color:var(--muted);background:rgba(var(--surface-rgb),.92)}
+.mode-screen--phone{border-radius:22px}
+.mode-mini-beamer{min-height:0!important;padding:0}
+.mode-mini-beamer .presenter-main{min-height:520px}
+@media (max-width:560px){.mode-screens{grid-template-columns:1fr}}
+/* spielmodi.html */
+.modes-shell{padding-bottom:60px}
+.modes-intro{max-width:760px;margin:10px 0 16px}
+.modes-intro h1{margin:4px 0 8px;font-size:clamp(2rem,5vw,3rem)}
+.modes-intro p{color:var(--text-soft)}
+.modes-filter{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.modes-chip{padding:7px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(var(--overlay-rgb),.05);color:var(--text);font:inherit;font-size:.88rem;font-weight:700;cursor:pointer}
+.modes-chip.is-active{border-color:var(--accent);background:rgba(var(--accent-rgb),.2)}
+.modes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.mode-tile{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px;color:var(--text);text-decoration:none;transition:border-color .15s,transform .15s}
+.mode-tile:hover,.mode-tile:focus-visible{border-color:rgba(var(--accent-rgb),.7);transform:translateY(-2px);outline:none}
+.mode-tile-icon{display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:rgba(var(--accent-rgb),.2);font-size:1.5rem}
+.mode-tile-body{display:grid;gap:4px;justify-items:start;min-width:0}
+.mode-tile-body strong{font-size:1.1rem}
+.mode-tile-body span{color:var(--text-soft);font-size:.9rem}
+.mode-tile-body .pill{font-size:.7rem}
+.mode-tile-go{color:var(--accent-text);font-weight:800}
+.modes-back{display:inline-block;margin-bottom:10px}
+.modes-detail-card{display:grid;gap:14px}
+.modes-detail-card h2{margin:0}
+.modes-detail-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}
+.modes-try{padding:14px;border:1px solid var(--line);border-radius:16px;background:rgba(var(--overlay-rgb),.03)}
+.modes-try h3{margin:0 0 4px}
+.modes-preview summary{cursor:pointer;font-weight:800}
+.modes-preview .mode-screens{margin-top:10px}
+@media (max-width:760px){.modes-detail-grid{grid-template-columns:1fr}}
+.mode-demo{display:grid;gap:10px}
+.mode-demo-phone{padding:12px;border:1px solid var(--line);border-radius:18px;background:var(--panel);max-width:420px;width:100%}
+.mode-demo-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.mode-demo-result{display:grid;gap:2px;width:100%}
+.mode-buzz{width:100%;min-height:90px;font-size:1.6rem;margin:10px 0}
+/* v35: Lobby – Spielmodi dieses Quiz */
+.beamer-modes{display:grid;gap:8px;justify-items:center;margin-top:6px}
+.beamer-mode-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;max-width:640px}
+.beamer-mode-chip{padding:5px 12px;border:1px solid var(--line);border-radius:999px;background:rgba(var(--overlay-rgb),.06);font-weight:700;font-size:clamp(.85rem,1vw,1.05rem)}
+.lobby-modes{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:center;margin:14px 0 0}
+.ed-type-help{grid-column:1/-1}
+.mode-screens{grid-template-columns:minmax(0,260px) minmax(0,1fr)}
+.mode-mini-beamer .beamer-grid{grid-template-columns:1fr!important}
+.mode-screen--phone .question-title,.mode-demo-phone .question-title{font-size:1.45rem;line-height:1.2}
+.mode-screen--beamer .question-title{font-size:2.6rem}
+.ed-type-preview .mode-screens{grid-template-columns:1fr}
+.ed-type-preview .mode-screen--phone{width:min(260px,100%);justify-self:center}
+.mode-mini-beamer .presenter-main{min-height:420px}
+.ed-type-info [data-back]{justify-self:start}
