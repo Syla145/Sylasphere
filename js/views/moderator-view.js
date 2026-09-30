@@ -147,7 +147,7 @@
       if (action === 'mute') { const m = window.SylasphereMedia; m?.setEnabled(!m.status().enabled); renderQuestion(engine.getCurrent(state)); }
     });
     els['btn-prev']?.addEventListener('click', () => safe(() => engine.move(-1)));
-    els['btn-next']?.addEventListener('click', () => safe(() => engine.move(1)));
+    els['btn-next']?.addEventListener('click', () => { if (boardActive()) skipBoardTurn(); else safe(() => engine.move(1)); });
     els['btn-finish']?.addEventListener('click', () => { if (confirm('Quiz wirklich beenden? Es geht direkt zur Siegerehrung.')) safe(() => engine.finish({ highlights: window.SylasphereHighlights?.compute(state) || [] })); });
     els['btn-new-session']?.addEventListener('click', async () => {
       try { await engine?.destroy?.(); } catch (_) {}
@@ -347,7 +347,8 @@
     if (state.status !== lastStatus) { if (els['mod-share']) els['mod-share'].open = state.status === 'lobby'; lastStatus = state.status; }
     App.setText(els['mod-share-code'], `Code ${state.code}`);
     renderQbar(current, qIndexGlobal, total);
-    renderPlayers(); renderQuestion(current); renderTimer(); renderButtons(current);
+    hostShow(); // v34: Brett/Finale – Moderator-Rechner führt den Stand
+    renderPlayers(); renderQuestion(current); augmentShowResult(current); renderTimer(); renderButtons(current);
     if (state.status === 'finished') saveResults(); // v28: XP & Statistiken beim Spielende
     window.SylasphereSfx?.observe(state, { current }); // v27 (auf der Moderator-Seite standardmäßig aus)
     // QR-Code zum Beitreten (nur neu zeichnen, wenn sich Raum oder Modus ändert)
@@ -373,6 +374,7 @@
 
   // v31: Antwortstatus der aktuellen Frage pro Spieler (✓ geantwortet / ⏳ wartet / +P nach der Auflösung)
   function playerStatus(player) {
+    if (boardActive() && state.show?.kind === 'board' && ['pick', 'wager'].includes(state.show.phase)) return player.id === (state.show.current?.by || state.show.active) ? '<span class="mod-pstatus is-wait">🎯 ist dran</span>' : (window.SylasphereShow.nextUp(state.show) === player.id ? '<span class="mod-pstatus">als Nächstes</span>' : '');
     if (state.status === 'lobby') return player.ready ? '<span class="mod-pstatus is-done">✓ bereit</span>' : '<span class="mod-pstatus is-wait">⏳ noch nicht bereit</span>';
     const current = engine.getCurrent(state);
     const q = current.question;
@@ -381,12 +383,192 @@
     const resolved = state.scoredQuestionIds?.includes(q.id);
     if (resolved) {
       if (!record) return '<span class="mod-pstatus is-none">— keine Antwort</span>';
+      if (/^Mitgeraten/.test(String(record.scoreDetail || ''))) return `<span class="mod-pstatus is-none">👀 mitgeraten ${/hätte gestimmt/.test(record.scoreDetail) ? '✓' : '✗'}</span>`; // v34
       const pts = Math.round(Number(record.awardedPoints) || 0);
-      return `<span class="mod-pstatus ${pts > 0 ? 'is-plus' : 'is-zero'}">+${pts} P</span>`;
+      return `<span class="mod-pstatus ${pts > 0 ? 'is-plus' : 'is-zero'}">${pts < 0 ? '−' : '+'}${Math.abs(pts)} P</span>`;
     }
     if (q.type === 'buzzer') return record ? '<span class="mod-pstatus is-done">⚡ gebuzzert</span>' : '';
     return record ? '<span class="mod-pstatus is-done">✓ geantwortet</span>' : '<span class="mod-pstatus is-wait">⏳ wartet</span>';
   }
+  // ================================================================ v34: Show-Formate (Themen-Brett, Einsatz-Finale)
+  const Show = () => window.SylasphereShow;
+  const ShowUI = () => window.SylasphereShowUI;
+  const curRound = () => state?.quiz?.quiz?.rounds?.[state.currentRoundIndex] || null;
+  const boardActive = () => Boolean(state && state.status === 'playing' && Quiz.isBoardRound(curRound()));
+  const finalActive = () => Boolean(state && state.status === 'playing' && Quiz.isFinalWager(state.quiz, state.currentRoundIndex, state.currentQuestionIndex));
+  const lobbyIds = () => state.players.slice().sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0)).map(p => p.id);
+  const presentIds = () => state.players.map(p => p.id);
+  const nameOf = id => state.players.find(p => p.id === id)?.name || 'Spieler';
+  let showBusy = false;
+  async function writeShow(next, after) {
+    if (!next || next === state.show || showBusy) return;
+    showBusy = true;
+    try { await engine.setShow(next); if (after) await after(); }
+    catch (error) { App.toast(transport === 'online' ? Firebase.friendlyError(error) : error.message, 'error'); }
+    finally { showBusy = false; }
+  }
+  /** Bei jedem Stand: Brett starten, Feldwahl/Einsatz der Spieler übernehmen */
+  function hostShow() {
+    if (showBusy || !engine?.setShow) return;
+    const round = curRound();
+    if (!boardActive()) return;
+    const show = state.show;
+    if (!show || show.kind !== 'board' || show.roundId !== round.id) {
+      const prev = show?.kind === 'board' ? show : null;
+      writeShow(Show().startBoard(round, state.currentRoundIndex, lobbyIds(), { startIndex: prev ? Show().nextStartIndex(prev, lobbyIds()) : 0 }));
+      return;
+    }
+    const key = Show().pickKey(show);
+    if (show.phase === 'pick') {
+      const p = state.players.find(x => x.id === show.active);
+      if (!p) { writeShow(Show().skipTurn(show, round, presentIds())); return; } // Spieler weg → weiter
+      if (p.pick?.key === key && p.pick.qid) applyPick(p.pick.qid, false);
+    } else if (show.phase === 'wager') {
+      const p = state.players.find(x => x.id === show.current?.by);
+      if (p?.pick?.key === key && p.pick.stake != null) writeShow(Show().setStake(show, round, p.id, p.pick.stake, p.score));
+    }
+  }
+  function applyPick(qid, force) {
+    const round = curRound();
+    const next = Show().pick(state.show, round, state.show.active, qid, { force });
+    if (next === state.show) return;
+    const qi = round.questions.findIndex(q => q.id === qid);
+    writeShow(next, () => engine.goTo(state.currentRoundIndex, qi));
+  }
+  function skipBoardTurn() {
+    const show = state.show;
+    if (!show || !['pick', 'wager'].includes(show.phase)) { App.toast('Überspringen geht, solange jemand ein Feld wählt.', 'info'); return; }
+    if (!confirm(`${nameOf(show.current?.by || show.active)} überspringen? Das Feld bleibt frei.`)) return;
+    writeShow(Show().skipTurn(show, curRound(), presentIds()));
+  }
+  async function boardNext() {
+    const q = engine.getCurrent(state).question;
+    const result = state.questionResults?.[q?.id]?.board || null;
+    await writeShow(Show().finishCell(state.show, curRound(), result, presentIds()));
+  }
+  async function boardShared() {
+    const round = curRound();
+    const next = Show().openShared(state.show, round);
+    if (next === state.show) return;
+    const qi = round.questions.findIndex(q => q.id === next.current?.qid);
+    await writeShow(next, () => (qi >= 0 ? engine.goTo(state.currentRoundIndex, qi) : null));
+  }
+  const judgeFor = (q, options) => (pid, answer) => Quiz.judge(q, answer, { result: options.verdicts ? { verdicts: options.verdicts } : null, playerId: pid });
+  async function resolveWithShow(q) {
+    const options = resolveOptions();
+    const show = state.show;
+    const answers = state.answers[q.id] || {};
+    if (boardActive() && show?.kind === 'board' && show.current?.qid === q.id) {
+      const round = curRound();
+      const sc = Show().scoreCell(show, round, state.players, answers, judgeFor(q, options), Number(round.pointsMultiplier) || 1);
+      return engine.resolveQuestion(Object.assign({}, options, { override: sc.scores, extraResult: sc.result }));
+    }
+    if (finalActive() && show?.kind === 'final' && show.qid === q.id) {
+      const fin = Show().scoreFinal(state.players, answers, show.stakes, judgeFor(q, options), a => Quiz.answerLabel(q, a));
+      await engine.resolveQuestion(Object.assign({}, options, { override: fin.scores, extraResult: { final: fin.rows } }));
+      return engine.setShow(Object.assign({}, show, { phase: 'reveal', rows: fin.rows, index: 0 }));
+    }
+    return engine.resolveQuestion(options);
+  }
+  async function openFinalWager() {
+    const q = engine.getCurrent(state).question;
+    await engine.setShow(Show().startFinal(q.id));
+    await engine.openWager(Show().wagerId(q.id));
+  }
+  async function closeFinalWager() {
+    const q = engine.getCurrent(state).question;
+    const stakes = Show().collectStakes(state.players, state.answers[Show().wagerId(q.id)] || {});
+    await engine.setShow(Object.assign({}, state.show, { phase: 'ready', stakes }));
+    await engine.closeWager(q.id);
+  }
+  /** Nach der Auflösung: „Hätten es auch gewusst“ bzw. Finale Spieler für Spieler */
+  function augmentShowResult(current) {
+    const q = current.question;
+    if (!q || !state.scoredQuestionIds?.includes(q.id) || !window.SylasphereShowUI) return;
+    const r = state.questionResults?.[q.id] || {};
+    let html = '';
+    if (r.board) html = ShowUI().alsoRightHTML(r.board, state.players);
+    if (state.show?.kind === 'final' && state.show.qid === q.id && state.show.phase === 'reveal') html = ShowUI().finalRevealHTML(state.show.rows, Number(state.show.index) || 0, state.players);
+    if (html) els['answer-status'].insertAdjacentHTML('afterbegin', html);
+  }
+  /** Eigener „nächster Schritt“ für Brett und Finale (sonst null → normaler Ablauf) */
+  function showStep(current) {
+    const q = current.question;
+    const small = { prev: { disabled: true }, skip: { disabled: true }, finish: { disabled: false } };
+    if (boardActive()) {
+      const show = state.show;
+      if (!show || show.kind !== 'board') return Object.assign({ key: 'wait', label: '⏳ Brett wird vorbereitet …', disabled: true, hint: '' }, small);
+      const started = Boolean(state.questionStartedAt), resolved = Boolean(q && state.scoredQuestionIds?.includes(q.id));
+      const onCell = q && show.current?.qid === q.id;
+      if (show.phase === 'pick') return Object.assign({}, small, { key: 'wait', label: `⏳ ${nameOf(show.active)} wählt …`, disabled: true, hint: 'Oder im Brett ein Feld anklicken', skip: { disabled: false } });
+      if (show.phase === 'wager') return Object.assign({}, small, { key: 'wait', label: `💎 ${nameOf(show.current?.by)} setzt …`, disabled: true, hint: 'Oder den Einsatz unten eintragen', skip: { disabled: false } });
+      if (show.phase === 'shared') return Object.assign({}, small, { key: 'board-shared', label: `▶ Feld für alle öffnen (${Show().freeCells(show, curRound()).length} übrig)`, disabled: false, hint: 'Die letzten Felder spielen alle mit' });
+      if (show.phase === 'done') return Object.assign({}, small, { key: 'board-end', label: state.currentRoundIndex >= state.quiz.quiz.rounds.length - 1 ? '🏁 Zur Siegerehrung' : '➜ Nächste Runde', disabled: false, hint: 'Alle Felder sind gespielt' });
+      if (onCell && resolved) return Object.assign({}, small, { key: 'board-next', label: '▦ Zurück zum Brett', disabled: false, hint: '' });
+      if (onCell && !started) return Object.assign({}, small, { key: 'open', label: '❓ Frage öffnen', disabled: false, hint: show.current?.shared ? 'Alle spielen mit' : `${nameOf(show.current?.by)} antwortet` });
+      if (!onCell) return Object.assign({ key: 'wait', label: '⏳ …', disabled: true, hint: '' }, small);
+      return null; // Frage läuft: normal schließen/auflösen
+    }
+    if (finalActive()) {
+      const show = state.show?.kind === 'final' && state.show.qid === q?.id ? state.show : null;
+      const resolved = Boolean(q && state.scoredQuestionIds?.includes(q.id));
+      if (!show && !state.questionStartedAt) return { key: 'wager-open', label: '💰 Einsätze einsammeln', disabled: false, hint: 'Einsatz-Finale: jeder setzt geheim' };
+      if (show?.phase === 'wager') {
+        const n = Object.keys(state.answers[Show().wagerId(q.id)] || {}).length;
+        return { key: 'wager-close', label: `⏹ Einsätze schließen (${n}/${state.players.length})`, disabled: false, hint: 'Wer nichts setzt, setzt 0' };
+      }
+      if (resolved && show?.phase === 'reveal') {
+        const rows = Array.isArray(show.rows) ? show.rows : Object.values(show.rows || {});
+        const i = Number(show.index) || 0;
+        if (i < rows.length - 1) return { key: 'final-next', label: `▶ Nächster Spieler (${i + 2}/${rows.length})`, disabled: false, hint: 'Auflösung vom Letzten zum Ersten' };
+        return { key: 'finish', label: '🏁 Zur Siegerehrung', disabled: false, hint: '' };
+      }
+    }
+    return null;
+  }
+  /** Moderator-Mitte für Brett und Finale; true = gezeichnet */
+  function renderShowPanel(current) {
+    const area = els['question-area'];
+    const q = current.question;
+    if (boardActive()) {
+      const show = state.show;
+      const round = curRound();
+      if (!show || show.kind !== 'board') { area.innerHTML = '<div class="empty-state">Brett wird vorbereitet …</div>'; els['answer-status'].innerHTML = ''; return true; }
+      const onCell = q && show.current?.qid === q.id;
+      if (onCell && state.questionStartedAt) return false; // Frage läuft → normale Ansicht
+      const key = JSON.stringify(['board', show.seq, show.phase, state.players.map(p => [p.id, p.name, p.avatar])]);
+      if (area.dataset.key !== key) {
+        area.dataset.key = key; area.dataset.presentKey = '';
+        area.innerHTML = `<div class="show-mod">${ShowUI().turnHTML(show, state.players)}${show.phase === 'play' || show.phase === 'wager' ? ShowUI().zoomHTML(round, show, state.players) : ''}${ShowUI().boardHTML(round, show, { players: state.players, clickable: show.phase === 'pick', showDoubles: true, compact: true })}</div>`;
+        area.querySelectorAll('[data-qid]').forEach(btn => btn.addEventListener('click', () => { if (confirm(`Dieses Feld für ${nameOf(state.show.active)} wählen?`)) applyPick(btn.dataset.qid, true); }));
+      }
+      const max = show.phase === 'wager' ? Show().maxDoubleStake(state.players.find(p => p.id === show.current?.by)?.score, round) : 0;
+      els['answer-status'].innerHTML = show.phase === 'pick' ? '<p class="microcopy">Nur du siehst 💎 (Doppel-Feld). Ein Feld anklicken = für den Spieler wählen.</p>'
+        : show.phase === 'wager' ? `<div class="notice show-mod-stake"><span>💎 Einsatz für ${App.escapeHTML(nameOf(show.current?.by))} (0 – ${max} P):</span><input class="input" type="number" min="0" max="${max}" step="10" data-stake value="${Math.min(max, 100)}"><button type="button" class="btn btn--small" data-stake-set>Übernehmen</button></div>`
+        : show.phase === 'play' ? `<div class="notice">${show.current?.shared ? '👥 Alle spielen dieses Feld mit.' : `${App.escapeHTML(nameOf(show.current?.by))} antwortet${round.board.coGuess ? ', die anderen raten ohne Punkte mit' : ''}.`} Leertaste: Frage öffnen.</div>${moderatorSolution(q, null, true)}`
+        : show.phase === 'shared' ? '<div class="notice">👥 Die restlichen Felder reichen nicht mehr für eine ganze Runde – alle spielen sie gemeinsam (normale Wertung).</div>'
+        : '<div class="notice notice--success">✓ Alle Felder gespielt.</div>';
+      els['answer-status'].querySelector('[data-stake-set]')?.addEventListener('click', () => {
+        const value = Number(els['answer-status'].querySelector('[data-stake]').value);
+        writeShow(Show().setStake(state.show, round, state.show.current.by, value, state.players.find(p => p.id === state.show.current.by)?.score, { force: true }));
+      });
+      return true;
+    }
+    if (finalActive() && !state.questionStartedAt) {
+      const show = state.show?.kind === 'final' && state.show.qid === q.id ? state.show : null;
+      const wagers = state.answers[Show().wagerId(q.id)] || {};
+      area.dataset.key = ''; area.dataset.presentKey = '';
+      const rows = state.players.map(p => {
+        const stake = show?.stakes?.[p.id] ?? wagers[p.id]?.answer?.stake;
+        return `<div class="show-wager-row"><span>${App.escapeHTML(App.avatar(p.avatar))} ${App.escapeHTML(p.name)}</span><span>${App.formatPoints(p.score)}</span><b>${stake != null ? `${Math.round(stake)} P` : '⏳'}</b></div>`;
+      }).join('');
+      area.innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">💰 Einsatz-Finale</span><h2>${App.escapeHTML(q.category || 'Finale')}</h2><p>${show ? (show.phase === 'wager' ? 'Die Spieler setzen gerade geheim.' : 'Einsätze sind geschlossen – Frage öffnen.') : 'Zuerst setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100).'}</p></div>`;
+      els['answer-status'].innerHTML = `<div class="show-wagers"><span class="eyebrow">Einsätze (nur du siehst die Beträge)</span>${rows}</div>${moderatorSolution(q, null, true)}`;
+      return true;
+    }
+    return false;
+  }
+
   // v33: Online-Punkt – online über Firebase-Anwesenheit, lokal über regelmäßige Meldungen der Spieler-Tabs
   function isOnline(p) {
     if (transport === 'online') return p.active !== false;
@@ -409,7 +591,7 @@
   const undoStack = [];
   function remember(label, unresolve = '') {
     if (!engine?.scoreSnapshot) return;
-    undoStack.push({ label, unresolve, snapshot: engine.scoreSnapshot(), questionId: engine.getCurrent(state).question?.id || '' });
+    undoStack.push({ label, unresolve, snapshot: engine.scoreSnapshot(), questionId: engine.getCurrent(state).question?.id || '', show: state.show ? JSON.parse(JSON.stringify(state.show)) : null });
     if (undoStack.length > 10) undoStack.shift();
     updateTools();
   }
@@ -420,6 +602,7 @@
     const current = engine.getCurrent(state).question?.id || '';
     const unresolve = entry.unresolve && entry.unresolve === current ? entry.unresolve : '';
     await safe(() => engine.restoreScores(entry.snapshot, { unresolve }));
+    if (entry.show !== undefined && engine.setShow) await safe(() => engine.setShow(entry.show)); // v34: Brett-/Finale-Stand mit zurück
     App.toast(unresolve ? 'Auflösung zurückgenommen – Punkte wie vorher.' : 'Punkteänderung zurückgenommen.', 'success');
   }
   function togglePause() {
@@ -488,9 +671,12 @@
     const show = state.status === 'playing' && Boolean(current.question);
     bar.hidden = !show;
     if (!show) return;
-    App.setText(els['mod-qbar-label'], `${current.round?.title || ''} · Frage ${index + 1} / ${total}`);
+    const board = boardActive() && state.show?.kind === 'board' ? state.show : null; // v34
+    const onCell = board && board.current?.qid === current.question.id;
+    App.setText(els['mod-qbar-label'], board ? ShowUI().progressText(current.round, board) : `${current.round?.title || ''} · Frage ${index + 1} / ${total}`);
     const answers = Object.keys(state.answers[current.question.id] || {}).length;
-    const text = !state.questionStartedAt ? `${Quiz.topic(current.question.category).icon} ${current.question.category || 'Ohne Thema'} · ${Quiz.TYPE_LABELS[current.question.type] || ''}`
+    const text = board && !onCell ? (board.phase === 'done' ? '✓ Alle Felder gespielt' : board.phase === 'shared' ? '👥 Restliche Felder für alle' : `🎯 ${nameOf(board.active)} wählt ein Feld`)
+      : !state.questionStartedAt ? `${Quiz.topic(current.question.category).icon} ${current.question.category || 'Ohne Thema'} · ${Quiz.TYPE_LABELS[current.question.type] || ''}${onCell ? ` · Feld ${board.current.value}${board.current.double ? ' 💎' : ''}` : ''}`
       : Quiz.gameOf(current.question) ? (Quiz.TYPE_LABELS[current.question.type] || 'Spiel')
       : `${answers} von ${state.players.length} haben ${current.question.type === 'buzzer' ? 'gebuzzert' : 'geantwortet'}`;
     App.setText(els['mod-qbar-count'], state.paused ? '⏸ Pause – Timer angehalten, Beamer zeigt die Rangliste' : text);
@@ -511,6 +697,7 @@
       els['question-area'].innerHTML = finalPodium(App.rankPlayers(state.players)); els['answer-status'].innerHTML = resultsNotice(); return;
     }
     if (!current.question) { els['question-area'].innerHTML = '<div class="empty-state">Keine Frage verfügbar.</div>'; return; }
+    if (renderShowPanel(current)) return; // v34: Brett / Einsatz-Finale
     if (!state.questionStartedAt) {
       els['question-area'].innerHTML = `<div class="round-intro moderator-intro"><span class="eyebrow">${App.escapeHTML(current.round?.title || 'Nächste Runde')}</span><div class="round-intro-icon">${Quiz.topic(current.question.category).icon}</div><h2>${App.escapeHTML(current.question.category || 'Ohne Thema')}</h2><p>${Quiz.TYPE_ICONS[current.question.type] || '•'} ${Quiz.TYPE_LABELS[current.question.type] || current.question.type} · ${current.question.points} Punkte${current.question.type === 'buzzer' ? ' · ohne Zeitlimit' : ` · ${current.question.timer || 0}s`}</p></div>`;
       els['answer-status'].innerHTML = `<div class="notice">Die Frage wird den Spielern erst beim Öffnen angezeigt.</div>${moderatorSolution(current.question, null, true)}`; return;
@@ -901,6 +1088,9 @@
   }
   function renderButtons(current) {
     step = Flow.next(flowFacts(current));
+    const custom = showStep(current); // v34: Brett / Einsatz-Finale
+    if (custom) step = Object.assign({}, step, custom);
+    els['btn-next'].textContent = boardActive() ? '⏭ Überspringen' : 'Überspringen ›';
     const big = els['btn-next-step'];
     big.textContent = step.label;
     big.disabled = step.disabled;
@@ -931,8 +1121,14 @@
         const q = engine.getCurrent(state).question;
         if (state.questionOpen && q?.type !== 'buzzer') await engine.lockQuestion();
         remember('Auflösung', q?.type === 'buzzer' ? '' : q?.id);
-        await engine.resolveQuestion(resolveOptions());
+        await resolveWithShow(q);
       }
+      else if (key === 'board-next') await boardNext();
+      else if (key === 'board-shared') await boardShared();
+      else if (key === 'board-end') await engine.goTo(state.currentRoundIndex + 1, 0);
+      else if (key === 'wager-open') await openFinalWager();
+      else if (key === 'wager-close') await closeFinalWager();
+      else if (key === 'final-next') await engine.setShow(Object.assign({}, state.show, { index: (Number(state.show.index) || 0) + 1 }));
       else if (key === 'game-start') duelAction('start');
       else if (key === 'next' || key === 'finish') await engine.move(1);
       else if (key === 'replay') await replay();

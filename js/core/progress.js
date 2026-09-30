@@ -105,7 +105,7 @@
       const rec = { rank, players: players.length, score: Math.round(num(p.score)), questions: questions.length, answered: 0, correct: 0, byType: {}, byTopic: {}, hl: hl[p.id] || [] };
       questions.forEach(q => {
         const answer = state.answers?.[q.id]?.[p.id];
-        if (!answer) return;
+        if (!answer || /^Mitgeraten/.test(String(answer.scoreDetail || ''))) return; // v34: Mitraten im Brett zählt nicht für XP/Statistik
         const hit = num(answer.awardedPoints) > 0;
         rec.answered += 1; if (hit) rec.correct += 1;
         [[rec.byType, String(q.type || 'unbekannt')], [rec.byTopic, topicKey(q.category)]].forEach(([map, key]) => {

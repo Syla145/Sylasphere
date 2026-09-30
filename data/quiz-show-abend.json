@@ -1,0 +1,522 @@
+{
+  "quiz": {
+    "id": "quiz_show_abend",
+    "title": "Show-Abend",
+    "description": "Aufwärmen, dann ein Themen-Brett (5 Themen × 3 Felder, ein verstecktes Doppel-Feld) und zum Schluss das Einsatz-Finale.",
+    "settings": {
+      "defaultTimer": 20,
+      "defaultPoints": 100,
+      "buzzerEnabled": false,
+      "theme": "neon",
+      "finalWager": true
+    },
+    "rounds": [
+      {
+        "id": "round_warmup",
+        "title": "Aufwärmen",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "w_1",
+            "type": "multiple-choice",
+            "category": "Allgemeinwissen",
+            "text": "Welche Farbe entsteht aus Blau und Gelb?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Lila"
+              },
+              {
+                "id": "b",
+                "text": "Grün"
+              },
+              {
+                "id": "c",
+                "text": "Orange"
+              },
+              {
+                "id": "d",
+                "text": "Braun"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 100,
+            "timer": 20
+          },
+          {
+            "id": "w_2",
+            "type": "multiple-choice",
+            "category": "Allgemeinwissen",
+            "text": "Wie heißt der längste Fluss Deutschlands (innerhalb der Grenzen)?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Elbe"
+              },
+              {
+                "id": "b",
+                "text": "Donau"
+              },
+              {
+                "id": "c",
+                "text": "Rhein"
+              },
+              {
+                "id": "d",
+                "text": "Weser"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 100,
+            "timer": 20
+          }
+        ]
+      },
+      {
+        "id": "round_board",
+        "title": "Themen-Brett",
+        "pointsMultiplier": 1,
+        "format": "board",
+        "board": {
+          "topics": [
+            "Erdkunde",
+            "Tiere",
+            "Essen & Trinken",
+            "Sport",
+            "Zahlen & Daten"
+          ],
+          "values": [
+            100,
+            300,
+            500
+          ],
+          "doubles": 1,
+          "coGuess": true
+        },
+        "questions": [
+          {
+            "id": "b_geo_1",
+            "type": "multiple-choice",
+            "category": "Erdkunde",
+            "text": "Welcher Fluss fließt durch Wien?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Rhein"
+              },
+              {
+                "id": "b",
+                "text": "Donau"
+              },
+              {
+                "id": "c",
+                "text": "Elbe"
+              },
+              {
+                "id": "d",
+                "text": "Main"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 100,
+            "timer": 20,
+            "cell": {
+              "t": 0,
+              "v": 0
+            }
+          },
+          {
+            "id": "b_geo_2",
+            "type": "multiple-choice",
+            "category": "Erdkunde",
+            "text": "Welches Land hat die meisten Einwohner in der EU?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Frankreich"
+              },
+              {
+                "id": "b",
+                "text": "Italien"
+              },
+              {
+                "id": "c",
+                "text": "Deutschland"
+              },
+              {
+                "id": "d",
+                "text": "Spanien"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 300,
+            "timer": 20,
+            "cell": {
+              "t": 0,
+              "v": 1
+            }
+          },
+          {
+            "id": "b_geo_3",
+            "type": "estimate",
+            "category": "Erdkunde",
+            "text": "Wie hoch ist die Zugspitze (in Metern)?",
+            "min": 2500,
+            "max": 3500,
+            "step": 1,
+            "correctAnswer": 2962,
+            "tolerance": 30,
+            "unit": "m",
+            "points": 500,
+            "timer": 25,
+            "cell": {
+              "t": 0,
+              "v": 2
+            }
+          },
+          {
+            "id": "b_tier_1",
+            "type": "multiple-choice",
+            "category": "Tiere",
+            "text": "Wie viele Beine hat eine Spinne?",
+            "options": [
+              {
+                "id": "a",
+                "text": "6"
+              },
+              {
+                "id": "b",
+                "text": "8"
+              },
+              {
+                "id": "c",
+                "text": "10"
+              },
+              {
+                "id": "d",
+                "text": "12"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 100,
+            "timer": 20,
+            "cell": {
+              "t": 1,
+              "v": 0
+            }
+          },
+          {
+            "id": "b_tier_2",
+            "type": "multiple-choice",
+            "category": "Tiere",
+            "text": "Welches Tier ist das größte an Land lebende Raubtier?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Löwe"
+              },
+              {
+                "id": "b",
+                "text": "Tiger"
+              },
+              {
+                "id": "c",
+                "text": "Eisbär"
+              },
+              {
+                "id": "d",
+                "text": "Grizzly"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 300,
+            "timer": 20,
+            "cell": {
+              "t": 1,
+              "v": 1
+            }
+          },
+          {
+            "id": "b_tier_3",
+            "type": "estimate",
+            "category": "Tiere",
+            "text": "Wie viele Herzen hat ein Oktopus?",
+            "min": 1,
+            "max": 5,
+            "step": 1,
+            "correctAnswer": 3,
+            "tolerance": 0,
+            "unit": "Herzen",
+            "points": 500,
+            "timer": 25,
+            "cell": {
+              "t": 1,
+              "v": 2
+            }
+          },
+          {
+            "id": "b_essen_1",
+            "type": "multiple-choice",
+            "category": "Essen & Trinken",
+            "text": "Aus welchem Land stammt die Pizza Margherita?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Spanien"
+              },
+              {
+                "id": "b",
+                "text": "Italien"
+              },
+              {
+                "id": "c",
+                "text": "Griechenland"
+              },
+              {
+                "id": "d",
+                "text": "Frankreich"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 100,
+            "timer": 20,
+            "cell": {
+              "t": 2,
+              "v": 0
+            }
+          },
+          {
+            "id": "b_essen_2",
+            "type": "multiple-choice",
+            "category": "Essen & Trinken",
+            "text": "Welche Frucht steckt in Guacamole?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Mango"
+              },
+              {
+                "id": "b",
+                "text": "Avocado"
+              },
+              {
+                "id": "c",
+                "text": "Kiwi"
+              },
+              {
+                "id": "d",
+                "text": "Limette"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 300,
+            "timer": 20,
+            "cell": {
+              "t": 2,
+              "v": 1
+            }
+          },
+          {
+            "id": "b_essen_3",
+            "type": "multiple-choice",
+            "category": "Essen & Trinken",
+            "text": "Aus welcher Pflanze wird Tequila hergestellt?",
+            "options": [
+              {
+                "id": "a",
+                "text": "Zuckerrohr"
+              },
+              {
+                "id": "b",
+                "text": "Kaktusfeige"
+              },
+              {
+                "id": "c",
+                "text": "Agave"
+              },
+              {
+                "id": "d",
+                "text": "Mais"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 500,
+            "timer": 20,
+            "cell": {
+              "t": 2,
+              "v": 2
+            }
+          },
+          {
+            "id": "b_sport_1",
+            "type": "multiple-choice",
+            "category": "Sport",
+            "text": "Wie viele Spieler hat eine Fußballmannschaft auf dem Feld?",
+            "options": [
+              {
+                "id": "a",
+                "text": "9"
+              },
+              {
+                "id": "b",
+                "text": "10"
+              },
+              {
+                "id": "c",
+                "text": "11"
+              },
+              {
+                "id": "d",
+                "text": "12"
+              }
+            ],
+            "correctAnswer": "c",
+            "points": 100,
+            "timer": 20,
+            "cell": {
+              "t": 3,
+              "v": 0
+            }
+          },
+          {
+            "id": "b_sport_2",
+            "type": "multiple-choice",
+            "category": "Sport",
+            "text": "In welcher Stadt fanden die Olympischen Sommerspiele 2024 statt?",
+            "options": [
+              {
+                "id": "a",
+                "text": "London"
+              },
+              {
+                "id": "b",
+                "text": "Paris"
+              },
+              {
+                "id": "c",
+                "text": "Tokio"
+              },
+              {
+                "id": "d",
+                "text": "Los Angeles"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 300,
+            "timer": 20,
+            "cell": {
+              "t": 3,
+              "v": 1
+            }
+          },
+          {
+            "id": "b_sport_3",
+            "type": "estimate",
+            "category": "Sport",
+            "text": "Wie lang ist ein Marathon (in Metern)?",
+            "min": 40000,
+            "max": 45000,
+            "step": 1,
+            "correctAnswer": 42195,
+            "tolerance": 100,
+            "unit": "m",
+            "points": 500,
+            "timer": 25,
+            "cell": {
+              "t": 3,
+              "v": 2
+            }
+          },
+          {
+            "id": "b_zahl_1",
+            "type": "estimate",
+            "category": "Zahlen & Daten",
+            "text": "Wie viele Tage hat ein Schaltjahr?",
+            "min": 360,
+            "max": 370,
+            "step": 1,
+            "correctAnswer": 366,
+            "tolerance": 0,
+            "unit": "Tage",
+            "points": 100,
+            "timer": 25,
+            "cell": {
+              "t": 4,
+              "v": 0
+            }
+          },
+          {
+            "id": "b_zahl_2",
+            "type": "multiple-choice",
+            "category": "Zahlen & Daten",
+            "text": "Wie viele Minuten hat ein Tag?",
+            "options": [
+              {
+                "id": "a",
+                "text": "1240"
+              },
+              {
+                "id": "b",
+                "text": "1440"
+              },
+              {
+                "id": "c",
+                "text": "1640"
+              },
+              {
+                "id": "d",
+                "text": "2400"
+              }
+            ],
+            "correctAnswer": "b",
+            "points": 300,
+            "timer": 20,
+            "cell": {
+              "t": 4,
+              "v": 1
+            }
+          },
+          {
+            "id": "b_zahl_3",
+            "type": "estimate",
+            "category": "Zahlen & Daten",
+            "text": "In welchem Jahr fiel die Berliner Mauer?",
+            "min": 1960,
+            "max": 2000,
+            "step": 1,
+            "correctAnswer": 1989,
+            "tolerance": 0,
+            "unit": "",
+            "points": 500,
+            "timer": 25,
+            "cell": {
+              "t": 4,
+              "v": 2
+            }
+          }
+        ]
+      },
+      {
+        "id": "round_final",
+        "title": "Einsatz-Finale",
+        "pointsMultiplier": 1,
+        "questions": [
+          {
+            "id": "f_1",
+            "type": "estimate",
+            "category": "Bauwerke",
+            "text": "Wie viele Stufen hat der Eiffelturm bis zur Spitze (ungefähr)?",
+            "min": 1000,
+            "max": 2000,
+            "step": 1,
+            "correctAnswer": 1665,
+            "tolerance": 50,
+            "unit": "Stufen",
+            "points": 100,
+            "timer": 30
+          }
+        ]
+      }
+    ]
+  }
+}

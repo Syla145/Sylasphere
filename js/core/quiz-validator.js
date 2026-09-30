@@ -29,6 +29,18 @@
       if (!round.questions.length) warnings.push({ path: `${rp}.questions`, message: 'Runde enthält keine Fragen.' });
       if (round.theme && window.SylasphereThemes && !window.SylasphereThemes.isValid(round.theme)) warnings.push({ path: `${rp}.theme`, message: `Unbekanntes Design „${round.theme}“ – die Runde nutzt das Design des Quiz.` });
 
+      // v34: Themen-Brett
+      if (Quiz.isBoardRound(round)) {
+        const cells = round.board.topics.length * round.board.values.length;
+        if (round.questions.length < cells) warnings.push({ path: `${rp}.board`, message: `Brett: ${cells - round.questions.length} von ${cells} Feldern sind noch leer (sie werden übersprungen).` });
+        if (round.questions.length > cells) errors.push({ path: `${rp}.board`, message: `Brett: ${round.questions.length - cells} Fragen haben kein Feld – mehr Themen oder Fragen pro Thema einstellen.` });
+        const allowed = Quiz.BOARD_TYPES;
+        round.questions.forEach((q, qi) => {
+          if (!allowed.includes(q.type)) errors.push({ path: `${rp}.questions[${qi}].type`, message: `Im Themen-Brett sind nur Multiple Choice, Schätzfrage und Song-Enthüllung erlaubt („${Quiz.TYPE_LABELS[q.type] || q.type}“ geht nicht).` });
+          if (q.type === 'estimate' && q.tolerance == null) warnings.push({ path: `${rp}.questions[${qi}].tolerance`, message: 'Schätzfrage im Brett ohne Toleranz: nur der genaue Wert zählt als richtig.' });
+        });
+        if (round.board.doubles >= cells) warnings.push({ path: `${rp}.board.doubles`, message: 'Mehr Doppel-Felder als Felder.' });
+      }
       round.questions.forEach((q, qi) => {
         const p = `${rp}.questions[${qi}]`;
         addId(q.id, `${p}.id`);
@@ -46,6 +58,14 @@
       });
     });
 
+    // v34: Einsatz-Finale – letzte Frage des Quiz
+    if (quiz.settings.finalWager) {
+      const last = quiz.rounds[quiz.rounds.length - 1];
+      const q = last?.questions?.[last.questions.length - 1];
+      if (!q) errors.push({ path: 'quiz.settings.finalWager', message: 'Einsatz-Finale: Es gibt keine letzte Frage.' });
+      else if (Quiz.isBoardRound(last)) errors.push({ path: 'quiz.settings.finalWager', message: 'Einsatz-Finale: Die letzte Runde ist ein Brett – das Finale braucht danach eine eigene Runde mit einer Frage.' });
+      else if (!Quiz.BOARD_TYPES.includes(q.type)) errors.push({ path: 'quiz.settings.finalWager', message: `Einsatz-Finale: Die letzte Frage muss Multiple Choice, Schätzfrage oder Song-Enthüllung sein („${Quiz.TYPE_LABELS[q.type] || q.type}“).` });
+    }
     const categoryMap = new Map();
     Quiz.allQuestions(normalized).forEach(({ question }) => {
       const key = Quiz.categoryKey(question.category);

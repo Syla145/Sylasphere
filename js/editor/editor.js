@@ -704,7 +704,10 @@
   /** „+ Frage“: Kachel-Auswahl mit Symbol + einem Satz */
   function typeTiles(current, onPick) {
     const grid = div('ed-type-grid');
-    Quiz.SUPPORTED_TYPES.filter(t => !Quiz.typeDef(t)?.hidden || t === current).forEach(t => {
+    const round = state.quiz.rounds[selection.ri];
+    const onlyBoard = Quiz.isBoardRound(round); // v34: im Brett nur Multiple Choice, Schätzfrage, Song-Enthüllung
+    if (onlyBoard) grid.append(div('microcopy ed-type-note', 'Im Themen-Brett gehen nur Multiple Choice, Schätzfrage und Song-Enthüllung (richtig oder falsch, keine Teilpunkte).'));
+    Quiz.SUPPORTED_TYPES.filter(t => (!Quiz.typeDef(t)?.hidden || t === current) && (!onlyBoard || Quiz.BOARD_TYPES.includes(t))).forEach(t => {
       const tile = document.createElement('button');
       tile.type = 'button';
       tile.className = `ed-type-tile${t === current ? ' is-current' : ''}`;
@@ -813,11 +816,18 @@
     design.append(div('field-label', 'Design'));
     const themeBox = document.createElement('div'); themeBox.id = 'edit-theme';
     design.append(themeBox);
+    // v34: Einsatz-Finale
+    const finalBox = div('field-group ed-section');
+    const finalLabel = document.createElement('label'); finalLabel.className = 'ed-check';
+    const finalCheck = document.createElement('input'); finalCheck.type = 'checkbox'; finalCheck.checked = state.quiz.settings.finalWager === true;
+    finalCheck.addEventListener('change', e => { state.quiz.settings.finalWager = e.target.checked; refreshValidation(); queueSave(); });
+    finalLabel.append(finalCheck, document.createTextNode(' 💰 Letzte Frage als Einsatz-Finale'));
+    finalBox.append(finalLabel, div('microcopy', 'Vor der letzten Frage setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100). Richtig: +Einsatz, falsch: −Einsatz. Die letzte Frage muss Multiple Choice, Schätzfrage oder Song-Enthüllung sein und in einer eigenen Runde (kein Brett) stehen.'));
     const topics = div('field-group ed-section');
     topics.append(div('field-label', 'Themen im Quiz'));
     const topicBox = div('topic-manager'); topicBox.id = 'editor-categories';
     topics.append(topicBox, div('microcopy', 'Antippen, um Name, Icon oder Farbe anzupassen.'));
-    card.append(stats, grid, design, topics);
+    card.append(stats, grid, finalBox, design, topics);
     requestAnimationFrame(() => { renderTheme(); renderCategories(); });
     return card;
   }
@@ -838,6 +848,17 @@
     themeSelect.value = round.theme || '';
     themeSelect.addEventListener('change', e => { if (e.target.value) round.theme = e.target.value; else delete round.theme; queueSave(); });
     grid.append(spanField('Rundentitel', title, 'span-4'), spanField('Punkte-Multiplikator', mult, 'span-2'), spanField('Design dieser Runde', themeSelect, 'span-2'));
+    // v34: Format der Runde – normal oder Themen-Brett
+    const format = document.createElement('select'); format.className = 'select';
+    format.innerHTML = '<option value="">≡ Normale Runde</option><option value="board">▦ Themen-Brett</option>';
+    format.value = Quiz.isBoardRound(round) ? 'board' : '';
+    format.addEventListener('change', e => {
+      if (e.target.value === 'board') { round.format = 'board'; round.board = round.board || { topics: [], values: [100, 300, 500], doubles: 0, coGuess: true }; Quiz.normalizeBoard(round); }
+      else { delete round.format; }
+      structuralChange();
+    });
+    grid.append(spanField('Format', format, 'span-2'));
+    if (Quiz.isBoardRound(round)) { card.append(grid, boardEditor(round, ri)); return card; }
     const list = div('ed-round-questions');
     if (!round.questions.length) list.append(div('empty-state compact', 'Diese Runde enthält noch keine Fragen.'));
     round.questions.forEach((q, qi) => {
@@ -847,6 +868,80 @@
     });
     card.append(grid, div('field-label ed-section', 'Fragen dieser Runde'), list);
     return card;
+  }
+
+  // ---------------------------------------------------------------- v34: Themen-Brett im Editor
+  function boardEditor(round, ri) {
+    const box = div('ed-board');
+    const b = round.board;
+    const settings = div('ed-board-settings');
+    const numberField = (label, value, min, max, apply) => {
+      const inp = input('number', value, 'input'); inp.min = String(min); inp.max = String(max);
+      inp.addEventListener('change', e => { apply(Math.max(min, Math.min(max, Math.round(Number(e.target.value) || min)))); Quiz.normalizeBoard(round); structuralChange(); });
+      return labelField(label, inp);
+    };
+    settings.append(numberField('Themen', b.topics.length, 1, 8, n => { b.topics = Array.from({ length: n }, (_, i) => b.topics[i] || ''); b.topicCount = n; }));
+    settings.append(numberField('Fragen pro Thema', b.values.length, 1, 8, n => { const last = b.values[b.values.length - 1] || 100; b.values = Array.from({ length: n }, (_, i) => b.values[i] ?? last + (i - b.values.length + 1) * 200); }));
+    const values = input('text', b.values.join(', '), 'input');
+    values.addEventListener('change', e => { const list = e.target.value.split(/[,;\s]+/).map(Number).filter(n => Number.isFinite(n) && n >= 0); if (list.length) b.values = list.slice(0, 8); Quiz.normalizeBoard(round); structuralChange(); });
+    settings.append(labelField('Punkte je Zeile', values));
+    settings.append(numberField('Doppel-Felder', b.doubles, 0, 5, n => { b.doubles = n; }));
+    const co = document.createElement('label'); co.className = 'ed-check';
+    const coBox = document.createElement('input'); coBox.type = 'checkbox'; coBox.checked = b.coGuess !== false;
+    coBox.addEventListener('change', e => { b.coGuess = e.target.checked; queueSave(); });
+    co.append(coBox, document.createTextNode(' Mitraten (ohne Punkte)'));
+    settings.append(co);
+    box.append(settings);
+    // Raster: Themen oben, Punkte links; Fragen per Ziehen (oder Antippen + Ziel antippen) tauschen
+    const grid = div('ed-board-grid'); grid.style.setProperty('--cols', String(b.topics.length));
+    b.topics.forEach((t, ti) => {
+      const name = input('text', t, 'input ed-board-topic'); name.placeholder = `Thema ${ti + 1}`; name.maxLength = 40;
+      name.addEventListener('input', e => { b.topics[ti] = e.target.value; queueSave(); });
+      name.addEventListener('change', () => { if (!b.topics[ti].trim()) b.topics[ti] = `Thema ${ti + 1}`; structuralChange(); });
+      grid.append(name);
+    });
+    const at = new Map(round.questions.map((q, qi) => [q.cell ? `${q.cell.t}:${q.cell.v}` : '', { q, qi }]));
+    let moving = null;
+    const swap = (from, to) => {
+      const a = round.questions[from.qi]; const target = at.get(`${to.t}:${to.v}`);
+      if (target) target.q.cell = { t: a.cell.t, v: a.cell.v };
+      a.cell = { t: to.t, v: to.v };
+      Quiz.normalizeBoard(round); structuralChange();
+    };
+    b.values.forEach((value, v) => {
+      for (let t = 0; t < b.topics.length; t++) {
+        const cell = div('ed-board-cell'); cell.dataset.t = String(t); cell.dataset.v = String(v);
+        cell.append(div('ed-board-value', String(value)));
+        const entry = at.get(`${t}:${v}`);
+        if (entry) {
+          const chip = button('', 'ed-board-q', () => select({ kind: 'question', ri, qi: entry.qi }));
+          chip.draggable = true;
+          chip.innerHTML = `<span class="ed-grip" aria-hidden="true">⠿</span><i>${esc(Quiz.TYPE_ICONS[entry.q.type] || '•')}</i><span>${esc(M.preview(entry.q.text, 34))}</span>`;
+          chip.title = 'Antippen: bearbeiten · ziehen: in ein anderes Feld';
+          chip.addEventListener('dragstart', e => { moving = entry; e.dataTransfer.setData('text/plain', String(entry.qi)); e.dataTransfer.effectAllowed = 'move'; });
+          if (!Quiz.BOARD_TYPES.includes(entry.q.type)) chip.classList.add('is-invalid');
+          cell.append(chip);
+        } else {
+          cell.classList.add('is-empty');
+          const add = button('＋ Frage', 'link-btn', () => { selection = { kind: 'round', ri }; const q = newQuestion('multiple-choice'); q.cell = { t, v }; q.category = b.topics[t]; round.questions.push(q); Quiz.normalizeBoard(round); selection = { kind: 'question', ri, qi: round.questions.length - 1 }; structuralChange(); focusDetail(); });
+          cell.append(add);
+        }
+        cell.addEventListener('dragover', e => { if (moving) { e.preventDefault(); cell.classList.add('is-over'); } });
+        cell.addEventListener('dragleave', () => cell.classList.remove('is-over'));
+        cell.addEventListener('drop', e => { e.preventDefault(); cell.classList.remove('is-over'); if (moving) swap(moving, { t, v }); moving = null; });
+        grid.append(cell);
+      }
+    });
+    box.append(grid, div('microcopy', 'Frage antippen = bearbeiten · am Griff ⠿ in ein anderes Feld ziehen (tauscht die Fragen) · Punkte der Frage = Feldwert. Doppel-Felder werden beim Spielstart zufällig verteilt (nie in der ersten Zeile).'));
+    // Handy/Tastatur: Feld per Auswahl verschieben
+    const moveRow = div('ed-board-move');
+    const qSel = document.createElement('select'); qSel.className = 'select';
+    qSel.innerHTML = round.questions.map((q, qi) => `<option value="${qi}">${esc(M.preview(q.text, 40))}</option>`).join('');
+    const cellSel = document.createElement('select'); cellSel.className = 'select';
+    cellSel.innerHTML = b.values.flatMap((value, v) => b.topics.map((t, ti) => `<option value="${ti}:${v}">${esc(t)} · ${value}</option>`)).join('');
+    moveRow.append(labelField('Frage', qSel), labelField('in Feld', cellSel), button('Verschieben', 'btn btn--small', () => { const [t, v] = cellSel.value.split(':').map(Number); swap({ q: round.questions[Number(qSel.value)], qi: Number(qSel.value) }, { t, v }); }));
+    if (round.questions.length) box.append(moveRow);
+    return box;
   }
 
   function renderQuestionEditor(q, ri, qi) {

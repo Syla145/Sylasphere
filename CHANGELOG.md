@@ -1,5 +1,21 @@
 # Sylasphere – Changelog
 
+## v34 – Show-Formate: Themen-Brett + Einsatz-Finale
+- **Themen-Brett** (neues Runden-Format, Editor → Runde → Format „▦ Themen-Brett“):
+  - Standard 5 Themen × 3 Fragen mit 100 / 300 / 500 Punkten; Themen, Fragen pro Thema und Punkte je Zeile einstellbar. Der Editor zeigt das Raster, Fragen per Ziehen (oder „Verschieben“ am Handy) in andere Felder tauschen, leere Felder mit „＋ Frage“ füllen.
+  - Nur **Multiple Choice, Schätzfrage und Song-Enthüllung** – richtig = Feldwert, falsch = 0, **keine Teilpunkte**. Schätzfrage: richtig innerhalb der Toleranz (ohne Toleranz nur exakt; der Editor warnt).
+  - **Reihum** in der Lobby-Reihenfolge: Wer dran ist, wählt am Handy ein Feld und antwortet allein. Beamer: großes Brett, „… ist dran · danach: …“, gewähltes Feld zoomt auf, gespielte Felder grau mit Avatar, nach der Auflösung „✓ richtig · +300 P“ bzw. „✗ leider falsch“. Handy: wer dran ist, tippt aufs Brett, alle anderen sehen „Anna wählt …“.
+  - **Mitraten** (Standard an, im Editor abschaltbar): Die anderen raten ohne Punkte mit, bei der Auflösung „🤓 Hätten es auch gewusst: …“. Mitraten zählt nicht für Highlights und XP.
+  - **Nur volle Runden:** Felder, die nicht mehr für eine volle Runde reichen, spielen alle gemeinsam (normale Wertung). Das nächste Brett beginnt bei dem, der als Nächstes dran gewesen wäre.
+  - **💎 Doppel-Felder** (Anzahl im Editor, Standard 0): versteckt (nur der Moderator sieht sie), nie in der ersten Zeile. Einsatz 0 bis eigene Punkte, mindestens bis zum höchsten Feldwert; richtig = +Einsatz, falsch = 0.
+  - **Moderator:** wählt bei Bedarf selbst ein Feld (anklicken), trägt den Einsatz ein oder überspringt den Zug („⏭ Überspringen“). Spieler-Liste zeigt „🎯 ist dran“ / „als Nächstes“ und nach der Auflösung „👀 mitgeraten ✓/✗“. Rückgängig, Pause und Neuladen funktionieren auch im Brett.
+- **Einsatz-Finale** (Quiz-Einstellung „💰 Letzte Frage als Einsatz-Finale“): Vor der letzten Frage setzt jeder geheim 0 bis alle eigenen Punkte (bei 0 oder weniger bis 100). Richtig = +Einsatz, falsch = −Einsatz. Der Beamer löst Spieler für Spieler vom Letzten zum Ersten auf (Antwort → Einsatz → neue Punkte, per Leertaste); die Ranglisten bleiben bis dahin verborgen.
+- **Highlights:** neu „👑 Brett-König“ (meiste Punkte auf eigenen Feldern) und „🎲 Alles auf eine Karte“ (höchster Einsatz im Finale); auf dem Beamer drei Karten nebeneinander.
+- **Demo-Quiz „Show-Abend“:** Aufwärmen, Themen-Brett 5×3 mit einem Doppel-Feld, Einsatz-Finale.
+- Fragetyp-Schnittstelle: neues optionales `judge(q, answer)` (nur richtig/falsch).
+- **Keine Änderung an den Firebase-Regeln:** Brett-Stand liegt im öffentlichen Raum (nur Moderator schreibt), die Feldwahl im eigenen Spielerprofil, die Einsätze als private Antworten (nur Spieler selbst + Moderator lesen sie).
+- Neue Dateien: `js/core/show-formats.js` (Spiellogik ohne DOM), `js/views/show-ui.js` (Anzeige), `data/quiz-show-abend.json`, `tests/v34-show-formate.js`, `tests/v34-show-engines.js`.
+
 ## v33 – Moderator-Werkzeuge + Nutzungs-Dashboard
 - **Spieler entfernen und umbenennen** (lokal und online): Spieler antippen → „✎ Umbenennen“ / „✕ Entfernen“ (mit Rückfrage). Entfernte Spieler verbinden sich nicht automatisch neu.
 - **Pause** (Knopf oder Taste **P**): Der Timer hält an und läuft danach mit der Restzeit weiter. Der Beamer zeigt „☕ Kurze Pause“ mit Rangliste, die Handys zeigen „Pause“ und sperren die Eingabe.

@@ -268,9 +268,120 @@
     const current=engine.getCurrent(state); App.setText(els['game-code'],state.code); App.setText(els['player-score'],App.formatPoints(player.score));
     if (els['game-mode']) { const offline = transport === 'online' && state.onlineConnected === false; els['game-mode'].hidden = !offline; els['game-mode'].textContent = offline ? '↻ Verbindung …' : ''; els['game-mode'].classList.toggle('is-offline', offline); } // v31: kein Lokal/Online-Hinweis mehr, nur bei Verbindungsproblemen
     els['player-identity'].innerHTML=`<span class="avatar">${App.escapeHTML(App.avatar(player.avatar))}</span><span>${App.escapeHTML(player.name)}</span>`;
-    renderLeaderboard(); renderStatus(current); renderTimer(current);
+    renderLeaderboard(); renderStatus(current); augmentShow(current); renderTimer(current);
     if (state.paused && state.status === 'playing') App.setText(els['game-status'], 'Pause'); // v33
     window.SylasphereSfx?.observe(state, { current, playerId }); // v27: Soundeffekte + Vibration
+  }
+
+  // ================================================================ v34: Show-Formate
+  const Show = () => window.SylasphereShow;
+  const ShowUI = () => window.SylasphereShowUI;
+  let boardSel = '', showKey = '';
+  const roundOf = () => state.quiz.quiz.rounds[state.currentRoundIndex];
+  const myScore = () => state.players.find(p => p.id === playerId)?.score || 0;
+  function boardShow() {
+    const round = roundOf();
+    return state.status === 'playing' && Quiz.isBoardRound(round) && state.show?.kind === 'board' && state.show.roundId === round.id ? state.show : null;
+  }
+  function finalShow(current) {
+    return state.status === 'playing' && Quiz.isFinalWager(state.quiz, state.currentRoundIndex, state.currentQuestionIndex) && state.show?.kind === 'final' && state.show.qid === current.question?.id ? state.show : null;
+  }
+  /** Brett-Bildschirm bzw. Einsatz-Eingabe; true = gezeichnet */
+  function renderShow(current) {
+    const host = els['game-question'];
+    const q = current.question;
+    const show = boardShow();
+    if (show) {
+      const round = roundOf();
+      const onCell = q && show.current?.qid === q.id;
+      if (onCell && state.questionStartedAt) return false; // Frage läuft → normale Ansicht (+ Mitraten-Hinweis)
+      const me = show.current?.by || show.active;
+      const mine = me === playerId;
+      const key = JSON.stringify([show.seq, show.phase, mine, boardSel, myScore(), state.players.map(p => [p.id, p.name, p.avatar])]);
+      els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = '';
+      App.setText(els['game-status'], show.phase === 'pick' ? (mine ? 'Du bist dran!' : 'Brett') : show.phase === 'wager' ? 'Doppel-Feld' : 'Brett');
+      if (showKey === key && host.querySelector('.show-player')) return true;
+      showKey = key; host.dataset.renderKey = '';
+      const esc = App.escapeHTML;
+      const name = ShowUI().who(state.players, me);
+      let top = '';
+      if (show.phase === 'pick' && mine) top = '<div class="notice notice--success"><strong>Du bist dran!</strong> Tippe ein Feld und bestätige.</div>';
+      else if (show.phase === 'pick') top = `<div class="waiting-card show-waiting"><h2>${name} wählt …</h2>${Show().nextUp(show) === playerId ? '<p>Du bist als Nächstes dran.</p>' : ''}</div>`;
+      else if (show.phase === 'wager' && mine) {
+        const max = Show().maxDoubleStake(myScore(), round);
+        top = `${ShowUI().zoomHTML(round, show, state.players, { me: playerId })}<div class="panel panel-pad show-stake"><span class="eyebrow">💎 Doppel-Feld – dein Einsatz</span><div class="estimate-value" data-stake-out>${Math.min(max, 100)} P</div><input type="range" min="0" max="${max}" step="10" value="${Math.min(max, 100)}" data-stake><div class="range-labels"><span>0</span><span>${max} P</span></div><button type="button" class="btn btn--primary" data-stake-send>Einsatz setzen</button><span class="microcopy">Richtig: +Einsatz · Falsch: 0 (keine Minuspunkte)</span></div>`;
+      } else if (show.phase === 'wager' || show.phase === 'play') top = ShowUI().zoomHTML(round, show, state.players, { me: playerId }) + (show.phase === 'play' && !mine && !show.current?.shared ? `<p class="microcopy show-hint">${round.board.coGuess ? '👀 Gleich kommt die Frage – du kannst ohne Punkte mitraten.' : 'Gleich kommt die Frage – schau zu.'}</p>` : '');
+      else if (show.phase === 'shared') top = '<div class="notice">👥 Die letzten Felder spielen alle zusammen – normale Wertung.</div>';
+      else top = '<div class="notice notice--success">✓ Brett fertig.</div>';
+      const clickable = show.phase === 'pick' && mine;
+      host.innerHTML = `<div class="show-player">${top}${ShowUI().boardHTML(round, show, { players: state.players, clickable, selected: boardSel, compact: true })}${clickable ? `<button type="button" class="btn btn--primary show-pick-btn" data-pick-send ${boardSel ? '' : 'disabled'}>${boardSel ? `${esc(cellLabel(round, boardSel))} wählen` : 'Feld antippen …'}</button>` : ''}</div>`;
+      host.querySelectorAll('[data-qid]').forEach(btn => btn.addEventListener('click', () => { boardSel = btn.dataset.qid; showKey = ''; render(state); }));
+      host.querySelector('[data-pick-send]')?.addEventListener('click', async event => {
+        event.currentTarget.disabled = true; event.currentTarget.textContent = 'Gewählt – einen Moment …';
+        try { await engine.setPick(playerId, { key: Show().pickKey(state.show), qid: boardSel }); } catch (error) { App.toast(error.message, 'error'); }
+        boardSel = '';
+      });
+      const range = host.querySelector('[data-stake]');
+      range?.addEventListener('input', () => { host.querySelector('[data-stake-out]').textContent = `${range.value} P`; });
+      host.querySelector('[data-stake-send]')?.addEventListener('click', async event => {
+        event.currentTarget.disabled = true;
+        try { await engine.setPick(playerId, { key: Show().pickKey(state.show), stake: Number(range.value) }); } catch (error) { App.toast(error.message, 'error'); }
+      });
+      return true;
+    }
+    const fin = finalShow(current);
+    if (fin && !state.questionStartedAt) {
+      const wid = Show().wagerId(q.id);
+      const mine = state.answers?.[wid]?.[playerId]?.answer?.stake;
+      const max = Show().finalMaxStake(myScore());
+      const key = JSON.stringify(['final', fin.phase, mine, myScore()]);
+      els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = '';
+      App.setText(els['game-status'], 'Einsatz-Finale');
+      if (showKey === key && host.querySelector('.show-player')) return true;
+      showKey = key; host.dataset.renderKey = '';
+      if (fin.phase === 'wager') {
+        const start = mine != null ? mine : Math.min(max, Math.round(max / 2 / 10) * 10);
+        host.innerHTML = `<div class="show-player"><div class="panel panel-pad show-stake"><span class="eyebrow">💰 Einsatz-Finale · Thema: ${App.escapeHTML(q.category || '–')}</span><h2>Wie viel setzt du?</h2><div class="estimate-value" data-stake-out>${start} P</div><input type="range" min="0" max="${max}" step="10" value="${start}" data-stake><div class="range-labels"><span>0</span><span>${max} P${myScore() > 0 ? ' (alles)' : ''}</span></div><button type="button" class="btn btn--primary" data-wager-send>${mine != null ? 'Einsatz ändern' : 'Einsatz geheim abgeben'}</button>${mine != null ? `<div class="notice notice--success">✓ Abgegeben: ${mine} P – du kannst ihn noch ändern.</div>` : ''}<span class="microcopy">Richtig: +Einsatz · Falsch: −Einsatz. Niemand sieht deinen Einsatz vor der Auflösung.</span></div></div>`;
+        const range = host.querySelector('[data-stake]');
+        range.addEventListener('input', () => { host.querySelector('[data-stake-out]').textContent = `${range.value} P`; });
+        host.querySelector('[data-wager-send]').addEventListener('click', async event => {
+          event.currentTarget.disabled = true;
+          try { await engine.submitWager(playerId, wid, Show().clampFinal(range.value, myScore())); } catch (error) { App.toast(error.message, 'error'); event.currentTarget.disabled = false; }
+        });
+      } else {
+        host.innerHTML = `<div class="show-player"><div class="waiting-card"><span class="eyebrow">💰 Einsatz-Finale</span><h2>Einsätze sind zu</h2><p>Dein Einsatz: <b>${Math.round(Number(fin.stakes?.[playerId] ?? mine ?? 0))} P</b> · gleich kommt die Frage.</p></div></div>`;
+      }
+      return true;
+    }
+    showKey = '';
+    return false;
+  }
+  function cellLabel(round, qid) {
+    const c = Show().cells(round).find(x => x.qid === qid);
+    return c ? `${round.board.topics[c.t]} · ${c.value}` : '';
+  }
+  /** Während/nach der Brett-Frage: Mitraten-Hinweis, „Hätten es auch gewusst“; Finale: eigenes Ergebnis */
+  function augmentShow(current) {
+    const q = current.question;
+    if (!q || !state.questionStartedAt) return;
+    const show = boardShow();
+    const resolved = state.scoredQuestionIds?.includes(q.id);
+    const fb = els['answer-feedback'];
+    if (show && show.current?.qid === q.id && !show.current.shared) {
+      const mine = show.current.by === playerId;
+      const round = roundOf();
+      if (!resolved && !mine) {
+        fb.insertAdjacentHTML('afterbegin', `<div class="notice show-coguess">${round.board.coGuess ? `👀 <b>Mitraten</b> – ${App.escapeHTML(state.players.find(p => p.id === show.current.by)?.name || '')} ist dran, du bekommst keine Punkte.` : `${App.escapeHTML(state.players.find(p => p.id === show.current.by)?.name || '')} antwortet – schau zu.`}</div>`);
+        if (!round.board.coGuess) els['game-question'].querySelectorAll('button,input,textarea,select').forEach(el => { el.disabled = true; });
+      }
+      if (resolved) fb.insertAdjacentHTML('afterbegin', ShowUI().alsoRightHTML(state.questionResults?.[q.id]?.board, state.players));
+    }
+    const fin = finalShow(current);
+    if (fin && resolved && fin.rows) {
+      const rows = Array.isArray(fin.rows) ? fin.rows : Object.values(fin.rows);
+      const i = rows.findIndex(r => r.id === playerId);
+      if (i >= 0 && i <= (Number(fin.index) || 0)) fb.insertAdjacentHTML('afterbegin', ShowUI().finalRevealHTML(rows, i, state.players));
+    }
   }
 
   function readyButton() {
@@ -287,7 +398,8 @@
     for (let i = 0; i < state.currentRoundIndex; i++) global += state.quiz.quiz.rounds[i].questions.length;
     global += state.currentQuestionIndex;
     const playing = state.status === 'playing' && Boolean(current.round); // v31: Lobby/Spielende ohne Rundenanzeige
-    App.setText(els['player-progress'], playing ? `${current.round.title} · ${Math.min(global + 1, total)}/${total}` : '');
+    const onBoard = playing && Quiz.isBoardRound(current.round) && state.show?.kind === 'board' && window.SylasphereShowUI; // v34
+    App.setText(els['player-progress'], !playing ? '' : onBoard ? window.SylasphereShowUI.progressText(current.round, state.show).replace(/ von \d+ Feldern/, ' Felder') : `${current.round.title} · ${Math.min(global + 1, total)}/${total}`);
     if (els['player-progress-bar']) { els['player-progress-bar'].style.width = `${total ? Math.round(((Math.min(global + 1, total)) / total) * 100) : 0}%`; els['player-progress-bar'].parentElement.hidden = !playing; }
     els['player-topbar']?.setAttribute('data-phase', state.status);
 
@@ -307,6 +419,7 @@
       els['submit-answer'].hidden = true; els['answer-feedback'].innerHTML = ''; return;
     }
     if (!current.question) { els['game-question'].innerHTML = '<div class="empty-state">Warte auf die nächste Frage.</div>'; return; }
+    if (renderShow(current)) return; // v34: Brett / Einsatz-Finale
     if (!state.questionStartedAt) {
       App.setText(els['game-status'], 'Bereit');
       // v24: Zwischenstand immer live aus der aktuellen Rangliste (gespeicherte Runden-Stände konnten veraltet sein)
@@ -519,6 +632,12 @@
   }
 
   function renderLeaderboard() {
+    // v34: Einsatz-Finale – Rangliste erst, wenn die Auflösung auf dem Beamer durch ist
+    const fin = state?.show?.kind === 'final' ? state.show : null;
+    if (fin && state.status === 'playing') {
+      const rows = Array.isArray(fin.rows) ? fin.rows : Object.values(fin.rows || {});
+      if (fin.phase !== 'reveal' || (Number(fin.index) || 0) < rows.length - 1) { els['leaderboard'].innerHTML = '<p class="microcopy">🤫 Die Rangliste gibt es nach der Finale-Auflösung.</p>'; return; }
+    }
     const ranked = App.rankPlayers(state.players).slice(0, 10);
     const current = engine?.getCurrent(state);
     const resolved = Boolean(current?.question && state.scoredQuestionIds?.includes(current.question.id));

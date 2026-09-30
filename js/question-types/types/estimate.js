@@ -67,6 +67,14 @@
     },
 
     solutionText(q) { return withUnit(q.correctAnswer, q.unit); },
+    // v34: Themen-Brett / Einsatz-Finale – richtig nur innerhalb der Toleranz (ohne Toleranz: genau der Zielwert), keine Teilpunkte
+    judge(q, answer) {
+      const value = Number(answer);
+      if (answer == null || answer === '' || !Number.isFinite(value)) return false;
+      const target = Number(q.correctAnswer);
+      const threshold = q.tolerance == null ? 0 : (q.toleranceMode === 'percent' ? Math.abs(target) * Math.max(0, Number(q.tolerance) || 0) / 100 : Math.max(0, Number(q.tolerance) || 0));
+      return Math.abs(value - target) <= threshold + 1e-9;
+    },
     moderatorSolution(q) {
       if (q.tolerance == null) return {};
       return { extra: `Toleranz: ±${q.tolerance}${q.toleranceMode === 'percent' ? ' %' : (q.unit ? ` ${q.unit}` : '')}` };

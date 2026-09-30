@@ -185,6 +185,28 @@
         state.removedIds = Array.from(new Set([...(state.removedIds || []), String(playerId)])); // v33: kein automatisches Wiederverbinden
       });
     }
+    // ---------------- v34: Show-Formate
+    setShow(show) { this.mutate(state => { state.show = show ? Quiz.clone(show) : null; }); }
+    setPick(playerId, pick) { this.mutate(state => { const player = state.players.find(p => p.id === playerId); if (player) player.pick = pick ? Quiz.clone(pick) : null; }); return true; }
+    goTo(ri, qi) {
+      this.mutate(state => {
+        const quiz = state.quiz.quiz;
+        if (ri !== state.currentRoundIndex && quiz.rounds[state.currentRoundIndex]) {
+          const round = quiz.rounds[state.currentRoundIndex];
+          const entry = { roundId: round.id, title: round.title, standings: state.players.slice().sort((a, b) => b.score - a.score).map(p => ({ id: p.id, name: p.name, score: p.score })), at: Date.now() };
+          const i = state.roundSummaries.findIndex(x => x.roundId === entry.roundId); if (i >= 0) state.roundSummaries[i] = entry; else state.roundSummaries.push(entry);
+        }
+        state.questionOpen = false; state.questionEndsAt = null; state.questionStartedAt = null; state.stage = 0; state.media = null; state.game = null;
+        if (ri >= quiz.rounds.length) { state.status = 'finished'; state.finishedAt = Date.now(); return; }
+        state.status = 'playing'; state.currentRoundIndex = ri; state.currentQuestionIndex = qi;
+      });
+    }
+    openWager() {}
+    closeWager() {}
+    submitWager(playerId, wagerId, stake) {
+      this.mutate(state => { state.answers[wagerId] = state.answers[wagerId] || {}; state.answers[wagerId][playerId] = { answer: { stake: Math.max(0, Math.round(Number(stake) || 0)) }, submittedAt: Date.now() }; });
+      return true;
+    }
     // ---------------- v33: Moderator-Werkzeuge
     renamePlayer(playerId, name) {
       const clean = String(name || '').trim().slice(0, 28);
@@ -310,7 +332,8 @@
         const multiplier = Number.isFinite(roundMultiplier) ? Math.max(0, roundMultiplier) : 1;
         // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
         const names = Object.fromEntries(state.players.map(player => [player.id, player.name]));
-        const typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, Object.assign({ game: state.game || null, names }, options));
+        let typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, Object.assign({ game: state.game || null, names }, options));
+        if (options.extraResult) typeResult = Object.assign({}, typeResult || {}, Quiz.clone(options.extraResult)); // v34: z. B. Brett-Ergebnis
         if (typeResult) state.questionResults[question.id] = typeResult;
         if (question.type === 'buzzer') {
           const result = state.questionResults[question.id] && state.questionResults[question.id].kind === 'buzzer' ? state.questionResults[question.id] : this.initialBuzzerState(question);
@@ -335,9 +358,10 @@
         } else {
           state.players.forEach(player => {
             let submission = answers[player.id];
-            if (!submission && Quiz.scoresAllPlayers(question)) submission = answers[player.id] = { answer: null, submittedAt: Date.now() }; // z. B. Zeitduell: Punkte nach Platzierung
+            const override = options.override || null; // v34: Brett/Finale – Punkte kommen vom Moderator-Rechner
+            if (!submission && (Quiz.scoresAllPlayers(question) || override?.[player.id])) submission = answers[player.id] = { answer: null, submittedAt: Date.now() }; // z. B. Zeitduell: Punkte nach Platzierung
             if (!submission) return;
-            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, player.id);
+            const result = override ? (override[player.id] || { points: 0, detail: '' }) : Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, player.id);
             submission.awardedPoints = result.points;
             submission.scoreDetail = result.detail;
             submission.scoredAt = Date.now();
@@ -479,7 +503,7 @@
         state.status = 'lobby'; state.currentRoundIndex = 0; state.currentQuestionIndex = 0;
         state.questionOpen = false; state.questionStartedAt = null; state.questionEndsAt = null;
         state.stage = 0; state.media = null; state.game = null; state.finishedAt = null; state.highlights = null;
-        state.paused = null; state.players.forEach(p => { p.ready = false; });
+        state.paused = null; state.show = null; state.players.forEach(p => { p.ready = false; p.pick = null; });
       });
     }
     resetScores() { this.mutate(state => { state.players.forEach(p => p.score = 0); state.answers = {}; state.questionResults = {}; state.scoredQuestionIds = []; state.roundSummaries = []; }); }

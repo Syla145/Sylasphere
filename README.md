@@ -243,6 +243,26 @@ Hinweis: Wie beim Zeitduell führt das Moderator-Gerät den Spielstand und sollt
 
 Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geöffnet bleiben und nicht in den Standby gehen.
 
+### Themen-Brett (seit v34)
+
+Eine Runde kann statt „Normale Runde“ das Format **▦ Themen-Brett** haben (Editor → Runde → Format).
+- **Aufbau:** Standard 5 Themen × 3 Fragen mit 100 / 300 / 500 Punkten. Anzahl der Themen, Fragen pro Thema und die Punkte je Zeile sind einstellbar. Im Editor siehst du das Raster: Frage antippen = bearbeiten, am Griff ⠿ in ein anderes Feld ziehen (tauscht die Fragen). Am Handy geht das über „Frage … in Feld … verschieben“.
+- **Erlaubte Fragetypen:** Multiple Choice, Schätzfrage und Song-Enthüllung – jeweils **richtig oder falsch, keine Teilpunkte**. Schätzfrage: richtig, wenn der Tipp innerhalb der Toleranz liegt (ohne Toleranz nur exakt).
+- **Ablauf:** Reihum in der Lobby-Reihenfolge. Wer dran ist, wählt am Handy ein Feld und antwortet allein: richtig = Feldwert, falsch = 0. Der Beamer zeigt das große Brett, wer dran ist und wer als Nächstes kommt; gespielte Felder werden grau mit Avatar.
+- **Mitraten** (im Editor abschaltbar, Standard an): Die anderen sehen die Frage und raten ohne Punkte mit. Bei der Auflösung steht „Hätten es auch gewusst: …“.
+- **Nur volle Runden:** Reicht der Rest nicht mehr für eine volle Runde (jeder einmal), spielen alle die übrigen Felder gemeinsam mit normaler Wertung. Das nächste Brett beginnt bei dem, der als Nächstes dran gewesen wäre.
+- **💎 Doppel-Felder** (Anzahl im Editor, Standard 0): versteckt, nie in der ersten Zeile. Wer eins erwischt, setzt 0 bis zu seinen Punkten (mindestens bis zum höchsten Feldwert): richtig = +Einsatz, falsch = 0.
+- **Moderator:** kann für den Spieler wählen (Feld antippen), den Einsatz eintragen oder mit „Überspringen“ den Zug weitergeben. Rückgängig, Pause und Neuladen funktionieren wie gewohnt.
+
+### Einsatz-Finale (seit v34)
+
+Im Editor (Quiz-Einstellungen) **„💰 Letzte Frage als Einsatz-Finale“** anhaken. Die letzte Frage des Quiz (Multiple Choice, Schätzfrage oder Song-Enthüllung, nicht in einem Brett) wird dann so gespielt:
+1. **💰 Einsätze einsammeln:** Alle sehen nur das Thema und setzen geheim 0 bis alle eigenen Punkte (wer 0 oder weniger hat, bis 100).
+2. Dann läuft die Frage normal. **Richtig = +Einsatz, falsch = −Einsatz.**
+3. **Auflösung Spieler für Spieler** vom Letzten zum Ersten: Antwort → Einsatz → neue Punkte, jeweils per Leertaste. Die Rangliste bleibt bis zum Ende verborgen.
+
+Beispiel: das Demo-Quiz **„Show-Abend“** (Aufwärmen, Themen-Brett mit Doppel-Feld, Einsatz-Finale).
+
 ## Einstellungen pro Gerät (⚙️)
 
 Oben rechts auf der Spieler-, Zuschauer- und Moderator-Seite:
@@ -314,6 +334,7 @@ js/core/
   sfx.js                        Soundeffekte (im Browser erzeugt) und Vibration
   reactions.js                  Emoji-Reaktionen (Leiste am Handy, Flug-Animation)
   highlights.js                 Highlights am Show-Ende
+  show-formats.js               Themen-Brett + Einsatz-Finale (reine Spiellogik, ab v34)
   progress.js                   XP, Stufen, Emotes, Statistik (reine Rechenlogik)
   progress-store.js             XP & Statistik in Firebase, Bestenliste, Räume aufräumen
   moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)

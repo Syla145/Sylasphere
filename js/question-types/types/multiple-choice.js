@@ -23,6 +23,9 @@
       return { points: hit ? base : 0, detail: hit ? 'Richtig' : 'Falsch' };
     },
 
+    // v34: Themen-Brett / Einsatz-Finale – nur richtig oder falsch
+    judge(q, answer) { const correct = Kit.correctOption(q); return Boolean(correct && String(answer ?? '') === String(correct.id)); },
+
     solutionText(q) { const option = Kit.correctOption(q); return option ? option.text : String(q.correctAnswer ?? ''); },
     answerLabel(q, answer) { return Kit.optionById(q, answer)?.text || String(answer ?? ''); },
 

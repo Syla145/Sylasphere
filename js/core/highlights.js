@@ -13,6 +13,8 @@
    *  📏 Knappste Schätzung  – am nächsten an einem Schätzwert (relativ zur Skala)
    *  🚀 Punkte-Rakete       – die meisten Punkte bei einer einzigen Frage
    *  🍀 Pechvogel des Abends – am häufigsten leer ausgegangen (augenzwinkernd)
+   *  👑 Brett-König         – v34: die meisten Punkte auf eigenen Brett-Feldern
+   *  🎲 Alles auf eine Karte – v34: höchster Einsatz im Einsatz-Finale
  *
  * v28: Jede Karte enthält die Spieler-IDs (ids) – jede Auszeichnung bringt 10 XP.
    */
@@ -44,6 +46,7 @@
       const answers = state.answers?.[q.id] || {};
       Object.entries(answers).forEach(([pid, record]) => {
         if (!names[pid] || !record) return;
+        if (/^Mitgeraten/.test(String(record.scoreDetail || ''))) return; // v34: Mitraten im Brett zählt nicht
         const pts = Number(record.awardedPoints) || 0;
         if (pts > 0) hits[pid] = (hits[pid] || 0) + 1;
         else if (q.type !== 'buzzer') zeros[pid] = (zeros[pid] || 0) + 1;
@@ -61,7 +64,17 @@
         });
       }
     });
+    // v34: Brett-König + Einsatz-Finale
+    const board = {}; let bold = null;
+    questions.forEach(q => {
+      const r = state.questionResults?.[q.id];
+      if (r?.board && !r.board.shared && r.board.by && names[r.board.by] && Number(r.board.points) > 0) board[r.board.by] = (board[r.board.by] || 0) + Number(r.board.points);
+      (Array.isArray(r?.final) ? r.final : Object.values(r?.final || {})).forEach(row => { if (names[row.id] && Number(row.stake) > 0 && (!bold || Number(row.stake) > bold.stake)) bold = { pid: row.id, stake: Number(row.stake), correct: row.correct }; });
+    });
     const cards = [];
+    const boardKing = leaders(board, names);
+    if (boardKing) cards.push({ icon: '👑', title: 'Brett-König', names: boardKing.names, ids: boardKing.ids.slice(0, 3), detail: `${Math.round(boardKing.value)} P auf eigenen Brett-Feldern` });
+    if (bold) cards.push({ icon: '🎲', title: 'Alles auf eine Karte', names: [names[bold.pid]], ids: [bold.pid], detail: `${Math.round(bold.stake)} P im Finale gesetzt – ${bold.correct ? 'und gewonnen!' : 'mutig verloren'}` });
     const played = questions.filter(q => scored.has(q.id)).length;
     const top = leaders(hits, names);
     if (top) cards.push({ icon: '🎯', title: 'Treffsicher', names: top.names, ids: top.ids.slice(0, 3), detail: `bei ${top.value} von ${played} Fragen gepunktet` });
@@ -71,7 +84,7 @@
     if (rocket) cards.push({ icon: '🚀', title: 'Punkte-Rakete', names: [names[rocket.pid]], ids: [rocket.pid], detail: `+${Math.round(rocket.points)} P bei „${short(rocket.text)}“` });
     const unlucky = leaders(zeros, names, 2);
     if (unlucky && played >= 3) cards.push({ icon: '🍀', title: 'Pechvogel des Abends', names: unlucky.names, ids: unlucky.ids.slice(0, 3), detail: `${unlucky.value}× leer ausgegangen – nächstes Mal!` });
-    return cards.slice(0, 5);
+    return cards.slice(0, 6);
   }
 
   function html(cards) {

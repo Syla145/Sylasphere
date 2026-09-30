@@ -56,7 +56,38 @@
     r.pointsMultiplier = numberOr(r.pointsMultiplier, 1);
     if (r.theme) r.theme = String(r.theme); else delete r.theme; // v29: eigenes Theme für diese Runde (leer = wie das Quiz)
     r.questions = Array.isArray(r.questions) ? r.questions.map((q, qIndex) => normalizeQuestion(q, qIndex, settings)) : [];
+    if (r.format === 'board') normalizeBoard(r); else delete r.format;
     return r;
+  }
+  /*
+   * v34: Themen-Brett – Runde mit format: 'board'
+   *   board: { topics: ['Geografie', …], values: [100, 300, 500], doubles: 0, coGuess: true }
+   *   Jede Frage bekommt cell: { t: Themen-Index, v: Zeilen-Index }; ihre Punkte = Feldwert.
+   *   Fragen ohne (gültiges/freies) Feld rücken in das nächste freie Feld (Thema für Thema, von oben nach unten).
+   */
+  const BOARD_TYPES = ['multiple-choice', 'estimate', 'song-reveal'];
+  function normalizeBoard(r) {
+    const b = r.board && typeof r.board === 'object' ? r.board : {};
+    const values = (Array.isArray(b.values) ? b.values : String(b.values ?? '').split(/[,;\s]+/)).map(Number).filter(n => Number.isFinite(n) && n >= 0);
+    const topicCount = Math.max(1, Math.min(8, Math.round(numberOr(b.topicCount, Array.isArray(b.topics) && b.topics.length ? b.topics.length : 5))));
+    const topics = Array.from({ length: topicCount }, (_, i) => String((Array.isArray(b.topics) ? b.topics[i] : '') ?? '').trim() || `Thema ${i + 1}`);
+    r.board = {
+      topics,
+      values: (values.length ? values : [100, 300, 500]).slice(0, 8),
+      doubles: Math.max(0, Math.min(5, Math.round(numberOr(b.doubles, 0)))),
+      coGuess: b.coGuess !== false
+    };
+    const rows = r.board.values.length;
+    const taken = new Set();
+    const free = () => { for (let t = 0; t < topicCount; t++) for (let v = 0; v < rows; v++) if (!taken.has(`${t}:${v}`)) return { t, v }; return null; };
+    const pending = [];
+    r.questions.forEach(q => {
+      const c = q.cell && typeof q.cell === 'object' ? { t: Math.round(Number(q.cell.t)), v: Math.round(Number(q.cell.v)) } : null;
+      if (c && c.t >= 0 && c.t < topicCount && c.v >= 0 && c.v < rows && !taken.has(`${c.t}:${c.v}`)) { q.cell = c; taken.add(`${c.t}:${c.v}`); }
+      else pending.push(q);
+    });
+    pending.forEach(q => { const c = free(); if (c) { q.cell = c; taken.add(`${c.t}:${c.v}`); } else delete q.cell; });
+    r.questions.forEach(q => { if (q.cell) { q.points = r.board.values[q.cell.v]; q.category = q.category || topics[q.cell.t]; } });
   }
   function normalizeQuiz(input) {
     const source = clone(input || {});
@@ -66,6 +97,7 @@
     settings.defaultPoints = numberOr(settings.defaultPoints, 100);
     settings.buzzerEnabled = Boolean(settings.buzzerEnabled);
     settings.theme = String(settings.theme || 'neon'); // Design (siehe js/core/themes.js)
+    settings.finalWager = settings.finalWager === true; // v34: letzte Frage als Einsatz-Finale
     let rounds = Array.isArray(raw.rounds) ? raw.rounds : [];
     if (!rounds.length && Array.isArray(raw.questions)) {
       rounds = [{ id: 'round_001', title: raw.roundTitle || 'Runde 1', pointsMultiplier: 1, questions: raw.questions }];
@@ -194,7 +226,25 @@
   function hasTimer(question) { return !typeDef(question?.type)?.noTimer; }
   function isBuzzer(question) { return typeDef(question?.type)?.interaction === 'buzzer'; }
 
+  // ---------------- v34: Show-Formate (Themen-Brett, Einsatz-Finale)
+  const isBoardRound = round => round?.format === 'board';
+  /** Richtig oder falsch – ohne Teilpunkte (nur Typen mit judge: Multiple Choice, Schätzfrage, Song-Enthüllung) */
+  function judge(question, answer, ctx = {}) {
+    const def = typeDef(question?.type);
+    if (def?.judge) return Boolean(def.judge(question, answer, ctx));
+    const base = Math.max(1, numberOr(question?.points, 1));
+    return scoreAnswer(question, answer, 1, ctx.result || null, ctx.playerId || '').points >= base;
+  }
+  /** Ist diese Frage das Einsatz-Finale (letzte Frage des Quiz, Einstellung finalWager)? */
+  function isFinalWager(quizInput, ri, qi) {
+    const quiz = quizInput?.quiz || quizInput;
+    if (!quiz?.settings?.finalWager || !Array.isArray(quiz.rounds) || !quiz.rounds.length) return false;
+    const last = quiz.rounds.length - 1;
+    return ri === last && qi === quiz.rounds[last].questions.length - 1 && !isBoardRound(quiz.rounds[last]);
+  }
+
   const api = {
+    BOARD_TYPES, isBoardRound, judge, isFinalWager, normalizeBoard,
     clone, numberOr, categoryKey, cleanCategory, slug,
     normalizeQuiz, extractCategories, allQuestions, categoryHue, topic, scoreAnswer, correctAnswerText, answerLabel, normalizeTerm,
     isChoiceType, optionById, correctOption, surveyWinnerIds, computeConsensusResult,

@@ -1,5 +1,10 @@
 [
   {
+    "title": "Show-Abend",
+    "description": "Themen-Brett mit 5 Themen × 3 Feldern (ein Doppel-Feld) und Einsatz-Finale zum Schluss – ab 3 Spielern.",
+    "file": "quiz-show-abend.json"
+  },
+  {
     "title": "Sylasphere: Showtime · alle 17 Fragetypen",
     "description": "Showcase mit allen 17 Fragetypen – von Multiple Choice über Buzzer und Hotspot bis Song-Enthüllung, Zeitduell, Einordnen und 3×3-Grid.",
     "file": "quiz-showtime.json"

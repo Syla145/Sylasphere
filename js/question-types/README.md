@@ -112,3 +112,4 @@ Fertig. Editor-Auswahl, Moderator, Spieler, Zuschauer, Prüfung, Punkte und Onli
 | `presentLive: true` | Präsentation bei jeder neuen Antwort neu zeichnen (Song-Enthüllung: Avatar an der Stufe). |
 | `presentShowsSolution: true` | Die Präsentation zeigt die Lösung selbst – der Beamer blendet keinen zweiten Lösungskasten ein. |
 | `mark(q, answer)` | Kleiner Wert pro Antwort für die Auflösung (Schätzwert, Klickpunkt). Landet in `result.entries[].mark`; der Beamer zeigt die Tipps dann als Avatare. |
+| `judge(q, answer, { result, playerId })` | v34: Nur richtig (`true`) oder falsch (`false`), ohne Teilpunkte. Nur Typen mit `judge` dürfen ins Themen-Brett und ins Einsatz-Finale (`Quiz.BOARD_TYPES`: Multiple Choice, Schätzfrage, Song-Enthüllung). |

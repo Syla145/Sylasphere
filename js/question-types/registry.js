@@ -73,7 +73,8 @@
       present: null,         // (q, container, ctx) – ctx: { reveal, result, stage, players, answers, role }
       presentLive: false,    // Präsentation bei jeder neuen Antwort neu zeichnen (z. B. Song-Enthüllung: wer bei welcher Stufe)
       presentShowsSolution: false, // Präsentation zeigt die Lösung selbst – kein zusätzlicher Lösungskasten
-      mark: null             // (q, answer) => kleine Zahl/Punkt für die Auflösung (Tipps auf der Skala, Klickpunkte)
+      mark: null,            // (q, answer) => kleine Zahl/Punkt für die Auflösung (Tipps auf der Skala, Klickpunkte)
+      judge: null            // v34: (q, answer, { result, playerId }) => true/false – nur für Themen-Brett und Einsatz-Finale (ohne Teilpunkte)
     }, definition);
     types.set(def.type, Object.freeze(def));
     return def;

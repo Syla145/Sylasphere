@@ -85,6 +85,17 @@
     App.setText(els['spectator-progress'], playing && current.round ? `${current.round.title} · Frage ${Math.min(idx + 1, total)} / ${total}` : '');
     const answered = playing ? Object.keys(state.answers[current.question.id] || {}).length : 0;
     App.setText(els['beamer-count'], playing && state.questionStartedAt && !Quiz.gameOf(current.question) ? `${answered} von ${state.players.length} ${current.question.type === 'buzzer' ? 'haben gebuzzert' : Quiz.stagesOf(current.question) ? 'eingeloggt' : 'haben geantwortet'}` : '');
+    const showState = beamerShow(current); // v34
+    if (showState.board) {
+      els['spectator-live'].dataset.phase = showState.running ? els['spectator-live'].dataset.phase : 'board';
+      const by = state.show.current?.by || state.show.active;
+      const boardResult = state.scoredQuestionIds?.includes(current.question?.id) ? state.questionResults?.[current.question.id]?.board : null;
+      if (showState.running && boardResult && !boardResult.shared) App.setText(els['beamer-count'], `${state.players.find(p => p.id === boardResult.by)?.name || ''}: ${boardResult.correct ? `✓ richtig · +${Math.round(boardResult.points)} P` : '✗ leider falsch · 0 P'}`);
+      else if (showState.running) App.setText(els['beamer-count'], state.show.current?.shared ? `👥 Alle spielen · ${answered} von ${state.players.length} haben geantwortet` : `${state.players.find(p => p.id === by)?.name || ''} antwortet · Feld ${state.show.current?.value}${state.show.current?.double ? ` · 💎 Einsatz ${state.show.current.stake}` : ''}`);
+      else App.setText(els['beamer-count'], '');
+      App.setText(els['spectator-progress'], window.SylasphereShowUI.progressText(current.round, state.show));
+    }
+    if (showState.finalHidden) els['beamer-side'].hidden = true; // Finale: Rangliste erst nach der Auflösung
     renderQuestion(current); renderLeaderboard(); renderTimer(); renderPause();
     scheduleFit();
     window.SylasphereSfx?.observe(state, { current }); // v27
@@ -100,6 +111,7 @@
       els['spectator-stats'].innerHTML = ''; return;
     }
     if (!current.question) return;
+    if (renderShowBeamer(current)) return; // v34: Brett / Einsatz-Finale
     delete shownEl.dataset.lobbyReady;
     if (!state.questionStartedAt) {
       shownEl.dataset.renderKey = '';
@@ -131,6 +143,9 @@
     if (resolved) {
       const solution = Quiz.correctAnswerText(current.question, result) || '–';
       const label = Quiz.solutionLabel(current.question);
+      const extra = state.questionResults?.[current.question.id];
+      if (extra?.board) html += window.SylasphereShowUI.alsoRightHTML(extra.board, state.players);
+      if (state.show?.kind === 'final' && state.show.qid === current.question.id && state.show.phase === 'reveal') { els['spectator-stats'].innerHTML = window.SylasphereShowUI.finalRevealHTML(state.show.rows, Number(state.show.index) || 0, state.players, { big: true }); return; }
       if (!Renderers.presentShowsSolution(current.question)) html += `<div class="reveal-box"><span>${label}</span><strong>${App.escapeHTML(solution)}</strong></div>`;
       html += stats(current.question, answers, result);
       if (!Quiz.typeDef(current.question.type)?.mark) html += Renderers.answerEntriesHTML(result?.entries); // v32: Schätzung/Hotspot zeigen die Tipps schon als Avatare
@@ -150,6 +165,51 @@
     return window.SylasphereThemes.ceremony(ranked, { role: 'spectator', className: 'presenter', eyebrow: 'Finale', title: App.winnerTitle(ranked) || 'Quiz beendet', after: window.SylasphereHighlights?.html(state.highlights) || '' });
   }
 
+  // ================================================================ v34: Show-Formate
+  function beamerShow(current) {
+    const round = state.quiz?.quiz?.rounds?.[state.currentRoundIndex];
+    const out = { board: false, running: false, finalHidden: false };
+    if (state.status !== 'playing') return out;
+    if (Quiz.isBoardRound(round) && state.show?.kind === 'board' && state.show.roundId === round.id) {
+      out.board = true;
+      out.running = Boolean(current.question && state.show.current?.qid === current.question.id && state.questionStartedAt);
+    }
+    if (state.show?.kind === 'final' && state.show.qid === current.question?.id) {
+      const rows = Array.isArray(state.show.rows) ? state.show.rows : Object.values(state.show.rows || {});
+      out.finalHidden = state.show.phase !== 'reveal' || (Number(state.show.index) || 0) < rows.length - 1;
+    }
+    return out;
+  }
+  function renderShowBeamer(current) {
+    const shown = els['spectator-question'];
+    const UI = window.SylasphereShowUI, S = window.SylasphereShow;
+    const round = state.quiz.quiz.rounds[state.currentRoundIndex];
+    const info = beamerShow(current);
+    if (info.board && !info.running) {
+      const show = state.show;
+      const key = JSON.stringify(['board', show.seq, show.phase, state.players.map(p => [p.id, p.name, p.avatar])]);
+      if (shown.dataset.renderKey !== key) {
+        shown.dataset.renderKey = key;
+        const zoom = show.phase === 'play' || show.phase === 'wager';
+        shown.innerHTML = `<div class="show-beamer${zoom ? ' has-zoom' : ''}">${UI.turnHTML(show, state.players)}${UI.boardHTML(round, show, { players: state.players })}${zoom ? `<div class="show-zoom-layer">${UI.zoomHTML(round, show, state.players)}</div>` : ''}</div>`;
+      }
+      els['spectator-stats'].innerHTML = '';
+      return true;
+    }
+    if (state.show?.kind === 'final' && state.show.qid === current.question.id && !state.questionStartedAt) {
+      const wid = S.wagerId(current.question.id);
+      const set = state.answers[wid] || {};
+      const key = JSON.stringify(['final', state.show.phase, Object.keys(set).sort(), state.players.map(p => p.id)]);
+      if (shown.dataset.renderKey !== key) {
+        shown.dataset.renderKey = key;
+        shown.innerHTML = `<div class="round-intro presenter show-final-intro"><span class="eyebrow">💰 Einsatz-Finale</span><h1>${App.escapeHTML(current.question.category || 'Finale')}</h1><p>${state.show.phase === 'wager' ? 'Setzt eure Einsätze – geheim auf dem Handy!' : 'Die Einsätze stehen. Gleich kommt die Frage …'}</p><div class="show-wager-avatars">${state.players.map(p => `<span class="${set[p.id] || state.show.stakes?.[p.id] != null ? 'is-set' : ''}"><i>${App.escapeHTML(App.avatar(p.avatar))}</i><small>${App.escapeHTML(p.name)}</small><b>${set[p.id] || state.show.stakes?.[p.id] != null ? '✓' : '⏳'}</b></span>`).join('')}</div></div>`;
+      }
+      els['spectator-stats'].innerHTML = '';
+      return true;
+    }
+    return false;
+  }
+
   // v33: Pause – „Kurze Pause“ mit Rangliste über allem
   function renderPause() {
     let box = document.getElementById('beamer-pause');
@@ -162,7 +222,11 @@
 
   // v32: Der Beamer scrollt nie – passt der Inhalt nicht auf den Bildschirm, wird er stufenlos verkleinert
   let fitFrame = 0;
-  function scheduleFit() { cancelAnimationFrame(fitFrame); fitFrame = requestAnimationFrame(fitBeamer); }
+  let fitLate = 0;
+  function scheduleFit() {
+    cancelAnimationFrame(fitFrame); fitFrame = requestAnimationFrame(fitBeamer);
+    clearTimeout(fitLate); fitLate = setTimeout(fitBeamer, 800); // v34: nach Animationen (Zoom, Tipps) noch einmal messen
+  }
   function fitBeamer() {
     const live = els['spectator-live'];
     if (!live || live.hidden) return;

@@ -286,7 +286,8 @@
         xp: Math.max(0, Number(profile?.xp) || 0),
         lastAnsweredQuestionId: String(profile?.lastAnsweredQuestionId || ''),
         lastAnswerStage: profile?.lastAnswerStage == null ? null : Number(profile.lastAnswerStage), // v32: Song-Enthüllung – Stufe fürs Beamer-Live-Bild
-        ready: profile?.ready === true // v33: Bereit-Check in der Lobby
+        ready: profile?.ready === true, // v33: Bereit-Check in der Lobby
+        pick: profile?.pick && typeof profile.pick === 'object' ? clone(profile.pick) : null // v34: Feldwahl/Einsatz im Brett
       })).sort(playerSort);
 
       let answers = {};
@@ -366,7 +367,8 @@
         publicStats: pub.publicStats ? clone(pub.publicStats) : null,
         scoreDeltas: pub.scoreDeltas ? clone(pub.scoreDeltas) : null,
         paused: pub.paused ? { since: Firebase.toLocalTime(this.context, pub.paused.since), remaining: pub.paused.remaining == null ? null : Number(pub.paused.remaining) } : null, // v33
-        removedIds: pub.removed && typeof pub.removed === 'object' ? Object.keys(pub.removed) : []
+        removedIds: pub.removed && typeof pub.removed === 'object' ? Object.keys(pub.removed) : [],
+        show: pub.show ? (window.SylasphereShow ? window.SylasphereShow.normalize(pub.show) : clone(pub.show)) : null // v34 (Firebase lässt leere Listen/Objekte weg → normalisieren): Themen-Brett / Einsatz-Finale (Stand vom Moderator-Rechner)
       };
       this.cachedState = state;
       this.emit(state);
@@ -482,6 +484,46 @@
       return true;
     }
     heartbeat() { return Promise.resolve(); }
+    // ---------------- v34: Show-Formate
+    async setShow(show) { this.assertModerator(); await this.patchPublic({ show: show ? clean(show) : null }); }
+    async setPick(playerId, pick) {
+      if (this.role !== 'player' || String(playerId) !== this.userId || !this.raw.profiles?.[this.userId]) return false;
+      await this.modules.database.update(this.modules.database.ref(this.db, `rooms/${this.code}/profiles/${this.userId}`), { pick: pick ? clean(pick) : null, updatedAt: Firebase.serverNow(this.context) });
+      return true;
+    }
+    /** Zu einer bestimmten Frage springen (Brett: gewähltes Feld; nach dem Brett: nächste Runde) */
+    async goTo(ri, qi) {
+      this.assertModerator();
+      const state = this.load();
+      const quiz = this.raw.hostQuiz?.quiz;
+      if (!quiz) return;
+      const summaries = Array.isArray(state.roundSummaries) ? clone(state.roundSummaries) : [];
+      if (ri !== state.currentRoundIndex && quiz.rounds[state.currentRoundIndex]) {
+        const round = quiz.rounds[state.currentRoundIndex];
+        const entry = { roundId: round.id, title: round.title, standings: state.players.slice().sort(playerSort).map(p => ({ id: p.id, name: p.name, score: p.score })), at: Firebase.serverNow(this.context) };
+        const i = summaries.findIndex(x => x.roundId === entry.roundId); if (i >= 0) summaries[i] = entry; else summaries.push(entry);
+      }
+      if (ri >= quiz.rounds.length) { await this.patchPublic({ roundSummaries: summaries }); return this.finish(); }
+      const question = quiz.rounds[ri]?.questions[qi] || null;
+      await this.patchPublic({
+        status: 'playing', currentRoundIndex: ri, currentQuestionIndex: qi,
+        questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
+        currentQuestionId: question?.id || '', currentQuestion: null, questionResult: null, publicStats: null, scoreDeltas: null, roundSummaries: summaries
+      });
+    }
+    /** Einsatz-Finale: private Einsätze einsammeln (als Antwort auf eine eigene Einsatz-ID, nur Spieler + Moderator lesen sie) */
+    async openWager(wagerId) { this.assertModerator(); await this.patchPublic({ currentQuestionId: wagerId, questionOpen: true, questionStartedAt: null, questionEndsAt: null, currentQuestion: null }); }
+    async closeWager(questionId) { this.assertModerator(); await this.patchPublic({ currentQuestionId: questionId, questionOpen: false }); }
+    async submitWager(playerId, wagerId, stake) {
+      if (this.role !== 'player' || String(playerId) !== this.userId) return false;
+      const now = Firebase.serverNow(this.context);
+      await this.modules.database.update(this.roomRef, {
+        [`answers/${this.userId}/${wagerId}`]: clean({ answer: { stake: Math.max(0, Math.round(Number(stake) || 0)) }, submittedAt: now }),
+        [`profiles/${this.userId}/lastAnsweredQuestionId`]: wagerId,
+        [`profiles/${this.userId}/updatedAt`]: now
+      });
+      return true;
+    }
     async markPresent() {
       if (this.role !== 'player' || this.destroyed || !this.userId || !this.raw.profiles?.[this.userId]) return;
       const dbm = this.modules.database;
@@ -668,6 +710,7 @@
         // Typen wie „Gleich gedacht“ berechnen ihr Ergebnis erst aus allen Antworten
         const names = Object.fromEntries(Object.entries(this.raw.profiles || {}).map(([uid, profile]) => [uid, String(profile?.name || 'Spieler')]));
         let typeResult = Quiz.isBuzzer(question) ? null : Quiz.resolveResult(question, answers, Object.assign({ game: state.game || null, names }, options));
+        if (options.extraResult) typeResult = Object.assign({}, typeResult || {}, clone(options.extraResult)); // v34: z. B. Brett-Ergebnis
         const buzzerResult = question.type === 'buzzer' ? clone(state.questionResults?.[question.id] || initialBuzzerState(question)) : null;
         const deltas = {};
         const updates = {};
@@ -707,9 +750,10 @@
           Object.keys(profiles).forEach(uid => {
             let submission = answers[uid];
             let created = false;
-            if (!submission && Quiz.scoresAllPlayers(question)) { submission = answers[uid] = { answer: '', submittedAt: now }; created = true; } // z. B. Zeitduell
+            const override = options.override || null; // v34: Brett/Finale – Punkte kommen vom Moderator-Rechner
+            if (!submission && (Quiz.scoresAllPlayers(question) || override?.[uid])) { submission = answers[uid] = { answer: '', submittedAt: now }; created = true; } // z. B. Zeitduell
             if (!submission) return;
-            const result = Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, uid);
+            const result = override ? (override[uid] || { points: 0, detail: '' }) : Quiz.scoreAnswer(question, submission.answer, multiplier, typeResult, uid);
             deltas[uid] = Math.round(Number(result.points) || 0);
             if (created) updates[`answers/${uid}/${question.id}`] = clean(Object.assign({}, submission, { awardedPoints: deltas[uid], scoreDetail: String(result.detail || ''), scoredAt: now }));
             else {
@@ -903,7 +947,7 @@
         status: 'lobby', currentRoundIndex: 0, currentQuestionIndex: 0,
         questionOpen: false, questionStartedAt: null, questionEndsAt: null, stage: 0, media: null, game: null, answerLock: false,
         currentQuestionId: this.raw.hostQuiz?.quiz?.rounds?.[0]?.questions?.[0]?.id || '', currentQuestion: null,
-        questionResult: null, publicStats: null, scoreDeltas: null, finishedAt: null, highlights: null, paused: null
+        questionResult: null, publicStats: null, scoreDeltas: null, finishedAt: null, highlights: null, paused: null, show: null
       });
       const ready = {};
       Object.keys(this.raw.profiles || {}).forEach(uid => { if (this.raw.profiles[uid]?.ready) ready[`profiles/${uid}/ready`] = false; });

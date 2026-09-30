@@ -161,6 +161,14 @@
       return { points: Math.round(base * stage.percent / 100 * factor), detail: `${stageText(q, stage.index)}${parts}` };
     },
 
+    // v34: Themen-Brett / Einsatz-Finale – richtig nur, wenn alle gefragten Teile stimmen (Stufe egal, keine Teilpunkte)
+    judge(q, answer, { result, playerId } = {}) {
+      if (!answer || typeof answer !== 'object' || !String(answer.title || answer.artist || '').trim()) return false;
+      const verdict = result?.verdicts ? result.verdicts[playerId] : undefined;
+      const titleOk = verdict === undefined ? matches(titleOptions(q), answer.title) : (typeof verdict === 'object' ? verdict?.title === true : verdict === true);
+      const artistOk = !q.guessArtist || (verdict === undefined ? matches(artistOptions(q), answer.artist) : (typeof verdict === 'object' ? verdict?.artist === true : verdict === true));
+      return Boolean(titleOk && artistOk);
+    },
     solutionText: q => [q.songTitle, q.artist].filter(Boolean).join(' – '),
     moderatorSolution: q => ({ text: [q.songTitle, q.artist].filter(Boolean).join(' – ') || '–', extra: `Stufen ab ${fmtSeconds(q.clipStart)} · Auflösung ab ${fmtSeconds(q.revealStart)} für ${fmtSeconds(q.revealDuration)}` }),
     answerLabel,
