@@ -1,5 +1,16 @@
 # Sylasphere – Changelog
 
+## v36 – UI-Modernisierung
+- **Nur das Aussehen ist neu** – keine Funktion, kein Ablauf, keine Datenstruktur, keine Firebase-Regeln geändert. Alle IDs, data-Attribute und Klassen bleiben.
+- **Neue zentrale Oberflächen-Schicht `css/ui.css`** (nach `main.css`, vor den Designs): Schrift, Abstände, Flächen, Knöpfe, Felder, Chips, Listen und Antwort-Kacheln an einer Stelle. Einheitliche Ecken (Flächen 16 px, Bedienelemente 10 px, Chips rund).
+- **Ruhiger:** neue Schrift **Geist** (frei, lokal), weniger fett, kleine Überschriften in normaler Schreibweise statt gesperrter Großbuchstaben, flache Flächen mit feiner Linie, keine Kästen in Kästen beim Moderator.
+- **Show-Akzente im Spiel:** Antwort-Marker A/B/C/D farbig aus den Design-Farben, leichter Druckeffekt beim Antippen (Handy) und kräftige Kacheln auf dem Beamer.
+- **Startseite als Spielshow-Kachelwand:** Schrift **Bricolage Grotesque** (frei, lokal), bunte Kacheln im Raster, runde Knöpfe mit Druckeffekt.
+- **Bedienung:** Tippflächen am Handy überall mindestens 44 px (auch kleine Knöpfe, Links, Emoji-Leiste, Aufklapp-Zeilen); deutliche Fokus-Rahmen für die Tastatur; lange Moderator-Knöpfe brechen sauber um.
+- **Designs** (Neon Arena, Retro-Show, Clean Light, Pub Quiz, Mario Kart, League of Legends, GeoGuessr, Valorant) behalten Farben, Hintergründe, Schriften und Deko; sie laden nach der neuen Schicht und dürfen sie weiter anpassen.
+- **Feste Regeln geprüft:** Beamer scrollt nie (1920×1080, 1280×720; misst nach dem Laden der Schriften neu), Handy ab 360 px ohne seitliches Scrollen, Siegerehrung trennt Namen nicht mehr mitten im Wort, „Animationen reduzieren“ und die Systemeinstellung schalten die neuen Bewegungen ab.
+- Neue Dateien: `css/ui.css`, `assets/fonts/geist-variable.woff2`, `assets/fonts/bricolage-grotesque-variable.woff2` (+ Lizenzen, SIL OFL), `tests/v36-ui.js`.
+
 ## v35 – Spielmodi erklären
 - **Eine Textquelle:** Jeder Spielmodus hat jetzt eine Erklärung (`help`: Gruppe, ein Satz für Spieler, 2–3 Schritte „So geht's“, Punkte, Tipps für Moderatoren) – auch Themen-Brett und Einsatz-Finale. Die bisherigen Beschreibungen und Hinweistexte in den Fragen kommen jetzt daraus (keine Doppelungen mehr).
 - **Im Spiel:** Kommt ein Spielmodus in einer Sitzung zum ersten Mal dran, zeigt der Beamer vor dem Start „Neu: <Spielmodus> – so geht's“ (blockiert nichts, verschwindet mit dem Start der Frage oder per Leertaste/Klick, der Beamer scrollt nie). Das Handy zeigt dieselbe Karte zum Wegtippen („✓ Verstanden“), danach steht über jeder Frage der Spielmodus mit **„?“** zum erneuten Öffnen. Der Moderator sieht „🆕 Neu: …“ mit aufklappbaren Tipps. Im Editor unter „⚙️ Quiz“ abschaltbar: **„🆕 Spielmodi erklären“** (Standard an).

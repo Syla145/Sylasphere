@@ -266,6 +266,7 @@
     live.classList.toggle('is-fitted', fit < 1);
   }
   window.addEventListener('resize', scheduleFit);
+  document.fonts?.ready?.then(scheduleFit); // v36: nach dem Laden der Schriften neu messen
   document.addEventListener('load', event => { if (event.target?.tagName === 'IMG') scheduleFit(); }, true);
 
   // v31: Lobby „Wer ist da?“ – QR-Code links, Avatare rechts; neue Spieler ploppen einzeln auf

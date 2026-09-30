@@ -328,6 +328,7 @@ Alles läuft **kostenlos**:
 ```
 index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html · vorschau.html · spielmodi.html
 css/main.css                    Gestaltung aller Seiten und die 4 ersten Designs
+css/ui.css                      Oberfläche ab v36: gemeinsame Bausteine (Schrift, Knöpfe, Felder, Kacheln …)
 css/themes/                     Designs ab v29 (eine Datei pro Design, Liste in index.css)
 js/themes/                      Effekte der Designs ab v29 (Deko, Übergang, Siegerehrung, Sound-Paket)
 data/                           Beispiel-Quizze (JSON) + quiz-list.json

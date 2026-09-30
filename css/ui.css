@@ -1,0 +1,154 @@
+/* =====================================================================
+   Sylasphere – Oberfläche v36 („Studio“ + Show-Akzente)
+   ---------------------------------------------------------------------
+   Zentrale Bausteine für alle Seiten: Schrift, Abstände, Flächen, Knöpfe,
+   Felder, Chips, Listen, Antwort-Kacheln. Wird NACH main.css und VOR
+   css/themes/index.css geladen.
+   Regel: Farben, Hintergründe und Deko kommen weiter aus dem jeweiligen
+   Design (CSS-Variablen in main.css bzw. css/themes/*.css). Designs dürfen
+   hier festgelegte Bausteine weiter gezielt anpassen (sie laden danach).
+   Radien: Flächen 16px (--ui-r), Bedienelemente 10px (--ui-rc),
+   Chips/Pillen rund. Tippflächen am Touch-Gerät mindestens 44px.
+   Schriften (SIL OFL, lokal): Geist (Oberfläche), Bricolage Grotesque (Startseite).
+   ===================================================================== */
+@font-face{font-family:"Geist";src:url("../assets/fonts/geist-variable.woff2") format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Bricolage Grotesque";src:url("../assets/fonts/bricolage-grotesque-variable.woff2") format("woff2");font-weight:200 800;font-display:swap}
+
+:root{
+  --font-body:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-show:"Bricolage Grotesque",var(--font-body);
+  --radius:16px;--radius-sm:10px;
+  --ui-r:16px;--ui-rc:10px;--ui-tap:44px;
+  --ui-press:rgba(var(--shadow-rgb),.38);
+  --ui-ease:cubic-bezier(.16,1,.3,1);
+}
+body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+
+/* ---------- Schrift ---------- */
+h1,h2,h3,.question-title,.round-intro h1,.round-intro h2{font-weight:650;letter-spacing:-.025em}
+/* Kleine Überschriften: normale Schreibweise statt gesperrter Versalien */
+.eyebrow,.hero-badge{text-transform:none;letter-spacing:0;font-size:.8rem;font-weight:600;color:var(--muted)}
+.field-label{font-weight:600}
+.brand{font-weight:650;letter-spacing:-.01em}
+.brand-mark{border-radius:var(--ui-rc);box-shadow:none}
+.version-tag{background:transparent;border-color:var(--line);color:var(--muted);font-weight:600}
+.microcopy{line-height:1.45}
+
+/* ---------- Flächen ---------- */
+.panel{background:rgba(var(--surface-rgb),.9);border-radius:var(--ui-r);box-shadow:inset 0 1px 0 rgba(var(--overlay-rgb),.04),0 8px 24px rgba(var(--shadow-rgb),.14)}
+.panel-pad{padding:22px}
+.notice{border-radius:var(--ui-rc);background:rgba(var(--overlay-rgb),.03)}
+.settings-modal,.ed-modal,.preview-modal{border-radius:var(--ui-r)}
+.toast{border-radius:var(--ui-rc)}
+
+/* ---------- Knöpfe ---------- */
+.btn{border-radius:var(--ui-rc);min-height:var(--ui-tap);padding:10px 16px;font-weight:600;background:rgba(var(--overlay-rgb),.06);box-shadow:none;transition:transform .15s var(--ui-ease),background .15s,border-color .15s}
+.btn:hover{border-color:rgba(var(--overlay-rgb),.24)}
+.btn:active{transform:scale(.98)}
+.btn--primary{background:var(--accent);color:var(--on-accent);border-color:transparent}
+.btn--primary:hover{background:var(--accent-hi);border-color:transparent}
+.btn--ghost{background:transparent}
+.btn--small{min-height:36px;padding:7px 12px;font-size:.86rem}
+.btn:focus-visible,.icon-btn:focus-visible,.link-btn:focus-visible,.answer-btn:focus-visible,.chip:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.icon-btn{border-radius:var(--ui-rc)}
+.link-btn{font-weight:600}
+
+/* ---------- Felder ---------- */
+.input,.select,.textarea{border-radius:var(--ui-rc);min-height:var(--ui-tap)}
+.input:focus,.select:focus,.textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.22)}
+.file-drop{border-radius:var(--ui-r)}
+
+/* ---------- Chips, Pillen, Listen ---------- */
+.pill,.chip{font-weight:600}
+.pill--category{background:transparent}
+.leader-row{border-radius:var(--ui-rc)}
+.reaction-bar{border-top:0;padding-top:4px}
+
+/* ---------- Kopfbereich ---------- */
+.app-header{padding:16px 0}
+
+/* ---------- Moderator: keine Kästen in Kästen ---------- */
+.mod-session{background:transparent;border:0;box-shadow:none}
+.session-top{padding:8px 4px 16px}
+.mod-grid{padding:0;gap:16px}
+.mod-next{min-height:56px;font-size:1.05rem;font-weight:650;border-radius:12px}
+.mod-next{white-space:normal;text-wrap:balance;overflow-wrap:anywhere}
+.mod-pstatus{font-weight:600}
+
+/* ---------- Spieler ---------- */
+.player-question-card{padding:18px;border-radius:var(--ui-r)}
+.question-title{line-height:1.18}
+
+/* ---------- Antwort-Kacheln (Show-Akzent: farbige Marker, leichter Druckeffekt) ---------- */
+.answer-grid{gap:9px}
+.answer-btn{border-radius:14px;border-width:1px;background:rgba(var(--surface-rgb),.55);transition:transform .12s var(--ui-ease),box-shadow .12s,border-color .15s,background .15s}
+.answer-index{border-radius:9px;font-weight:700}
+#game-question .answer-btn:not(:disabled),.mode-demo-phone .answer-btn:not(:disabled){box-shadow:0 3px 0 var(--ui-press)}
+#game-question .answer-btn:not(:disabled):active,.mode-demo-phone .answer-btn:not(:disabled):active{transform:translateY(2px);box-shadow:0 1px 0 var(--ui-press)}
+.answer-btn:nth-child(4n+1) .answer-index{color:var(--accent-text);background:rgba(var(--accent-rgb),.16);box-shadow:inset 0 0 0 2px rgba(var(--accent-rgb),.55)}
+.answer-btn:nth-child(4n+2) .answer-index{color:var(--accent2-text);background:rgba(var(--accent2-rgb),.16);box-shadow:inset 0 0 0 2px rgba(var(--accent2-rgb),.55)}
+.answer-btn:nth-child(4n+3) .answer-index{color:var(--warning-text);background:rgba(var(--warning-rgb),.16);box-shadow:inset 0 0 0 2px rgba(var(--warning-rgb),.55)}
+.answer-btn:nth-child(4n+4) .answer-index{color:var(--success-text);background:rgba(var(--success-rgb),.16);box-shadow:inset 0 0 0 2px rgba(var(--success-rgb),.55)}
+/* Gewählt / aufgelöst: Marker neutral, damit Richtig/Falsch-Farben klar bleiben */
+.answer-btn.is-selected .answer-index,.answer-btn.is-correct .answer-index,.answer-btn.is-wrong .answer-index{color:inherit;background:rgba(0,0,0,.16);box-shadow:none}
+
+/* ---------- Beamer ---------- */
+.beamer .answer-btn{min-height:clamp(72px,9vh,120px);border-radius:18px;border-width:2px;background:rgba(var(--surface-rgb),.6);box-shadow:0 6px 0 var(--ui-press)}
+.beamer .answer-index{border-radius:14px}
+.beamer .question-title{letter-spacing:-.03em}
+.presenter-main,.presenter-side{box-shadow:none}
+
+/* ---------- Editor ---------- */
+.ed-top,.ed-outline{box-shadow:none}
+.ed-top{border-radius:var(--ui-r)}
+
+/* ---------- Startseite: Spielshow-Kachelwand ---------- */
+.hero h1{font-family:var(--font-show);font-weight:800;letter-spacing:-.05em;line-height:1.02}
+.hero-badge{font-family:var(--font-show);text-transform:uppercase;letter-spacing:.06em;font-weight:700;border-width:2px}
+.home-content{font-family:var(--font-show)}
+.home-content .panel,.home-content .home-join{border-width:2px;box-shadow:0 6px 0 var(--ui-press),0 20px 40px rgba(var(--shadow-rgb),.2);border-radius:22px}
+.home-content .eyebrow{text-transform:uppercase;letter-spacing:.06em;font-weight:700;color:var(--accent-text)}
+.home-content .btn{border-radius:999px;border-width:2px;box-shadow:0 4px 0 var(--ui-press);font-weight:700;transition:transform .12s var(--ui-ease),box-shadow .12s}
+.home-content .btn:hover{transform:translateY(-1px)}
+.home-content .btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ui-press)}
+.home-content .btn--primary{border-color:rgba(var(--overlay-rgb),.18)}
+.home-content .input{border-radius:14px;border-width:2px}
+.home-content .role-grid.home-roles{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (min-width:900px){.home-content .role-grid.home-roles{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}}
+.home-content .role-card{min-height:150px;padding:18px;border-width:2px;border-radius:20px;box-shadow:0 5px 0 var(--ui-press);transition:transform .12s var(--ui-ease),box-shadow .12s}
+.home-content .role-card:hover{transform:translateY(-2px)}
+.home-content .role-card:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ui-press)}
+.home-content .role-card:nth-child(4n+1){background:rgba(var(--accent-rgb),.16)}
+.home-content .role-card:nth-child(4n+2){background:rgba(var(--accent2-rgb),.14)}
+.home-content .role-card:nth-child(4n+3){background:rgba(var(--warning-rgb),.13)}
+.home-content .role-card:nth-child(4n+4){background:rgba(var(--success-rgb),.13)}
+.home-content .role-icon{font-size:2rem;margin-bottom:10px}
+.home-content .role-card h2{font-size:1.15rem;margin:0}
+.home-content .role-card p{font-size:.86rem;margin:4px 0 0}
+.home-content .role-arrow{display:none}
+.home-content .home-note,.home-secondary-link{border-width:2px;border-radius:16px}
+.home-secondary-link{font-family:var(--font-show);box-shadow:0 4px 0 var(--ui-press)}
+
+/* ---------- Touch: Tippflächen mindestens 44px ---------- */
+@media (pointer:coarse){
+  .btn--small,.icon-btn,.link-btn,.chip[role="button"],button.chip,.mode-chip,.reaction-btn,.settings-btn{min-height:var(--ui-tap)}
+  summary{min-height:var(--ui-tap);display:flex;align-items:center;gap:6px}
+  .icon-btn,.settings-btn{min-width:var(--ui-tap)}
+}
+
+/* ---------- Weniger Bewegung (System + ⚙️ „Animationen reduzieren“) ---------- */
+@media (prefers-reduced-motion:reduce){
+  .btn,.answer-btn,.home-content .role-card,.home-content .btn{transition:none}
+  .btn:active,.home-content .btn:hover,.home-content .btn:active,.home-content .role-card:hover,.home-content .role-card:active,#game-question .answer-btn:not(:disabled):active,.mode-demo-phone .answer-btn:not(:disabled):active{transform:none}
+}
+html[data-motion="reduced"] .btn:active,html[data-motion="reduced"] .home-content .btn:hover,html[data-motion="reduced"] .home-content .btn:active,html[data-motion="reduced"] .home-content .role-card:hover,html[data-motion="reduced"] .home-content .role-card:active,html[data-motion="reduced"] #game-question .answer-btn:not(:disabled):active{transform:none}
+
+/* ---------- Feinschliff ---------- */
+.beamer .eyebrow,.presenter .eyebrow{color:var(--accent-text)}
+.show-board.is-compact .show-topic{overflow-wrap:anywhere}
+.beamer-page .app-header .code-badge{line-height:1.1}
+/* Siegerehrung: Namen nicht mitten im Wort trennen (Podest breit genug) */
+@media (min-width:761px){.podium-place{min-width:clamp(120px,10vw,190px)}}
+.podium-place{min-width:0}
+.podium-place strong{word-break:normal;hyphens:manual;-webkit-hyphens:manual}
+@media (max-width:480px){.podium-place strong{overflow-wrap:anywhere;font-size:.85rem}}
