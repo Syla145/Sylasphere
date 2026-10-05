@@ -1,373 +1,147 @@
-# Sylasphere – Quiz Arena
-
-Sylasphere ist eine Multiplayer-Quiz-Website im Stil einer Spielshow. Ein **Moderator** steuert das Quiz am PC, die **Spieler** machen mit ihrem Handy mit, und eine **Zuschaueransicht** kann auf Beamer oder TV laufen.
-
-- Reines HTML, CSS und JavaScript. Kein Build-Schritt, kein npm, kein eigener Server.
-- Läuft auf **GitHub Pages** (kostenlos).
-- Online-Spiel über **Firebase** (kostenloser Spark-Tarif): Realtime Database und Authentication.
-- Ein **lokaler Testmodus** läuft ohne Internet in mehreren Tabs desselben Browsers.
-
-Aktuelle Version: siehe `CHANGELOG.md`.
-
----
-
-## Inhalt
-
-1. [Seiten und Rollen](#seiten-und-rollen)
-2. [So läuft ein Quizabend](#so-läuft-ein-quizabend)
-3. [Konten und Moderator-Freigabe](#konten-und-moderator-freigabe) · [XP und Stufen](#xp-und-stufen)
-4. [Quizze erstellen und speichern](#quizze-erstellen-und-speichern)
-5. [Bilder, Musik und Videos](#bilder-musik-und-videos)
-6. [Spielmodi](#spielmodi)
-7. [Designs](#designs)
-8. [Update einspielen](#update-einspielen)
-9. [Kosten und Grenzen](#kosten-und-grenzen)
-10. [Projektstruktur](#projektstruktur)
-11. [Tests](#tests)
-
----
-
-## Seiten und Rollen
-
-| Seite | Für wen | Wofür |
-|---|---|---|
-| `index.html` | alle | Startseite: oben das **Raumcode-Feld** zum Beitreten (auch ohne Konto), darunter Zuschauen und **Anmelden**; angemeldet die passenden Bereiche |
-| `spieler.html` | Spieler | Mit Raumcode beitreten und antworten. Als Gast ohne Konto oder angemeldet, dann mit XP |
-| `moderator.html` | Moderatoren | Quiz auswählen, Raum erstellen, Fragen öffnen, schließen, auflösen und Punkte vergeben |
-| `zuschauer.html` | Beamer/TV | Große Anzeige mit Frage, Timer, Statistik und Rangliste |
-| `editor.html` | Moderatoren | Quizze erstellen und bearbeiten, online in „Meine Quizze“ speichern (nur mit Moderator-Konto) |
-| `spielmodi.html` | alle | Alle Spielmodi erklärt – So geht's, Punkte, Moderator-Tipps und eine spielbare Demo (ab v35) |
-| `profil.html` | Angemeldete | Stufe, XP, Statistik, Emotes, Bestenliste; für Moderatoren die schwersten Fragen |
-| `admin.html` | Admin | Moderator-Anfragen freischalten, Rechte entziehen, alte Räume aufräumen |
-
-## So läuft ein Quizabend
-
-1. Der Moderator meldet sich auf `moderator.html` an, wählt ein Quiz und tippt auf **🌐 Online-Sitzung erstellen**.
-2. Es erscheint ein **Raumcode** wie `58SN9A` mit **QR-Code**. Die Spieler scannen ihn oder geben den Code direkt auf der Startseite ein. Die Handys gehen während des Quiz nicht in den Standby.
-3. Optional läuft `zuschauer.html` mit demselben Code auf Beamer oder TV. In der Lobby zeigt er groß den QR-Code und „Wer ist da?“ mit allen Avataren.
-4. Der Moderator drückt immer nur den großen Knopf **„Nächster Schritt“** (oder die **Leertaste**): ▶ Spiel starten → ❓ Frage öffnen → ⏹ Antworten schließen → ✓ Auflösen → ➜ Nächste Frage … → 🏁 Zur Siegerehrung. Zurück, Überspringen und Beenden stehen klein darunter. Am Handy sitzt der Knopf in einer festen Leiste unten.
-   - Links sieht er pro Spieler ✓ geantwortet, ⏳ wartet und nach der Auflösung die Punkte oder „— keine Antwort“. Ein Spieler antippen öffnet die Punkte-Korrektur.
-   - Kurzbefehle: **Leertaste** = nächster Schritt, **← / →** = vorige/nächste Frage, **P** = Pause, **Strg+Z** = Rückgängig.
-   - **Seit v33:** In der Lobby tippen Spieler „✋ Bereit“, der Moderator sieht, wer noch fehlt (starten geht trotzdem). Ein Spieler antippen → Punkte, **✎ Umbenennen**, **✕ Entfernen**. Der grüne Punkt am Avatar zeigt, ob das Handy verbunden ist; lädt ein Spieler die Seite neu oder ist kurz offline, landet er automatisch wieder im Raum. **⏸ Pause** hält den Timer an (Beamer: „Kurze Pause“ mit Rangliste). **↶ Rückgängig** nimmt die letzte Wertung oder Punkteänderung zurück.
-5. Nach der Siegerehrung: **🔁 Nochmal spielen (gleiche Spieler)** setzt die Punkte auf 0 und alle landen wieder in der Lobby, oder **📂 Neues Quiz**. Gleiche Punkte ergeben den gleichen Platz („🤝 Gleichstand!“). XP gibt es pro Raum nur einmal – für neue XP einen neuen Raum erstellen.
-
-**Lokal testen:** „💻 Lokal testen“ nutzen und die Spieleransicht in weiteren Tabs **desselben Browsers** öffnen. Die Anmeldung als Moderator braucht dafür einmal Internet.
-
-## Konten und Moderator-Freigabe
-
-- **Spieler** brauchen kein Konto. Mit Konto (Google oder E-Mail, ohne Freischaltung) sammeln sie XP, siehe [XP und Stufen](#xp-und-stufen).
-- **Moderatoren** melden sich mit **Google** oder **E-Mail + Passwort** an. Eine Anmeldung allein gibt **keine** Moderator-Rechte. Neue Konten tippen auf „Moderator-Zugang anfragen“.
-- Der **Admin** schaltet Anfragen auf `admin.html` frei, lehnt sie ab oder entzieht Rechte später wieder. Beim Anfragenden geht es nach der Freigabe sofort weiter.
-- Admins trägst du einmalig von Hand in der Firebase-Konsole ein, unter `admins/<Konto-ID>: true`.
-- Der frühere Moderator-Code ist seit v21 abgeschafft. Moderieren geht nur noch mit einem freigeschalteten Konto.
-
-**Was sieht wer auf der Startseite?**
-
-| Wer | Bereiche |
-|---|---|
-| Moderator oder Admin (angemeldet) | Moderieren, Mitspielen, Zuschauen, Quiz-Editor (Admins zusätzlich: Verwaltung), Link zum Profil |
-| Angemeldet ohne Moderator-Rechte | Mitspielen, Zuschauen, Link zum Profil, dazu der Hinweis „Moderator-Zugang anfragen“ |
-| Gast (nicht angemeldet) | Mitspielen, Zuschauen |
-
-- Die Wahl „Als Gast fortfahren“ merkt sich der Browser. Oben rechts gibt es jederzeit **Anmelden**.
-- **Einladungslinks** wie `spieler.html?code=ABC234` führen immer direkt zum Beitritt, ohne Auswahl.
-- Angemeldete Spieler bekommen ihren Namen beim Beitreten vorausgefüllt und sammeln XP.
-
-## XP und Stufen
-
-- **XP pro Online-Spiel:** 20 fürs Mitspielen (mindestens die Hälfte der Fragen beantwortet), 5 pro richtiger Antwort, 50 / 30 / 15 für Platz 1 / 2 / 3, 10 pro Highlight. Höchstens 250 XP pro Spiel und 600 XP pro Tag.
-- XP gibt es nur ab **3 Spielern** und **5 gewerteten Fragen**, nie im eigenen Raum und im lokalen Testmodus gar nicht.
-- **Stufen:** Von Stufe n auf n+1 braucht man 50 × n XP (Stufe 2: 50, 5: 500, 10: 2.250, 20: 9.500). Die Stufe steht als ⭐ neben dem Namen.
-- **Emotes:** Höhere Stufen schalten zusätzliche Reaktionen frei (🥳 ab Stufe 2 bis 🐐 ab Stufe 20). Die Liste steht in `js/core/progress.js`.
-- **Profil** (`profil.html`): Statistik pro Spielmodus und Thema, letzte Spiele und die **Bestenliste**. Dort erscheint man nur, wenn man es selbst einschaltet, und nur mit dem gewählten Spielernamen.
-- Die Ergebnisse speichert das Moderator-Gerät automatisch beim Spielende. Die Firebase-Regeln prüfen die Grenzen.
-
-Die Einrichtung in Firebase steht Schritt für Schritt in **`FIREBASE_SETUP.md`**.
-
-## Quizze erstellen und speichern
-
-Im **Editor** (`editor.html`):
-
-- **Neues Quiz erstellen** oder ein vorhandenes öffnen. Möglich sind „Meine Quizze“, die Beispiel-Quizze aus `data/` und JSON-Dateien.
-- **Aufbau (seit v30):**
-  - Links die **Gliederung** mit „⚙️ Quiz“ (Titel, Beschreibung, Standard-Timer/-Punkte, Design, Themen), den Runden (einklappbar) und den Fragen als kompakte Zeilen (Symbol, Textanfang, Punkte, ⚠️ bei Problemen).
-  - In der Mitte immer genau **eine** Frage, Runde oder „⚙️ Quiz“.
-  - Oben die Leiste mit Speicherstatus, ‹ › (vorige/nächste Frage), 👁 Vorschau, ✓ Prüfen und „⋯“ (JSON importieren/exportieren, Neues Quiz, Anderes Quiz öffnen, Als Kopie speichern, Moderieren).
-- **Sortieren:** Zeilen am Griff ⠿ ziehen, auch Fragen in eine andere Runde. Alternativ **Alt+↑/↓**. **Strg+D** dupliziert, **Strg+S** speichert sofort.
-- **„+ Frage“** öffnet die Auswahl der Spielmodi als Kacheln. **„Mehr erfahren“** zeigt pro Spielmodus die Erklärung und eine Mini-Vorschau (Handy + Beamer). Die neue Frage landet hinter der gerade gewählten. Den Spielmodus einer Frage wechselst du über „Spielmodus ändern …“ (mit Rückfrage, weil Antworten und Lösung dabei verloren gehen).
-- **„🆕 Spielmodi erklären“** (unter „⚙️ Quiz“, Standard an): Kommt ein Spielmodus im Spiel zum ersten Mal dran, zeigen Beamer und Handys kurz „Neu: … – so geht's“.
-- **Am Handy** ist die Gliederung der Startbildschirm. Eine Frage öffnet sich bildschirmfüllend mit „← Übersicht“ und ‹ ›, weitere Aktionen stehen im „⋯“-Menü.
-- **Ausgeblendet:** Antwort-Kennungen (a/b/c) vergibt der Editor selbst, die Fragen-ID steht nur unter „Experten“. Bilder erscheinen als kleines Vorschaubild, den Pfad zeigt „🔗 Pfad“.
-- **👁 Vorschau** zeigt eine Frage so, wie Spieler sie sehen.
-- **✓ Prüfen** zeigt Fehler und Hinweise, zum Beispiel eine fehlende Lösung oder ein ungeeignetes Bildformat. Ein Tipp auf einen Eintrag springt zur Frage.
-
-**Speichern:**
-
-| Wo | Wie | Für wen |
-|---|---|---|
-| ☁️ **Meine Quizze** (online) | Automatisch: Neue Quizze und bearbeitete Beispiel-Quizze landen bei der ersten Änderung in „Meine Quizze“, danach wird jede Änderung gespeichert. Der Status steht oben („☁️ Gespeichert“ / „Speichere …“). Strg+S speichert sofort | angemeldete, freigeschaltete Moderatoren |
-| Dieses Gerät | Automatisch als Entwurf im Browser („Letzten Entwurf fortsetzen“) | alle |
-| JSON-Datei | „JSON exportieren“ oder importieren, gut als Sicherung oder zum Weitergeben | alle |
-
-- „Meine Quizze“ sind auf jedem Gerät verfügbar, auf dem du mit deinem Konto angemeldet bist.
-- Nur du kannst deine Quizze lesen, auch Admins nicht.
-- Beim Moderator stehen sie oben in der Quiz-Auswahl. Aus dem Editor geht es über „⋯“ → **▶ Jetzt moderieren** direkt los.
-- Wird dasselbe Quiz auf zwei Geräten gleichzeitig bearbeitet, gewinnt die zuletzt gespeicherte Änderung.
-
-> **Wichtig:** Online gespeichert wird nur der **Text** des Quiz. **Bilder und Musik werden nicht mit hochgeladen.** Im Quiz steht nur, wo die Datei liegt. Wie das geht, steht im nächsten Abschnitt.
-
-## Bilder, Musik und Videos
-
-### So kommt eine Datei ins Quiz
-
-**Am einfachsten (ab v25.1): direkt im Editor hochladen.**
-- Neben jedem Bild- und Audiofeld gibt es **⬆ Hochladen**. Datei wählen, fertig: Der Link wird sofort eingetragen.
-- In der Dateiauswahl (📁) findest du unter **☁️ Meine Uploads** alle eigenen Dateien. Dort kannst du auch mehrere auf einmal hochladen (Knopf oder hineinziehen), den Füllstand sehen und mit 🗑 löschen.
-- Beim **Zeitduell** und bei **Einordnen** lädt **⬆ Bilder hochladen** viele Bilder auf einmal und legt daraus Karten an. Der Name wird aus dem Dateinamen vorgeschlagen.
-- Bilder werden automatisch auf höchstens 1600 px verkleinert. Die Dateien bekommen neutrale Namen, Spieler sehen darin keine Lösung.
-- Voraussetzung: freigeschaltetes Moderator-Konto und die einmalige Einrichtung aus `FIREBASE_SETUP.md` („v25.1 Datei-Upload“).
-
-**Alternativ über das GitHub-Repo:**
-
-1. **Auf GitHub hochladen:** Im Repo den Ordner `assets` öffnen, dann **Add file → Upload files**.
-   - Für Ordnung sorgen Unterordner wie `assets/bilder/` und `assets/musik/`. Beim Hochladen einfach den Ordnernamen vor den Dateinamen schreiben.
-   - Dann auf **Commit changes** klicken.
-   - Im Editor bringt dich auch der Knopf **⬆ Neue Datei auf GitHub hochladen** im Auswahlfenster direkt dorthin.
-2. **Etwa 1–2 Minuten warten.** So lange braucht GitHub Pages, bis die Datei auf der Website erreichbar ist.
-3. **Im Editor auswählen:** Neben jedem Bild- oder Audiofeld gibt es **📁 Auswählen**.
-   - Das Fenster zeigt alle Dateien aus `assets/` mit Vorschau, Größe und Ordner. Audio kannst du dort mit ▶ probehören.
-   - Ein Klick auf **Übernehmen** trägt den Pfad ein, zum Beispiel `./assets/bilder/eiffelturm.webp`.
-   - Neu hochgeladene Dateien erscheinen nach **↻**.
-4. **Prüfung unter dem Feld beachten:**
-   - ✓ **Gefunden**: alles in Ordnung, mit Dateigröße.
-   - ⚠ **Hinweis**: funktioniert, ist aber nicht ideal, zum Beispiel wegen eines großen WAV oder Leerzeichen im Namen.
-   - ✗ **Fehler**: funktioniert nicht, zum Beispiel wenn die Datei nicht gefunden wird oder HEIC ist.
-   - Bei falscher **Groß- und Kleinschreibung** schlägt der Editor den richtigen Namen vor („Meintest du …? Übernehmen“).
-
-### Welche Dateiformate
-
-| Wofür | Empfohlen | Geht auch | Vermeiden | Ziel-Größe |
-|---|---|---|---|---|
-| **Bilder** (Bilderquiz, Hotspot, Albumcover) | **WebP**, **JPG** | PNG, SVG, GIF, AVIF | **HEIC** (iPhone-Fotos), TIFF, BMP | ca. 1200–1600 px breit, **unter 500 KB** |
-| **Audio** (Audio-Quiz, Song-Enthüllung) | **MP3** (128–192 kbit/s) | M4A / AAC | **WAV** (zehnmal so groß), **OGG/Opus** (läuft nicht auf älteren iPhones), FLAC, WMA | ein ganzer Song ca. 3–5 MB, ein Clip unter 1 MB |
-| **Video** (noch kein Spielmodus) | **MP4 (H.264)** | WebM | MOV, AVI, MKV | unter 25 MB |
-
-- **Bilder verkleinern oder umwandeln:** zum Beispiel mit [squoosh.app](https://squoosh.app). Das ist kostenlos und läuft im Browser.
-- **iPhone-Fotos (HEIC):** Unter Einstellungen → Kamera → Formate → **„Maximale Kompatibilität“** speichert das iPhone neue Fotos als JPG. Vorhandene HEIC-Fotos vorher mit einem HEIC-zu-JPG-Konverter umwandeln.
-- **Audio in MP3 umwandeln:** zum Beispiel mit [Audacity](https://www.audacityteam.org) (Export → MP3) oder einem Online-Konverter.
-
-### Dateinamen
-
-- Nur **Kleinbuchstaben, Zahlen und Bindestriche**, also `eiffel-turm.jpg` statt `Eiffel Turm.JPG`.
-- **Keine Leerzeichen, keine Umlaute.**
-- GitHub unterscheidet **Groß- und Kleinschreibung**: `Bild.jpg` ist nicht `bild.jpg`.
-- **Song-Enthüllung:** Songs **neutral benennen**, zum Beispiel `song-01.mp3`, weil Spielergeräte den Dateinamen sehen könnten. Der Editor warnt, wenn der Name die Lösung verrät.
-
-### Links von anderen Websites (`https://…`)
-
-| | Bild | Audio-Quiz | Song-Enthüllung |
-|---|---|---|---|
-| Direkter Link auf eine Datei (`…/bild.jpg`, `…/clip.mp3`) | meistens ✓ | oft ✓ | meist ✗ (braucht eine Freigabe der fremden Seite) |
-| Google Drive, Dropbox, OneDrive, iCloud | fast nie | fast nie | ✗ |
-| YouTube, Spotify | ✗ | ✗ | ✗ |
-
-Fremde Links können jederzeit verschwinden. Für Quizabende ist **ins Repo hochladen** am zuverlässigsten, bei Musik ist es praktisch Pflicht.
-
-### Wie viel passt
-
-| Grenze | Wert |
-|---|---|
-| Eine Datei beim Hochladen über github.com | max. **25 MB** |
-| Ganzes Repo (Empfehlung von GitHub) | unter **1 GB**, das sind grob 200 Songs als MP3 plus Bilder |
-| Datenabruf GitHub Pages | ca. **100 GB pro Monat**. Ein Quizabend mit 10 Spielern und 10 Songs braucht etwa 0,5 GB |
-
-## Spielmodi
-
-**Begriffe (überall gleich):** Der **Spielmodus** bestimmt, wie eine Frage gespielt und gewertet wird (Multiple Choice, Buzzer, Dilemma, Themen-Brett …). Das **Thema** ist das inhaltliche Gebiet (Geografie, Musik …). Das **Design** ist das Aussehen (Neon Arena, Mario Kart …).
-
-Alle Spielmodi mit Erklärung und spielbarer Demo stehen auf **`spielmodi.html`** (verlinkt auf der Startseite, im Editor und in der Lobby). Die Texte kommen aus einer Quelle: dem Feld `help` in `js/question-types/types/<typ>.js` (Brett und Einsatz-Finale: `js/core/modes.js`).
-
-**Im Spiel (ab v35):** Kommt ein Spielmodus zum ersten Mal dran, zeigt der Beamer vor dem Start eine Karte „Neu: … – so geht's“ (verschwindet mit dem Start der Frage oder per Leertaste/Klick). Am Handy erscheint dieselbe Karte zum Wegtippen, danach steht über jeder Frage der Spielmodus mit **„?“** zum erneuten Öffnen. Der Moderator sieht dazu „🆕 Neu: …“ mit seinen Tipps.
-
-| | Spielmodus | Kurz erklärt |
-|---|---|---|
-| ◉ | Multiple Choice | Klassische Auswahl mit einer richtigen Antwort |
-| ⚖ | Wahr oder falsch | Eine Aussage ist wahr oder falsch |
-| ▣ | Bilderquiz | Bild plus Antwortoptionen |
-| ♪ | Audio-Quiz | Audio-Clip plus Antwortoptionen |
-| 🎧 | Song-Enthüllung | Song in Stufen anspielen (0,1 s → 10 s). Wer früher richtig liegt, bekommt mehr Punkte, der Moderator prüft. Lautstärke pro Song einstellbar, Stille am Anfang wird übersprungen |
-| 🕵️ | Hinweis-Kaskade | „Wer/Was bin ich?“: 3–5 Hinweise von schwer nach leicht, Stufe für Stufe per Leertaste oder automatisch. Jeder loggt einmal ein – je früher, desto mehr Punkte (100/80/60/40/20 %). Tippfehler erkennt das System (≈), der Moderator prüft |
-| 🖼️ | Bild-Enthüllung | Ein Bild wird in 4–5 Stufen enthüllt: verpixelt, Zoom oder Kacheln. Einloggen und Punkte wie bei der Hinweis-Kaskade. Das Moderator-Gerät zeichnet die Stufen, Spieler bekommen das scharfe Bild erst bei der Auflösung |
-| ≈ | Schätzfrage | Wert per Regler schätzen. Wertung wählbar: **Nächste/r gewinnt** (Standard), **nur innerhalb der Toleranz** oder **je näher, desto mehr** |
-| ↕ | Sortierquiz | Elemente per Drag & Drop in die richtige Reihenfolge bringen |
-| ⇄ | Zuordnen | Paare bilden, zum Beispiel Land ↔ Hauptstadt |
-| ✍ | Lückentext | Wort eintippen, der Moderator bestätigt (Rechtschreibung ist egal) |
-| ✎ | Fight List | Möglichst viele passende Begriffe sammeln. Das System zählt die Treffer, auch mit kleinen Tippfehlern, und du kannst die Zahl pro Spieler anpassen |
-| ⌖ | Hotspot | Auf einem Bild die gesuchte Stelle treffen |
-| ▥ | Publikums-Duell | Die häufigste Umfrage-Antwort finden |
-| ◎ | Dilemma | Punkte für die Antwort der Mehrheit – nur ab 2 Stimmen; wählen alle unterschiedlich, gibt es „Keine Mehrheit“ und 0 Punkte |
-| ⚡ | Buzzer | Wer zuerst buzzert, darf antworten, der Moderator entscheidet |
-| 📶 | Einordnen | Reihum Karten (zum Beispiel Länder) auf einer Leiste von niedrig nach hoch einordnen. Falsch kostet ein Leben, am Ende entscheidet ein Stechen. Punkte pro Karte plus Platzierung |
-| ▦ | 3×3-Grid | Neun Felder, jedes muss zu seiner Zeile und Spalte passen. Alle tippen gleichzeitig, das System prüft pro Feld vor, du drehst Fehler per Tipp um. Punkte pro Feld plus Bonus fürs volle Grid |
-| ⏱ | Zeitduell | Bilder-Duell mit Schachuhr: reihum raten, Passen kostet Zeit, wer auf 0 fällt, scheidet aus. Punkte nach Platzierung. Mündlich oder getippt |
-
-Das Beispiel-Quiz **„Sylasphere: Showtime“** enthält alle 19 Spielmodi. (Higher / Lower ist seit v24 aus der Auswahl entfernt; alte Quizze mit solchen Fragen laufen weiter.)
-
-**Antworten zählen automatisch:** Spieler müssen nichts abschicken. Was beim Ende der Zeit (oder wenn du die Antworten schließt) eingetippt oder ausgewählt ist, zählt. Nur bei der Song-Enthüllung („Abschicken“), der Hinweis-Kaskade und der Bild-Enthüllung („Einloggen“) gibt man die Antwort bewusst ab, weil dort die frühe Antwort mehr Punkte bringt. **„Zeitduell – Demo“** enthält zwei fertige Zeitduelle. Wie man einen neuen Spielmodus ergänzt, steht in `js/question-types/README.md`.
-
-### 3×3-Grid im Detail
-
-1. **Vorbereiten:** Im Editor drei Zeilen- und drei Spaltenbegriffe eintragen (Text und/oder Bild, zum Beispiel Vereinslogos oder Flaggen). In jedes der 9 Felder alle gültigen Antworten schreiben, eine pro Zeile. Nachnamen und kleine Tippfehler erkennt das System selbst.
-2. **Einstellen:** Timer für das ganze Grid (Standard 180 s), „Punkte“ pro richtigem Feld, Bonus für ein komplett richtiges Grid.
-3. **Spielen:** Frage öffnen. Alle tippen gleichzeitig: Feld antippen, unten eintippen, Enter springt weiter. Eine Antwort darf nur einmal im Grid stehen, das Handy warnt sofort.
-4. **Prüfen und Auflösen:** Nach dem Schließen siehst du pro Spieler ein kleines Grid mit ✓ / ≈ / ✗. Tippe nur die Felder an, die du umdrehen willst, dann **✨ Frage auflösen**. Alle sehen ihr Grid mit Markierungen und die gültigen Antworten.
-
-### Einordnen im Detail
-
-1. **Vorbereiten:** Im Editor Messgröße und Einheit eintragen (zum Beispiel „Einwohner“, „Mio.“), dann die Karten mit Name, Wert und optional Bild. Schnell geht es mit **„📋 Liste einfügen“** (eine Karte pro Zeile, `Name; Wert; Bild`, auch direkt aus Excel) oder **„⬆ Bilder hochladen“**. Eine Karte als **⚓ Anker** markieren, sie liegt von Anfang an auf der Leiste.
-2. **Einstellen:**
-   - Leben pro Spieler (Standard 3) und Zeit pro Zug (0 = ohne).
-   - **Werte zeigen:** sofort beim richtigen Einordnen oder erst beim Aufdecken (Standard). Den Anker-Wert kann man zur Orientierung zeigen oder verstecken.
-   - **Punkte:** pro richtiger Karte (Standard 10) plus Platzierung in % der Fragenpunkte (Standard 100 / 60 / 30). Der Editor rechnet ein Beispiel vor.
-3. **Spielen (in Runden, seit v32):** Frage öffnen, dann **🎲 Spiel starten**. Der Zufall legt die Reihenfolge fest. In jeder **Runde** ist jeder Spieler mit Leben genau einmal dran. Wer dran ist, zieht auf dem Handy eine Karte an eine Stelle (oder tippt Karte und ＋ an) und bestätigt. Das System prüft sofort. Falsch heißt: Die Karte geht zurück in den Pool und der Spieler verliert ein Leben. Wer auf 0 fällt, scheidet aus – die Runde wird aber zu Ende gespielt. Moderator und Beamer zeigen „Runde n · noch dran: …“.
-4. **Nach jeder vollen Runde:**
-   - Hat **genau einer** noch Leben, gewinnt er sofort.
-   - Haben **mehrere** noch Leben, geht es weiter.
-   - Hat **keiner** mehr Leben, gibt es ein **Stechen** zwischen den in dieser Runde Ausgeschiedenen: Pro Stechrunde legt jeder eine Karte. Genau einer richtig → Sieger. Liegen einige richtig und andere falsch, fliegen die Falschen raus. Nach höchstens 3 Stechrunden (oder wenn die Karten ausgehen) gewinnt, wer im ganzen Spiel mehr Karten richtig gelegt hat, sonst teilen sie sich Platz 1.
-   - Gehen die Karten vorher aus: Rang nach übrigen Leben, dann richtigen Karten.
-   - **Platzierung:** später ausgeschieden = besser; in derselben Runde entscheiden das Stechen und dann die richtigen Karten, sonst ist der Platz geteilt (gleiche Punkte).
-   - Danach **👁 Aufdecken** (zeigt alle Werte) und **✓ Auflösen**.
-
-Hinweis: Wie beim Zeitduell führt das Moderator-Gerät den Spielstand und sollte während des Spiels geöffnet bleiben.
-
-### Zeitduell im Detail
-
-1. **Vorbereiten:** Bilder in einen eigenen Ordner laden, zum Beispiel `assets/duell-tiere/`. Etwa 15–40 Bilder einplanen, damit sie nicht zu früh ausgehen. Im Editor „📁 Alle Bilder übernehmen“ nutzen. Die Lösung wird aus dem Dateinamen vorgeschlagen, bitte kurz prüfen.
-2. **Einstellen:** Zeit pro Spieler (Standard 30 s), Strafzeit fürs Passen (3 s), Modus **mündlich** oder **tippen**, Punkte nach Platz (zum Beispiel `100, 60, 30`).
-3. **Spielen:** Frage öffnen, dann **🎲 Duell starten**. Der Zufall bestimmt, wer anfängt.
-   - **Mündlich:** Du siehst die Lösung und drückst **✓ Richtig** (Enter) oder **⏭ Passen** (P).
-   - **Passen** kann der Spieler, der dran ist, auch selbst auf seinem Handy (in beiden Modi).
-   - **Tippen:** Der Spieler, der dran ist, tippt auf dem Handy. Richtige Antworten erkennt das System, Groß- und Kleinschreibung ist egal. Du kannst trotzdem jederzeit ✓ oder Passen drücken.
-   - **Pause** mit der Leertaste, **🏁 Duell beenden** jederzeit. Dann zählt die aktuelle Restzeit.
-4. **Ende:** Wenn nur noch einer übrig ist oder die Bilder ausgehen, tippst du auf **✨ Frage auflösen**. Die Punkte werden nach Platzierung vergeben.
-
-Hinweis: Das Moderator-Gerät führt die Uhr. Es sollte während des Duells geöffnet bleiben und nicht in den Standby gehen.
-
-### Themen-Brett (seit v34)
-
-Eine Runde kann statt „Normale Runde“ das Format **▦ Themen-Brett** haben (Editor → Runde → Format).
-- **Aufbau:** Standard 5 Themen × 3 Fragen mit 100 / 300 / 500 Punkten. Anzahl der Themen, Fragen pro Thema und die Punkte je Zeile sind einstellbar. Im Editor siehst du das Raster: Frage antippen = bearbeiten, am Griff ⠿ in ein anderes Feld ziehen (tauscht die Fragen). Am Handy geht das über „Frage … in Feld … verschieben“.
-- **Erlaubte Spielmodi:** Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade und Bild-Enthüllung – jeweils **richtig oder falsch, keine Teilpunkte**. Schätzfrage: richtig, wenn der Tipp innerhalb der Toleranz liegt (ohne Toleranz nur exakt).
-- **Ablauf:** Reihum in der Lobby-Reihenfolge. Wer dran ist, wählt am Handy ein Feld und antwortet allein: richtig = Feldwert, falsch = 0. Der Beamer zeigt das große Brett, wer dran ist und wer als Nächstes kommt; gespielte Felder werden grau mit Avatar.
-- **Mitraten** (im Editor abschaltbar, Standard an): Die anderen sehen die Frage und raten ohne Punkte mit. Bei der Auflösung steht „Hätten es auch gewusst: …“.
-- **Nur volle Runden:** Reicht der Rest nicht mehr für eine volle Runde (jeder einmal), spielen alle die übrigen Felder gemeinsam mit normaler Wertung. Das nächste Brett beginnt bei dem, der als Nächstes dran gewesen wäre.
-- **💎 Doppel-Felder** (Anzahl im Editor, Standard 0): versteckt, nie in der ersten Zeile. Wer eins erwischt, setzt 0 bis zu seinen Punkten (mindestens bis zum höchsten Feldwert): richtig = +Einsatz, falsch = 0.
-- **Moderator:** kann für den Spieler wählen (Feld antippen), den Einsatz eintragen oder mit „Überspringen“ den Zug weitergeben. Rückgängig, Pause und Neuladen funktionieren wie gewohnt.
-
-### Einsatz-Finale (seit v34)
-
-Im Editor (Quiz-Einstellungen) **„💰 Letzte Frage als Einsatz-Finale“** anhaken. Die letzte Frage des Quiz (Multiple Choice, Schätzfrage, Song-Enthüllung, Hinweis-Kaskade oder Bild-Enthüllung, nicht in einem Brett) wird dann so gespielt:
-1. **💰 Einsätze einsammeln:** Alle sehen nur das Thema und setzen geheim 0 bis alle eigenen Punkte (wer 0 oder weniger hat, bis 100).
-2. Dann läuft die Frage normal. **Richtig = +Einsatz, falsch = −Einsatz.**
-3. **Auflösung Spieler für Spieler** vom Letzten zum Ersten: Antwort → Einsatz → neue Punkte, jeweils per Leertaste. Die Rangliste bleibt bis zum Ende verborgen.
-
-Beispiel: das Demo-Quiz **„Show-Abend“** (Aufwärmen, Themen-Brett mit Doppel-Feld, Einsatz-Finale).
-
-## Einstellungen pro Gerät (⚙️)
-
-Oben rechts auf der Spieler-, Zuschauer- und Moderator-Seite:
-- **Design:** „Wie im Quiz“ (Standard) oder ein eigenes Design nur für dieses Gerät.
-- **Musik:** an/aus und Lautstärke, mit „Probehören“. Das ist praktisch, wenn der Ton am Moderator-Rechner stören würde.
-- **Soundeffekte:** an/aus und Lautstärke. Auf der Moderator-Seite standardmäßig aus.
-- **Vibration:** an/aus (Android-Handys, iPhones können im Browser nicht vibrieren).
-- **Emoji-Reaktionen:** Leiste am Handy bzw. Anzeige auf dem Beamer an/aus.
-- **Animationen reduzieren:** Der Hintergrund steht still, Übergänge werden zu einer kurzen Überblendung, es gibt kein Konfetti. Ohne eigene Wahl folgt es der Systemeinstellung des Geräts („Bewegung reduzieren“).
-
-## Spielerlebnis
-
-- **Soundeffekte** für Frage-Start, Countdown, Schließen, richtig/falsch, Buzzer, „Du bist dran“, Auflösung und Finale. Sie werden im Browser erzeugt, es gibt keine Audiodateien.
-- **Emoji-Reaktionen:** Spieler tippen unter der Frage auf ein Emoji, es fliegt mit ihrem Namen über den Beamer.
-- **Highlights am Ende:** Treffsicher, Buzzer-König, Knappste Schätzung, Punkte-Rakete, Pechvogel des Abends.
-- **Aufstiegs-Animation** in der Rangliste.
-
-## Designs
-
-Es gibt acht Designs: **Neon Arena**, **Retro-Show**, **Clean Light** (gut für Beamer), **Pub Quiz** und seit v29 **Mario Kart**, **League of Legends**, **GeoGuessr** und **Valorant**.
-
-- Du wählst das Design pro Quiz im Editor, auf Wunsch auch **pro Runde** (Feld „Design“ im Rundenkopf). Beim Rundenwechsel wechseln alle Geräte mit.
-- Spieler und Zuschauer übernehmen das Design automatisch.
-- Die neuen Designs bringen mit: eigenen Hintergrund mit Animationen, Deko am Rand, eigene Soundeffekte, einen kurzen **Übergang** zwischen den Fragen und eine eigene **Siegerehrung**.
-- **Vorschau:** Im Editor unter dem Design „👁 Vorschau zeigen“, oder direkt `vorschau.html?theme=geo` öffnen. Dort gibt es Knöpfe für Frage, Siegerehrung, Übergang und Sounds.
-- Zum Ausprobieren `?theme=kart` (oder `retro`, `light`, `pub`, `legends`, `geo`, `tactical`) an eine Adresse anhängen.
-- Die Designs tragen die Namen ihrer Vorbilder, weil die Seite nur privat genutzt wird. Sie enthalten keine Logos, Figuren, Original-Grafiken, Original-Schriften oder Original-Sounds. **Wird die Seite öffentlich, müssen sie umbenannt werden.** Die IDs (`kart`, `legends`, `geo`, `tactical`) sind neutral, damit gespeicherte Quizze beim Umbenennen weiter funktionieren.
-
-**Neues Design anlegen:** Eintrag in `THEMES` in `js/core/themes.js`, Aussehen in `css/themes/<id>.css` (in `css/themes/index.css` eintragen), optional Effekte in `js/themes/<id>.js` (Deko, Übergang, Siegerehrung, Sound-Paket). Schriften nur frei lizenziert und lokal in `assets/fonts/`.
-
-## Update einspielen
-
-1. ZIP entpacken und den **Inhalt** ins Repo hochladen: Add file → Upload files, dann alle Dateien und Ordner hineinziehen und bestehende Dateien überschreiben.
-2. Im `CHANGELOG.md` nachsehen, ob Dateien gelöscht werden müssen oder die **Firebase-Regeln** neu zu veröffentlichen sind.
-3. Nach 1–2 Minuten die Seite neu laden, am PC mit **Strg+Shift+R**. Oben links muss die neue Versionsnummer stehen.
-
-## Kosten und Grenzen
-
-Alles läuft **kostenlos**:
-
-| Dienst | Wofür | Gratis-Grenze |
-|---|---|---|
-| GitHub Pages | Website, Bilder, Musik | 1 GB Repo, ca. 100 GB Abruf pro Monat |
-| Firebase Authentication | Anmeldung (Google, E-Mail, Gäste) | für diese Nutzung praktisch unbegrenzt |
-| Firebase Realtime Database | Räume, Antworten, „Meine Quizze“, Dateiliste, XP und Statistiken (ca. 1 KB pro Spieler und Spiel) | 1 GB Speicher, ca. 360 MB Abruf pro Tag (Blaze) |
-| Firebase Cloud Storage (ab v25.1) | hochgeladene Bilder und Musik | 5 GB Speicher, 100 GB Abruf pro Monat (nur US-Standorte, Blaze-Tarif) |
-| Cloud Firestore (ab v25.1) | Liste, wer hochladen darf | 1 GB, 50.000 Lesevorgänge pro Tag |
-
-- Seit v25.1 läuft das Projekt im **Blaze-Tarif** (Kreditkarte hinterlegt), weil Cloud Storage nur dort verfügbar ist. Solange die Gratis-Grenzen nicht überschritten werden, kostet es nichts. Eine **Budget-Warnung bei 1 €** meldet sich sofort per E-Mail.
-- Im Blaze-Tarif gibt es keine harte Grenze von 100 gleichzeitigen Verbindungen mehr.
-- **Seit v33:** `admin.html` → **„📊 Nutzung & Kosten“** zeigt Uploads, Konten, Quizze, Spiele und offene Räume aus der eigenen Datenbank und – nach „🔗 Mit Google Cloud verbinden“ – die echten Google-Cloud-Zahlen als Ampel gegen die Freikontingente, mit Verlauf und grober Kostenschätzung. Einrichtung: FIREBASE_SETUP.md → v33. Freikontingente und Preise stehen in `js/core/usage-limits.js`.
+# Sylareads
+
+**Learn to read the world.** Ein Lesetrainer für GeoGuessr-Spieler: fremde Schriften lesen, Ortsnamen erkennen, Schilderwörter verstehen.
+
+Stand: **Meilenstein M3 + Orte-Ausbau** – vollständige Engine und vier Kurse: *Russian Cyrillic*, *Greek*, *Thai* und *Bengali* (Bangladesch). Jeder Kurs hat 100 Städte und alle Regionen erster Ebene; jeder Ort hat Koordinaten für die spätere Karte.
+
+## Was drin ist
+
+- 41 Lektionen Russisch: 33 Buchstaben in didaktischer Reihenfolge (Easy Wins → False Friends → neue Formen → komplexe Zeichen), Kleinbuchstaben-Fallen, Ortsnamen-Endungen, Namensbausteine, 4 Begriffslektionen, 11 Städte- und 13 Regionslektionen (auf der Karte)
+- 100 Städte (die größten nach Einwohnerzahl) und alle 83 international anerkannten Föderationssubjekte (ohne Krim und Sewastopol), 51 GeoGuessr-Begriffe mit Abkürzungen, 35 Übungswörter, 56 Kombinationen
+- Lernen, Üben, Freies Üben, alle acht Modi (Letters, Combinations, Words, Cities, Regions, GeoGuessr Terms, Weak Items, Mixed), Smart Practice, Scan-Aufgabe
+- Exaktes Answer Matching ohne Fuzzy-Logik: deutscher Name, englischer Name und Transliteration gleichwertig
+- Leitner-SRS mit 8 Boxen, Mastery (New / Learning / Familiar / Mastered), Weak Items inklusive Verwechslungspaaren
+- XP, Level, Streak, 15 Achievements, Lesbarkeits-Meilenstein („31 / 100 cities readable“)
+- DE/EN-Oberfläche, Dark Mode, Desktop und Mobile, komplett per Tastatur bedienbar
+- Fortschritt in localStorage, Export/Import als `sylareads-progress.json`
+
+### Greek
+
+- 27 Lektionen: 24 Buchstaben (Easy Wins → False Friends wie Η, Ρ, Ν, Β → neue Formen), zwei Lektionen Buchstabenpaare (αι ει οι ου, αυ ευ μπ ντ γκ γγ), Klein- und Großschrift ohne Akzente, Namensbausteine (Άγιος, Νέα, Άνω, Κάτω), 4 Begriffslektionen, 11 Städte- und 3 Regionslektionen
+- 100 Städte (die größten eigenständigen Orte; Vororte von Athen und Thessaloniki zählen zur Stadt, Piräus ausgenommen), alle 13 Regionen, 14 Inseln, 38 Schilderbegriffe
+- Transliteration nach ELOT 743 wie auf griechischen Wegweisern (Athina, Irakleio); die gängige gesprochene Form gilt ebenfalls (Iraklio, Pireas). Buchstabenpaare sind eigene Leseeinheiten: ευ ist ev/ef, nie „eu“.
+
+### Thai
+
+- 41 Lektionen: 42 Konsonanten, 15 Vokalzeichen und 5 Sonderzeichen (Tonzeichen, Karan, Mai Taikhu, Mai Yamok, Paiyannoi) in 11 Buchstabenlektionen, 3 Regellektionen (Silbenende, zusammengesetzte Vokale, unsichtbare Vokale), Namensbausteine, 4 Begriffslektionen, 11 Städte- und 11 Provinzlektionen (auf der Karte)
+- 100 Städte (alle 77 Provinzhauptstädte plus die 23 größten weiteren Städte wie Hat Yai, Pattaya, Ko Samui), alle 77 Provinzen (inkl. Bangkok), 36 Schilderbegriffe, 52 Übungswörter
+- Thai wird in Silben gelesen, nicht Buchstabe für Buchstabe. Deshalb gibt es keine regelbasierte Transliteration: Jedes Wort hat eine Liste erlaubter Lesungen nach RTGS (der Umschrift auf thailändischen Schildern), dazu verbreitete Varianten (Phuket, Chiang Mai, Ayutthaya). Tonhöhen werden nicht abgefragt – sie helfen beim Lesen von Schildern nicht.
+- Vokalzeichen erscheinen mit Platzhalterkreis (◌า), damit sichtbar ist, wo sie am Konsonanten sitzen.
+
+### Bengali
+
+- 41 Lektionen: 36 Konsonanten, 11 unabhängige Vokale, 10 Vokalzeichen und 4 Sonderzeichen in 11 Buchstabenlektionen, Phala und Reph, 2 Lektionen Ligaturen (ট্ট ল্ল ক্স ঞ্জ ঙ্গ ক্ষ ষ্ট হ্ম ন্ধ ঞ্চ স্ট স্ক), Ortsnamen-Endungen (-পুর, -গঞ্জ, -বাজার, -হাট, -গ্রাম, -খালী), 4 Begriffslektionen, 1 Divisionslektion, 10 Distriktlektionen und 11 Städtelektionen
+- 100 Städte (alle 64 Distrikthauptstädte plus 36 große Orte wie Savar, Sreemangal, Teknaf, Benapole), alle 8 Divisionen und alle 64 Distrikte, 32 Schilderbegriffe (viele englische Lehnwörter wie রোড, স্টেশন, কলেজ)
+- Englische Namen nach der offiziellen Schreibweise von 2018 (Chattogram, Cumilla, Barishal, Jashore, Bogura); die älteren Formen (Chittagong, Comilla, Barisal, Jessore, Bogra) gelten ebenfalls. Ligaturen sind eigene Leseeinheiten, weil man sie als Ganzes erkennt.
+
+### Karten (Bengali, Russian Cyrillic, Thai)
+
+Drei Kurse haben eine klickbare Karte mit allen Gebieten der ersten Verwaltungsebene:
+
+| Kurs | Gebiete | Gruppiert nach | Lektionen |
+|------|---------|----------------|-----------|
+| Bengali | 64 Distrikte | 8 Divisionen | 10 |
+| Russian Cyrillic | 83 Föderationssubjekte (ohne Krim und Sewastopol) | 8 Föderationskreise | 13 |
+| Thai | 77 Provinzen | 6 Landesteile | 11 |
+
+- Die Lektionen sind geografisch geordnet, damit Nachbarn zusammen gelernt werden (z. B. „Moskau & Goldener Ring“, „Isan: am Mekong“).
+- Aufgaben: **Wo liegt …?** (Namen in Originalschrift lesen, Gebiet anklicken), **Welche/r … ist markiert?** (markierte Fläche, Auswahl aus vier Nachbarn in Originalschrift) und das Tippen des Namens.
+- Tab **Karte** zum Erkunden mit Zoom (Mausrad, Ziehen, zwei Finger, +/−) und Beschriftung in Originalschrift, Latein oder aus. In Kartenaufgaben ist die Beschriftung standardmäßig aus; das gesuchte Gebiet ist nie beschriftet.
+- Zielkarte auf der Übersicht („Ziel: alle 64 Distrikte“ usw.) und „… üben“ startet eine Übung nur mit Kartengebieten (`?layer=map`).
+- Grenzen: [geoBoundaries](https://www.geoboundaries.org) gbOpen ADM1/ADM2 (CC BY 4.0), vereinfacht und vorprojiziert in `src/content/<kurs>/map.json` (je ≈ 100 KB, wird nur mit dem jeweiligen Kurs geladen). Russland nutzt eine flächentreue Kegelprojektion (Albers), Thailand und Bangladesch eine einfache Zylinderprojektion. Jede der 100 Städte jedes Kurses liegt geprüft innerhalb ihres Gebiets.
+
+### Koordinaten und Quellen
+
+Jeder Ort hat einen Kartenpunkt (`coords`, Breite/Länge) in `src/content/<kurs>/coords.ts`. Die Datei ist generiert: Städte stammen aus [GeoNames](https://www.geonames.org) (CC BY 4.0), Regionen sind die Label-Punkte aus [Natural Earth](https://www.naturalearthdata.com) (gemeinfrei). Jede Stadt wurde gegen das Polygon ihrer Region geprüft; einige kleinere Orte in Bangladesch und die griechischen Inseln sind von Hand gesetzt. Die Polygone aus Natural Earth sind die Grundlage für die geplante Karte.
+
+## Lokal starten
+
+Voraussetzung: Node.js 20 oder neuer.
+
+```bash
+npm install
+npm run dev        # Entwicklungsserver auf http://localhost:5173
+npm test           # Logik- und Inhaltstests
+npm run build      # statischer Build nach dist/
+npm run preview    # Build lokal ansehen
+```
+
+## Deployment auf GitHub Pages
+
+1. Neues Repository auf GitHub anlegen (öffentlich oder privat mit Pages-Freigabe), z. B. `sylareads`.
+2. Projekt hochladen:
+   ```bash
+   git init
+   git add .
+   git commit -m "Sylareads M1"
+   git branch -M main
+   git remote add origin https://github.com/<dein-name>/sylareads.git
+   git push -u origin main
+   ```
+3. Im Repository unter **Settings → Pages → Build and deployment → Source** die Option **GitHub Actions** wählen.
+4. Der Workflow `.github/workflows/deploy.yml` startet bei jedem Push auf `main`: Typecheck, Tests, Build, Veröffentlichung. Nach etwa einer Minute ist die App unter `https://<dein-name>.github.io/sylareads/` erreichbar. Den Fortschritt siehst du unter **Actions**.
+5. Den Link an ausgewählte Personen schicken. Es gibt keinen Login; wer den Link hat, kann die App nutzen.
+
+Weitere Hinweise:
+
+- Der Build verwendet relative Pfade und Hash-Routing (`#/russian/learn`). Der Repository-Name ist deshalb egal, und direkte Links funktionieren ohne Server-Konfiguration.
+- Schlägt ein Test fehl, wird nicht veröffentlicht. Die Inhaltstests prüfen u. a., dass jeder Ort mit allen Namen erkannt wird und keine Antwort zwei Orte gleichzeitig trifft.
+- Eigene Domain: unter **Settings → Pages → Custom domain** eintragen.
+
+## Fortschritt und Datenschutz
+
+Ohne Anmeldung bleibt alles im Browser des Nutzers (localStorage, ca. 200 KB im Vollausbau). Es gibt keine Tracker. Safari kann Website-Daten nach 7 Tagen ohne Besuch löschen; deshalb im Profil regelmäßig **Fortschritt exportieren** oder online speichern. Der Import zeigt vorher an, was ersetzt wird, und behält den alten Stand als Sicherung.
+
+## Online-Speicherung (optional, Firebase)
+
+Im Profil erscheint „Online speichern“, sobald eine Firebase-Konfiguration eingetragen ist. Nutzer melden sich mit Google an; der Fortschritt wird ein paar Sekunden nach jeder Änderung, beim Öffnen und beim Zurückkehren in die App abgeglichen. Fortschritt von mehreren Geräten wird **zusammengeführt** (pro Lernobjekt gilt die zuletzt beantwortete Version, Lektionen und Achievements werden vereinigt), nichts wird überschrieben. Nur „Fortschritt zurücksetzen“ und „Importieren“ ersetzen bewusst auch die Online-Kopie. Firebase wird erst geladen, wenn jemand die Online-Speicherung nutzt.
+
+Einrichtung (einmalig, kostenloser Spark-Tarif reicht):
+
+1. [Firebase Console](https://console.firebase.google.com) → **Projekt hinzufügen**, z. B. `sylareads` (Google Analytics wird nicht gebraucht). Ein eigenes Projekt hält die Daten getrennt von anderen Seiten.
+2. **Build → Authentication → Jetzt starten → Sign-in method → Google** aktivieren, Support-E-Mail wählen, speichern.
+3. **Authentication → Settings → Authorized domains → Domain hinzufügen:** `<dein-name>.github.io`.
+4. **Build → Firestore Database → Datenbank erstellen**, Standort z. B. `eur3 (europe-west)`, Produktionsmodus. Dann im Tab **Regeln** einfügen und **Veröffentlichen**:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /sylareads/{uid} {
+         allow read, delete: if request.auth != null && request.auth.uid == uid;
+         allow create, update: if request.auth != null && request.auth.uid == uid
+           && request.resource.data.data is string
+           && request.resource.data.data.size() < 900000;
+       }
+     }
+   }
+   ```
+   Jeder angemeldete Nutzer kann so nur sein eigenes Dokument lesen und schreiben.
+5. **Projekteinstellungen (Zahnrad) → Allgemein → Meine Apps → Web-App hinzufügen (`</>`)**, Name `Sylareads`, kein Firebase Hosting. Die angezeigte `firebaseConfig` in `src/sync/firebaseConfig.ts` bei `FIREBASE_CONFIG` eintragen (statt `null`). Die Werte sind öffentlich und dürfen ins Repository; geschützt wird über die Regeln oben.
+
+Gespeichert wird pro Nutzer ein Dokument `sylareads/<uid>` mit dem Fortschritt als JSON (wie beim Export) und dem Zeitpunkt der letzten Speicherung.
 
 ## Projektstruktur
 
 ```
-index.html · spieler.html · moderator.html · zuschauer.html · editor.html · admin.html · profil.html · vorschau.html · spielmodi.html
-css/main.css                    Gestaltung aller Seiten und die 4 ersten Designs
-css/ui.css                      Oberfläche ab v36: gemeinsame Bausteine (Schrift, Knöpfe, Felder, Kacheln …)
-css/themes/                     Designs ab v29 (eine Datei pro Design, Liste in index.css)
-js/themes/                      Effekte der Designs ab v29 (Deko, Übergang, Siegerehrung, Sound-Paket)
-data/                           Beispiel-Quizze (JSON) + quiz-list.json
-assets/                         Bilder, Musik, Schriften (hier eigene Mediendateien ablegen)
-js/core/
-  app.js                        kleine Helfer (Toast, JSON-Import/-Export …)
-  firebase-service.js           Verbindung zu Firebase
-  account.js / account-ui.js    Konten, Rollen, Login-Oberfläche
-  cloud-quizzes.js              „Meine Quizze“ (Online-Speicher)
-  cloud-media.js                Datei-Upload (Firebase Storage) + Upload-Freigaben
-  settings.js                   ⚙️ Einstellungen pro Gerät (Design, Musik, Soundeffekte, Vibration, Reaktionen)
-  sfx.js                        Soundeffekte (im Browser erzeugt) und Vibration
-  reactions.js                  Emoji-Reaktionen (Leiste am Handy, Flug-Animation)
-  highlights.js                 Highlights am Show-Ende
-  modes.js                      Spielmodi erklären: Neu-Karte, ?, Galerie (ab v35)
-  show-formats.js               Themen-Brett + Einsatz-Finale (reine Spiellogik, ab v34)
-  progress.js                   XP, Stufen, Emotes, Statistik (reine Rechenlogik)
-  progress-store.js             XP & Statistik in Firebase, Bestenliste, Räume aufräumen
-  moderator-gate.js             Zugang zu Moderatorseite und Editor (nur freigeschaltete Konten)
-  session-engine.js             lokaler Spielablauf (Testmodus)
-  online-session-engine.js      Online-Spielablauf über Firebase
-  quiz-utils.js · quiz-validator.js · timer-engine.js · topics.js · themes.js · media-player.js
-js/question-types/              ein Modul pro Spielmodus (+ README zum Erweitern)
-js/editor/                      Editor, Themenauswahl, Medien-Auswahl
-js/views/                       Startseite, Moderator-, Spieler-, Zuschauer-, Profil- und Verwaltungsansicht
-firebase-database.rules.json    Sicherheitsregeln (in Firebase veröffentlichen)
-storage.rules                   Regeln für den Dateispeicher (ab v25.1)
-firestore.rules                 Regeln für die Upload-Freigaben (ab v25.1, Admin-ID eintragen)
-tests/                          automatische Tests (tests/lib/: Hilfen, z. B. Regel-Auswerter)
+src/
+  domain/      reine Logik ohne React: Normalisierung, Matching, SRS, Session-Engine,
+               Lektions- und Übungs-Builder, Statistik, XP/Level/Streak, Achievements
+  content/     Inhalte pro Kurs (ru/, el/, th/, bn/: Leseeinheiten, Wörter, Begriffe,
+               Orte, Lektionen, Transliterationsregeln) und das Kurs-Register
+  store/       Zustand-Store, localStorage, Migrationen, Import/Export
+  sync/        Online-Speicherung über Firebase (optional, lazy geladen)
+  i18n/        Wörterbücher de/en und Übersetzungsfunktion
+  features/    Seiten: home, dashboard, learn, practice, session, script, profile
+  ui/          Bausteine: Buttons, Balken, Top-Bar, Modal
+  styles/      Design-Tokens und Styles
 ```
 
-## Tests
+## Einen Kurs ergänzen
 
-Die Tests brauchen nur [Node.js](https://nodejs.org):
+1. Ordner `src/content/<kurs>/` anlegen. Für Alphabetschriften dient `ru/` oder `el/` als Muster (Segmentierungsregeln in `segments`), für Abugidas `th/` oder `bn/` (`segments: () => []`, explizite Antwortlisten, Leseeinheiten über `requiredLetters`).
+2. Im Register `src/content/registry.ts` den Kurs auf `status: 'available'` setzen und `load` eintragen.
+3. Den Kurs in `src/content/content.test.ts` zur Liste `courses` hinzufügen. Die Tests prüfen Eindeutigkeit, Decodierbarkeit, Antwortlisten und Übersetzungen.
 
-```bash
-for t in tests/*.js; do node "$t"; done
-```
+## Antwortregeln
 
-Jede Datei endet mit `PASS x / FAIL 0`. Geprüft werden unter anderem die Spielmodi und die Punktevergabe, der Online-Ablauf, die Buzzer-Logik und die Firebase-Regeln. Bei den Regeln geht es darum, wer was lesen und schreiben darf.
+Eine Antwort ist richtig, wenn sie nach der Normalisierung exakt einer definierten Form entspricht. Normalisiert werden nur Groß-/Kleinschreibung, Leerzeichen am Rand, Akzente (ä → a), Strichvarianten und Apostrophe; Bindestrich und Leerzeichen gelten als gleich. Ein Tippfehler bleibt ein Fehler.
